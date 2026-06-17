@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "tsonic-surface-implementation-package",
+  "target": "csharp",
+  "implements": [
+    "@tsonic/js"
+  ],
+  "requiredTypeRoots": [
+    "."
+  ],
+  "source": {
+    "namespace": "js",
+    "ambient": [
+      "./globals.ts"
+    ],
+    "exports": {
+      ".": "./src/index.ts",
+      "./index.js": "./src/index.ts",
+      "./Array.js": "./src/array-object.ts",
+      "./array-buffer-object.js": "./src/array-buffer-object.ts",
+      "./ArrayBuffer.js": "./src/array-buffer-object.ts",
+      "./Boolean.js": "./src/Boolean.ts",
+      "./console.js": "./src/console-object.ts",
+      "./Date.js": "./src/date-object.ts",
+      "./DataView.js": "./src/data-view.ts",
+      "./Error.js": "./src/error-object.ts",
+      "./Float32Array.js": "./src/float32-array.ts",
+      "./Float64Array.js": "./src/float64-array.ts",
+      "./Globals.js": "./src/Globals.ts",
+      "./Int16Array.js": "./src/int16-array.ts",
+      "./Int32Array.js": "./src/int32-array.ts",
+      "./Int8Array.js": "./src/int8-array.ts",
+      "./JSON.js": "./src/json-object.ts",
+      "./Map.js": "./src/map-object.ts",
+      "./Math.js": "./src/math-object.ts",
+      "./Number.js": "./src/number-object.ts",
+      "./Object.js": "./src/object-object.ts",
+      "./RangeError.js": "./src/range-error.ts",
+      "./RegExp.js": "./src/regexp-object.ts",
+      "./Set.js": "./src/set-object.ts",
+      "./String.js": "./src/String.ts",
+      "./TextEncoder.js": "./src/text-encoder.ts",
+      "./timers.js": "./src/timers.ts",
+      "./Uint16Array.js": "./src/uint16-array.ts",
+      "./Uint32Array.js": "./src/uint32-array.ts",
+      "./Uint8Array.js": "./src/uint8-array.ts",
+      "./Uint8ClampedArray.js": "./src/uint8-clamped-array.ts",
+      "./WeakMap.js": "./src/weak-map-object.ts",
+      "./WeakSet.js": "./src/weak-set-object.ts"
+    }
+  }
+}

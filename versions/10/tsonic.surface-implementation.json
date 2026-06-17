@@ -1,0 +1,13 @@
+{
+  "schema": "tsonic.surface-implementation",
+  "target": "csharp",
+  "surface": "@tsonic/js",
+  "package": "@tsonic/csharp-js",
+  "runtimePackages": [
+    "Tsonic.CSharp.Runtime"
+  ],
+  "source": {
+    "namespace": "js",
+    "exportsFrom": "./tsonic.package.json"
+  }
+}
