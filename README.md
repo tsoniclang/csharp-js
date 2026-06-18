@@ -1,18 +1,5 @@
-# @tsonic/csharp-js
+# Tsonic C# JS Runtime
 
-C# implementation package for the portable `@tsonic/js` source surface.
+C# implementation of the JavaScript/global surface for the Tsonic C# target.
 
-This package owns .NET-backed JavaScript surface behavior for the `csharp`
-target only. It may import `@tsonic/dotnet` and C# runtime packages. The
-portable `@tsonic/js` package must not.
-
-User source imports remain target-neutral:
-
-```ts
-import { console } from "@tsonic/js/console.js";
-
-console.log("hello");
-```
-
-The C# target maps that source operation to this package when building for
-`--target csharp`.
+This repository contains the CLR implementation for JavaScript globals and built-ins such as arrays, maps, sets, JSON, math, timers, typed arrays, and console. It is selected only when a Tsonic project uses the JS/global surface with the C# target.

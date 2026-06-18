@@ -1,9 +1,0 @@
-{
-  "name": "@tsonic/csharp-js-repo",
-  "private": true,
-  "description": "Repo for @tsonic/csharp-js, the C# implementation of @tsonic/js",
-  "type": "module",
-  "scripts": {
-    "publish:10": "npm publish ./versions/10 --access public"
-  }
-}

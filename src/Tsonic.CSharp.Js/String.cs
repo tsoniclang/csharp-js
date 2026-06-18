@@ -1,0 +1,513 @@
+/**
+ * JavaScript String extension methods
+ * Operates on native C# string type
+ */
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Tsonic.CSharp.Js
+{
+    /// <summary>
+    /// Extension methods for JavaScript string operations
+    /// </summary>
+    public static class String
+    {
+        /// <summary>
+        /// Convert string to upper case
+        /// </summary>
+        public static string toUpperCase(this string str)
+        {
+            return str.ToUpper();
+        }
+
+        /// <summary>
+        /// Convert string to lower case
+        /// </summary>
+        public static string toLowerCase(this string str)
+        {
+            return str.ToLower();
+        }
+
+        /// <summary>
+        /// Remove whitespace from both ends
+        /// </summary>
+        public static string trim(this string str)
+        {
+            return str.Trim();
+        }
+
+        /// <summary>
+        /// Remove whitespace from start
+        /// </summary>
+        public static string trimStart(this string str)
+        {
+            return str.TrimStart();
+        }
+
+        /// <summary>
+        /// Remove whitespace from end
+        /// </summary>
+        public static string trimEnd(this string str)
+        {
+            return str.TrimEnd();
+        }
+
+        /// <summary>
+        /// Get substring from start to end
+        /// </summary>
+        public static string substring(this string str, int start, int? end = null)
+        {
+            int actualEnd = end ?? str.Length;
+            int length = System.Math.Max(0, actualEnd - start);
+            return str.Substring(start, System.Math.Min(length, str.Length - start));
+        }
+
+        /// <summary>
+        /// Get slice of string (supports negative indices)
+        /// </summary>
+        public static string slice(this string str, int start, int? end = null)
+        {
+            int len = str.Length;
+            int actualStart = start < 0 ? System.Math.Max(0, len + start) : System.Math.Min(start, len);
+            int actualEnd = end.HasValue
+                ? (end.Value < 0 ? System.Math.Max(0, len + end.Value) : System.Math.Min(end.Value, len))
+                : len;
+
+            return str.Substring(actualStart, System.Math.Max(0, actualEnd - actualStart));
+        }
+
+        /// <summary>
+        /// Find first occurrence of substring
+        /// </summary>
+        public static int indexOf(this string str, string searchString, int position = 0)
+        {
+            return str.IndexOf(searchString, position);
+        }
+
+        /// <summary>
+        /// Find last occurrence of substring
+        /// </summary>
+        public static int lastIndexOf(this string str, string searchString, int? position = null)
+        {
+            return position.HasValue
+                ? str.LastIndexOf(searchString, position.Value)
+                : str.LastIndexOf(searchString);
+        }
+
+        /// <summary>
+        /// Check if string starts with substring
+        /// </summary>
+        public static bool startsWith(this string str, string searchString)
+        {
+            return str.StartsWith(searchString);
+        }
+
+        /// <summary>
+        /// Check if string ends with substring
+        /// </summary>
+        public static bool endsWith(this string str, string searchString)
+        {
+            return str.EndsWith(searchString);
+        }
+
+        /// <summary>
+        /// Check if string contains substring
+        /// </summary>
+        public static bool includes(this string str, string searchString)
+        {
+            return str.Contains(searchString);
+        }
+
+        /// <summary>
+        /// Replace first occurrence of search with replacement
+        /// </summary>
+        public static string replace(this string str, string search, string replacement)
+        {
+            return str.Replace(search, replacement);
+        }
+
+        /// <summary>
+        /// Repeat string count times
+        /// </summary>
+        public static string repeat(this string str, int count)
+        {
+            return string.Concat(Enumerable.Repeat(str, count));
+        }
+
+        /// <summary>
+        /// Pad string at start to target length
+        /// </summary>
+        public static string padStart(this string str, int targetLength, string padString = " ")
+        {
+            return str.PadLeft(targetLength, padString[0]);
+        }
+
+        /// <summary>
+        /// Pad string at end to target length
+        /// </summary>
+        public static string padEnd(this string str, int targetLength, string padString = " ")
+        {
+            return str.PadRight(targetLength, padString[0]);
+        }
+
+        /// <summary>
+        /// Get character at index
+        /// </summary>
+        public static string charAt(this string str, int index)
+        {
+            return index >= 0 && index < str.Length ? str[index].ToString() : "";
+        }
+
+        /// <summary>
+        /// Get character code at index.
+        /// Throws ArgumentOutOfRangeException if index is out of bounds.
+        /// </summary>
+        public static int charCodeAt(this string str, int index)
+        {
+            if (index < 0 || index >= str.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index), "Index out of range");
+            }
+            return str[index];
+        }
+
+        /// <summary>
+        /// Split string into array
+        /// </summary>
+        public static string[] split(this string str, string separator, int? limit = null)
+        {
+            // Handle empty separator - split into individual characters (JS behavior)
+            if (separator == "")
+            {
+                var chars = str.ToCharArray().Select(c => c.ToString()).ToArray();
+                if (limit.HasValue && chars.Length > limit.Value)
+                {
+                    return chars.Take(limit.Value).ToArray();
+                }
+                return chars;
+            }
+
+            string[] parts = str.Split(new[] { separator }, StringSplitOptions.None);
+
+            if (limit.HasValue && parts.Length > limit.Value)
+            {
+                string[] limited = new string[limit.Value];
+                System.Array.Copy(parts, limited, limit.Value);
+                return limited;
+            }
+
+            return parts;
+        }
+
+        /// <summary>
+        /// Get string length
+        /// </summary>
+        public static int length(this string str)
+        {
+            return str.Length;
+        }
+
+        /// <summary>
+        /// Get character at index (supports negative indices)
+        /// </summary>
+        public static string at(this string str, int index)
+        {
+            int actualIndex = index < 0 ? str.Length + index : index;
+            if (actualIndex < 0 || actualIndex >= str.Length)
+            {
+                return "";
+            }
+            return str[actualIndex].ToString();
+        }
+
+        /// <summary>
+        /// Get Unicode code point at index
+        /// </summary>
+        public static int codePointAt(this string str, int index)
+        {
+            if (index < 0 || index >= str.Length)
+            {
+                return -1;
+            }
+            return char.ConvertToUtf32(str, index);
+        }
+
+        /// <summary>
+        /// Concatenate strings (instance method version)
+        /// </summary>
+        public static string concat(this string str, params string[] strings)
+        {
+            return str + string.Concat(strings);
+        }
+
+        /// <summary>
+        /// Locale-aware string comparison
+        /// </summary>
+        public static int localeCompare(this string str, string compareString)
+        {
+            return string.Compare(str, compareString, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.CompareOptions.None);
+        }
+
+        /// <summary>
+        /// Match string against regex pattern
+        /// </summary>
+        public static string[]? match(this string str, string pattern)
+        {
+            var regex = new System.Text.RegularExpressions.Regex(pattern);
+            var match = regex.Match(str);
+
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var result = new List<string>();
+            result.Add(match.Value);
+
+            for (int i = 1; i < match.Groups.Count; i++)
+            {
+                result.Add(match.Groups[i].Value);
+            }
+
+            return result.ToArray();
+        }
+
+        /// <summary>
+        /// Match all occurrences against regex pattern
+        /// </summary>
+        public static string[][] matchAll(this string str, string pattern)
+        {
+            var result = new List<string[]>();
+            var regex = new System.Text.RegularExpressions.Regex(pattern);
+            var matches = regex.Matches(str);
+
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                var matchArray = new List<string>();
+                matchArray.Add(match.Value);
+
+                for (int i = 1; i < match.Groups.Count; i++)
+                {
+                    matchArray.Add(match.Groups[i].Value);
+                }
+
+                result.Add(matchArray.ToArray());
+            }
+
+            return result.ToArray();
+        }
+
+        /// <summary>
+        /// Search for regex pattern and return index
+        /// </summary>
+        public static int search(this string str, string pattern)
+        {
+            var regex = new System.Text.RegularExpressions.Regex(pattern);
+            var match = regex.Match(str);
+            return match.Success ? match.Index : -1;
+        }
+
+        /// <summary>
+        /// Replace all occurrences of search with replacement
+        /// </summary>
+        public static string replaceAll(this string str, string search, string replacement)
+        {
+            return str.Replace(search, replacement);
+        }
+
+        /// <summary>
+        /// Normalize Unicode string
+        /// </summary>
+        public static string normalize(this string str, string form = "NFC")
+        {
+            System.Text.NormalizationForm normForm = form switch
+            {
+                "NFD" => System.Text.NormalizationForm.FormD,
+                "NFKC" => System.Text.NormalizationForm.FormKC,
+                "NFKD" => System.Text.NormalizationForm.FormKD,
+                _ => System.Text.NormalizationForm.FormC
+            };
+            return str.Normalize(normForm);
+        }
+
+        /// <summary>
+        /// Get substring from start (deprecated but still used)
+        /// </summary>
+        public static string substr(this string str, int start, int? length = null)
+        {
+            int actualStart = start < 0 ? System.Math.Max(0, str.Length + start) : start;
+            if (actualStart >= str.Length)
+            {
+                return "";
+            }
+
+            int actualLength = length ?? (str.Length - actualStart);
+            actualLength = System.Math.Min(actualLength, str.Length - actualStart);
+
+            return str.Substring(actualStart, actualLength);
+        }
+
+        /// <summary>
+        /// Convert to lowercase using locale
+        /// </summary>
+        public static string toLocaleLowerCase(this string str)
+        {
+            return str.ToLower(System.Globalization.CultureInfo.CurrentCulture);
+        }
+
+        /// <summary>
+        /// Convert to uppercase using locale
+        /// </summary>
+        public static string toLocaleUpperCase(this string str)
+        {
+            return str.ToUpper(System.Globalization.CultureInfo.CurrentCulture);
+        }
+
+        /// <summary>
+        /// Convert to string
+        /// </summary>
+        public static string toString(this string str)
+        {
+            return str;
+        }
+
+        /// <summary>
+        /// Get primitive value
+        /// </summary>
+        public static string valueOf(this string str)
+        {
+            return str;
+        }
+
+        /// <summary>
+        /// Check if string is well-formed Unicode
+        /// </summary>
+        public static bool isWellFormed(this string str)
+        {
+            for (int i = 0; i < str.Length; i++)
+            {
+                char c = str[i];
+                if (char.IsSurrogate(c))
+                {
+                    if (char.IsHighSurrogate(c))
+                    {
+                        if (i + 1 >= str.Length || !char.IsLowSurrogate(str[i + 1]))
+                        {
+                            return false;
+                        }
+                        i++;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Ensure string is well-formed Unicode
+        /// </summary>
+        public static string toWellFormed(this string str)
+        {
+            var result = new System.Text.StringBuilder();
+            for (int i = 0; i < str.Length; i++)
+            {
+                char c = str[i];
+                if (char.IsSurrogate(c))
+                {
+                    if (char.IsHighSurrogate(c))
+                    {
+                        if (i + 1 < str.Length && char.IsLowSurrogate(str[i + 1]))
+                        {
+                            result.Append(c);
+                            result.Append(str[i + 1]);
+                            i++;
+                        }
+                        else
+                        {
+                            result.Append('\uFFFD'); // Replacement character
+                        }
+                    }
+                    else
+                    {
+                        result.Append('\uFFFD'); // Replacement character
+                    }
+                }
+                else
+                {
+                    result.Append(c);
+                }
+            }
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// Trim whitespace from start (alias for trimStart)
+        /// </summary>
+        public static string trimLeft(this string str)
+        {
+            return str.TrimStart();
+        }
+
+        /// <summary>
+        /// Trim whitespace from end (alias for trimEnd)
+        /// </summary>
+        public static string trimRight(this string str)
+        {
+            return str.TrimEnd();
+        }
+
+        // ==================== Static Factory Methods ====================
+
+        /// <summary>
+        /// Static method: Create string from character codes
+        /// </summary>
+        public static string fromCharCode(params int[] codes)
+        {
+            var chars = new char[codes.Length];
+            for (int i = 0; i < codes.Length; i++)
+            {
+                chars[i] = (char)codes[i];
+            }
+            return new string(chars);
+        }
+
+        /// <summary>
+        /// Static method: Create string from code points
+        /// </summary>
+        public static string fromCodePoint(params int[] codePoints)
+        {
+            var result = new System.Text.StringBuilder();
+            foreach (int codePoint in codePoints)
+            {
+                if (codePoint < 0 || codePoint > 0x10FFFF)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(codePoints), "Invalid code point");
+                }
+                result.Append(char.ConvertFromUtf32(codePoint));
+            }
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// Static method: Get raw template string
+        /// </summary>
+        public static string raw(List<string> template, params object[] substitutions)
+        {
+            var result = new System.Text.StringBuilder();
+            for (int i = 0; i < template.Count; i++)
+            {
+                result.Append(template[i]);
+                if (i < substitutions.Length)
+                {
+                    result.Append(substitutions[i]);
+                }
+            }
+            return result.ToString();
+        }
+    }
+}
