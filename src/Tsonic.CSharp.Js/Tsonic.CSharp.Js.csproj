@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- NuGet Package Properties -->
+    <PackageId>Tsonic.CSharp.Js</PackageId>
+    <Authors>Tsonic Project</Authors>
+    <Description>JavaScript/TypeScript runtime implementation for Tsonic compiler - provides exact JavaScript semantics in C#</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/tsoniclang/csharp-js</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/tsoniclang/csharp-js.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>typescript;csharp;compiler;runtime;native-aot</PackageTags>
+
+    <!-- Enable NativeAOT compatibility -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+
+    <!-- Suppress only intentional design choices -->
+    <!-- CS8981: lowercase type names (e.g., 'console' matches JS) - required for JS semantics -->
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../csharp-runtime/src/Tsonic.CSharp.Runtime/Tsonic.CSharp.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>
