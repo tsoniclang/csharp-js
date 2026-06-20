@@ -1,26 +1,18 @@
+using System;
 using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests
 {
     public class JSONTests
     {
-        public class TestPerson
-        {
-            public string? Name { get; set; }
-            public int Age { get; set; }
-        }
-
-        public class TestData
-        {
-            public int Id { get; set; }
-            public string? Value { get; set; }
-            public bool IsActive { get; set; }
-        }
-
         [Fact]
-        public void stringify_SerializesObject()
+        public void stringify_SerializesJsObject()
         {
-            var obj = new { name = "John", age = 30 };
+            var obj = new JSObject
+            {
+                ["name"] = "John",
+                ["age"] = 30
+            };
             var json = JSON.stringify(obj);
 
             Assert.Contains("John", json);
@@ -28,47 +20,40 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void stringify_SerializesComplexObject()
+        public void stringify_RejectsUnknownClrObject()
         {
-            var obj = new TestData
-            {
-                Id = 1,
-                Value = "test",
-                IsActive = true
-            };
-
-            var json = JSON.stringify(obj);
-
-            Assert.Contains("1", json);
-            Assert.Contains("test", json);
-            Assert.Contains("true", json);
+            Assert.Throws<NotSupportedException>(() => JSON.stringify(new { name = "John" }));
         }
 
         [Fact]
-        public void parse_DeserializesObject()
+        public void parse_DeserializesObjectCarrier()
         {
             var json = "{\"Name\":\"Alice\",\"Age\":25}";
-            var result = JSON.parse<TestPerson>(json);
+            var result = Assert.IsType<JSObject>(JSON.parse(json));
 
-            Assert.Equal("Alice", result.Name);
-            Assert.Equal(25, result.Age);
+            Assert.Equal("Alice", result["Name"]);
+            Assert.Equal(25d, result["Age"]);
         }
 
         [Fact]
-        public void parse_DeserializesComplexObject()
+        public void parse_DeserializesComplexObjectCarrier()
         {
             var json = "{\"Id\":42,\"Value\":\"data\",\"IsActive\":false}";
-            var result = JSON.parse<TestData>(json);
+            var result = Assert.IsType<JSObject>(JSON.parse(json));
 
-            Assert.Equal(42, result.Id);
-            Assert.Equal("data", result.Value);
-            Assert.False(result.IsActive);
+            Assert.Equal(42d, result["Id"]);
+            Assert.Equal("data", result["Value"]);
+            Assert.False((bool)result["IsActive"]!);
         }
 
         [Fact]
         public void stringify_HandlesNull()
         {
-            var obj = new TestPerson { Name = null, Age = 0 };
+            var obj = new JSObject
+            {
+                ["Name"] = null,
+                ["Age"] = 0
+            };
             var json = JSON.stringify(obj);
 
             Assert.Contains("null", json);
@@ -77,7 +62,12 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void stringify_HandlesNumbers()
         {
-            var obj = new { integer = 42, floating = 3.14, negative = -10 };
+            var obj = new JSObject
+            {
+                ["integer"] = 42,
+                ["floating"] = 3.14,
+                ["negative"] = -10
+            };
             var json = JSON.stringify(obj);
 
             Assert.Contains("42", json);
@@ -88,7 +78,11 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void stringify_HandlesBooleans()
         {
-            var obj = new { trueValue = true, falseValue = false };
+            var obj = new JSObject
+            {
+                ["trueValue"] = true,
+                ["falseValue"] = false
+            };
             var json = JSON.stringify(obj);
 
             Assert.Contains("true", json);
@@ -99,34 +93,33 @@ namespace Tsonic.CSharp.Js.Tests
         public void parse_HandlesEmptyObject()
         {
             var json = "{}";
-            var result = JSON.parse<TestPerson>(json);
+            var result = Assert.IsType<JSObject>(JSON.parse(json));
 
-            Assert.Null(result.Name);
-            Assert.Equal(0, result.Age);
+            Assert.Empty(result.keys());
         }
 
         [Fact]
-        public void RoundTrip_PreservesData()
+        public void RoundTrip_PreservesClosedJsObjectData()
         {
-            var original = new TestData
+            var original = new JSObject
             {
-                Id = 99,
-                Value = "test data",
-                IsActive = true
+                ["Id"] = 99,
+                ["Value"] = "test data",
+                ["IsActive"] = true
             };
 
             var json = JSON.stringify(original);
-            var restored = JSON.parse<TestData>(json);
+            var restored = Assert.IsType<JSObject>(JSON.parse(json));
 
-            Assert.Equal(original.Id, restored.Id);
-            Assert.Equal(original.Value, restored.Value);
-            Assert.Equal(original.IsActive, restored.IsActive);
+            Assert.Equal(99d, restored["Id"]);
+            Assert.Equal("test data", restored["Value"]);
+            Assert.True((bool)restored["IsActive"]!);
         }
 
         [Fact]
         public void Object_Keys_Values_Entries_WorkWithParsedJson()
         {
-            object value = JSON.parse<object>("{\"name\":\"tsumo\",\"count\":2}");
+            object value = JSON.parse("{\"name\":\"tsumo\",\"count\":2}")!;
 
             Assert.Equal(new[] { "name", "count" }, Object.keys(value));
             Assert.Equal(new object?[] { "tsumo", 2d }, Object.values(value));
@@ -139,12 +132,12 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Parse_Object_PreservesJsonArraysAsArrays()
         {
-            object value = JSON.parse<object>("{\"mounts\":[{\"name\":\"docs\"}]}");
+            object value = JSON.parse("{\"mounts\":[{\"name\":\"docs\"}]}")!;
             var entries = Object.entries(value);
             var mounts = Assert.IsType<object?[]>(entries[0].value);
 
             Assert.True(JSArrayStatics.isArray(mounts));
-            var firstMount = Assert.IsType<Tsonic.CSharp.Runtime.DynamicObject>(mounts[0]);
+            var firstMount = Assert.IsType<JSObject>(mounts[0]);
             Assert.Equal("docs", firstMount["name"]);
         }
     }
