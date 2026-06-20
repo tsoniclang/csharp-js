@@ -44,6 +44,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("llo", "hello".substring(2));
             Assert.Equal("ll", "hello".substring(2, 4));
+            Assert.Equal("ell", "hello".substring(4, 1));
+            Assert.Equal("he", "hello".substring(-3, 2));
+            Assert.Equal("lo", "hello".substring(3, 99));
         }
 
         [Fact]

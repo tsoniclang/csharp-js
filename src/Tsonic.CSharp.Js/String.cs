@@ -59,9 +59,18 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string substring(this string str, int start, int? end = null)
         {
-            int actualEnd = end ?? str.Length;
-            int length = System.Math.Max(0, actualEnd - start);
-            return str.Substring(start, System.Math.Min(length, str.Length - start));
+            int actualStart = clampStringIndex(start, str.Length);
+            int actualEnd = clampStringIndex(end ?? str.Length, str.Length);
+            if (actualStart > actualEnd)
+            {
+                (actualStart, actualEnd) = (actualEnd, actualStart);
+            }
+            return str.Substring(actualStart, actualEnd - actualStart);
+        }
+
+        private static int clampStringIndex(int index, int length)
+        {
+            return System.Math.Min(System.Math.Max(index, 0), length);
         }
 
         /// <summary>
