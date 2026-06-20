@@ -193,6 +193,21 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void split_WithZeroOrNegativeLimit_MatchesJavaScript()
+        {
+            Assert.Empty("a,b,c".split(",", 0));
+
+            var negative = "a,b,c".split(",", -1);
+            Assert.Equal(3, negative.Length);
+            Assert.Equal("a", negative[0]);
+            Assert.Equal("b", negative[1]);
+            Assert.Equal("c", negative[2]);
+
+            var emptySeparator = "abc".split("", 2);
+            Assert.Equal(new[] { "a", "b" }, emptySeparator);
+        }
+
+        [Fact]
         public void length_ReturnsStringLength()
         {
             Assert.Equal(5, "hello".length());

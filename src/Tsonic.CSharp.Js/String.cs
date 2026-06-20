@@ -241,23 +241,21 @@ namespace Tsonic.CSharp.Js
             if (separator == "")
             {
                 var chars = str.ToCharArray().Select(c => c.ToString()).ToArray();
-                if (limit.HasValue && chars.Length > limit.Value)
-                {
-                    return chars.Take(limit.Value).ToArray();
-                }
-                return chars;
+                return applySplitLimit(chars, limit);
             }
 
             string[] parts = str.Split(new[] { separator }, StringSplitOptions.None);
+            return applySplitLimit(parts, limit);
+        }
 
-            if (limit.HasValue && parts.Length > limit.Value)
+        private static string[] applySplitLimit(string[] parts, int? limit)
+        {
+            if (!limit.HasValue || limit.Value < 0 || parts.Length <= limit.Value)
             {
-                string[] limited = new string[limit.Value];
-                System.Array.Copy(parts, limited, limit.Value);
-                return limited;
+                return parts;
             }
 
-            return parts;
+            return parts.Take(limit.Value).ToArray();
         }
 
         /// <summary>
