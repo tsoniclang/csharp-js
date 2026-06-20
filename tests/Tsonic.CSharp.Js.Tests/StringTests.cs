@@ -141,6 +141,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("  hi", "hi".padStart(4));
             Assert.Equal("xxhi", "hi".padStart(4, "x"));
+            Assert.Equal("01010abc", "abc".padStart(8, "01"));
+            Assert.Equal("abc", "abc".padStart(8, ""));
+            Assert.Equal("abc", "abc".padStart(2, "0"));
         }
 
         [Fact]
@@ -148,6 +151,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("hi  ", "hi".padEnd(4));
             Assert.Equal("hixx", "hi".padEnd(4, "x"));
+            Assert.Equal("abc01010", "abc".padEnd(8, "01"));
+            Assert.Equal("abc", "abc".padEnd(8, ""));
+            Assert.Equal("abc", "abc".padEnd(2, "0"));
         }
 
         [Fact]

@@ -173,7 +173,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string padStart(this string str, int targetLength, string padString = " ")
         {
-            return str.PadLeft(targetLength, padString[0]);
+            if (targetLength <= str.Length || padString.Length == 0)
+            {
+                return str;
+            }
+            return buildPadding(padString, targetLength - str.Length) + str;
         }
 
         /// <summary>
@@ -181,7 +185,21 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string padEnd(this string str, int targetLength, string padString = " ")
         {
-            return str.PadRight(targetLength, padString[0]);
+            if (targetLength <= str.Length || padString.Length == 0)
+            {
+                return str;
+            }
+            return str + buildPadding(padString, targetLength - str.Length);
+        }
+
+        private static string buildPadding(string padString, int length)
+        {
+            var builder = new System.Text.StringBuilder(length + padString.Length);
+            while (builder.Length < length)
+            {
+                builder.Append(padString);
+            }
+            return builder.Length == length ? builder.ToString() : builder.ToString(0, length);
         }
 
         /// <summary>
