@@ -83,6 +83,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var arr = new Int8Array(new sbyte[] { 1, 2, 3, 2, 1 });
             Assert.Equal(1, arr.indexOf(2));
+            Assert.Equal(3, arr.indexOf(2, -2));
+            Assert.Equal(1, arr.indexOf(2, -99));
+            Assert.Equal(-1, arr.indexOf(2, 99));
             Assert.Equal(-1, arr.indexOf(99));
         }
 
@@ -269,6 +272,8 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(1.5, arr[0]);
             Assert.Equal(-2.5, arr[1]);
             Assert.Equal(System.Math.PI, arr[2], 10);
+            Assert.Equal(1, arr.indexOf(-2.5, -99));
+            Assert.Equal(-1, arr.indexOf(-2.5, 99));
         }
 
         [Fact]
