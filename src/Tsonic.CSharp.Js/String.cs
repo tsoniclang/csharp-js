@@ -419,6 +419,10 @@ namespace Tsonic.CSharp.Js
             }
 
             int actualLength = length ?? (str.Length - actualStart);
+            if (actualLength <= 0)
+            {
+                return "";
+            }
             actualLength = System.Math.Min(actualLength, str.Length - actualStart);
 
             return str.Substring(actualStart, actualLength);

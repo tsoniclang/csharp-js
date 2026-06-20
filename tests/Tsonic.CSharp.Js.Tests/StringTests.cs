@@ -290,12 +290,16 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("llo", "hello".substr(2));
             Assert.Equal("ll", "hello".substr(2, 2));
+            Assert.Equal("", "hello".substr(2, -1));
+            Assert.Equal("", "hello".substr(2, 0));
+            Assert.Equal("", "hello".substr(99, 2));
         }
 
         [Fact]
         public void substr_NegativeStart_CountsFromEnd()
         {
             Assert.Equal("lo", "hello".substr(-2));
+            Assert.Equal("he", "hello".substr(-99, 2));
         }
 
         [Fact]
