@@ -15,7 +15,11 @@ namespace Tsonic.CSharp.Js
     /// JavaScript-style resizable array with full JS semantics.
     /// Backed by List&lt;T&gt; for size-changing operations.
     /// </summary>
-    public class JSArray<T> : IEnumerable<T>
+    public interface IJSArray
+    {
+    }
+
+    public class JSArray<T> : IEnumerable<T>, IJSArray
     {
         private readonly List<T> _list;
 
@@ -1083,9 +1087,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static bool isArray(object? value)
         {
-            if (value == null) return false;
-            Type type = value.GetType();
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(JSArray<>);
+            return value is IJSArray;
         }
 
         /// <summary>

@@ -12,9 +12,7 @@ namespace Tsonic.CSharp.Js
         public static bool isArray(object? value)
         {
             if (value is Array) return true;
-            var type = value?.GetType();
-            return type?.IsGenericType == true &&
-                   type.GetGenericTypeDefinition() == typeof(JSArray<>);
+            return value is IJSArray;
         }
 
         public static T[] from<T>(IEnumerable<T> iterable)

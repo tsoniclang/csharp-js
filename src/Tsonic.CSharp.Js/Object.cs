@@ -25,7 +25,7 @@ public static class Object
         if (value is IReadOnlyDictionary<string, object?> readOnlyDictionary)
             return readOnlyDictionary;
 
-        throw new NotSupportedException($"Object helpers require a closed JS object carrier, got '{value.GetType().FullName}'.");
+        throw new NotSupportedException("Object helpers require a closed JS object carrier.");
     }
 
     public static string[] keys(object? value)
