@@ -252,6 +252,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void replaceAll_ReplacesAllOccurrences()
         {
             Assert.Equal("hi hi hi", "hello hello hello".replaceAll("hello", "hi"));
+            Assert.Equal("-a-b-c-", "abc".replaceAll("", "-"));
         }
 
         [Fact]

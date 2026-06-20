@@ -337,6 +337,17 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string replaceAll(this string str, string search, string replacement)
         {
+            if (search.Length == 0)
+            {
+                var builder = new System.Text.StringBuilder();
+                builder.Append(replacement);
+                foreach (char ch in str)
+                {
+                    builder.Append(ch);
+                    builder.Append(replacement);
+                }
+                return builder.ToString();
+            }
             return str.Replace(search, replacement);
         }
 
