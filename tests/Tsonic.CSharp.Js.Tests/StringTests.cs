@@ -44,6 +44,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("llo", "hello".substring(2));
             Assert.Equal("ll", "hello".substring(2, 4));
+            Assert.Equal("ell", "hello".substring(4, 1));
+            Assert.Equal("he", "hello".substring(-3, 2));
+            Assert.Equal("lo", "hello".substring(3, 99));
         }
 
         [Fact]
@@ -66,12 +69,16 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(1, "hello".indexOf("e"));
             Assert.Equal(2, "hello".indexOf("ll"));
             Assert.Equal(-1, "hello".indexOf("x"));
+            Assert.Equal(0, "hello".indexOf(""));
         }
 
         [Fact]
         public void indexOf_WithPosition_StartsSearch()
         {
             Assert.Equal(4, "hello hello".indexOf("o", 3));
+            Assert.Equal(1, "hello".indexOf("e", -1));
+            Assert.Equal(-1, "hello".indexOf("o", 99));
+            Assert.Equal(5, "hello".indexOf("", 99));
         }
 
         [Fact]
@@ -79,6 +86,11 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal(10, "hello hello".lastIndexOf("o"));
             Assert.Equal(4, "hello".lastIndexOf("o"));
+            Assert.Equal(4, "hello".lastIndexOf("o", 99));
+            Assert.Equal(0, "hello".lastIndexOf("h", -1));
+            Assert.Equal(-1, "hello".lastIndexOf("e", -1));
+            Assert.Equal(5, "hello".lastIndexOf(""));
+            Assert.Equal(2, "hello".lastIndexOf("", 2));
         }
 
         [Fact]
@@ -86,6 +98,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.True("hello".startsWith("hel"));
             Assert.False("hello".startsWith("llo"));
+            Assert.True("hello".startsWith("ll", 2));
+            Assert.True("hello".startsWith("he", -1));
+            Assert.False("hello".startsWith("he", 99));
         }
 
         [Fact]
@@ -93,6 +108,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.True("hello".endsWith("llo"));
             Assert.False("hello".endsWith("hel"));
+            Assert.True("hello".endsWith("ell", 4));
+            Assert.True("hello".endsWith("", 99));
+            Assert.False("hello".endsWith("hello", -1));
         }
 
         [Fact]
@@ -100,6 +118,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.True("hello world".includes("world"));
             Assert.False("hello world".includes("goodbye"));
+            Assert.True("hello".includes("e", -1));
+            Assert.False("hello".includes("o", 99));
+            Assert.True("hello".includes("", 99));
         }
 
         [Fact]
@@ -107,6 +128,8 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("hi world", "hello world".replace("hello", "hi"));
             Assert.Equal("hxllo", "hello".replace("e", "x"));
+            Assert.Equal("hi hello", "hello hello".replace("hello", "hi"));
+            Assert.Equal("hello", "hello".replace("z", "x"));
         }
 
         [Fact]
@@ -121,6 +144,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("  hi", "hi".padStart(4));
             Assert.Equal("xxhi", "hi".padStart(4, "x"));
+            Assert.Equal("01010abc", "abc".padStart(8, "01"));
+            Assert.Equal("abc", "abc".padStart(8, ""));
+            Assert.Equal("abc", "abc".padStart(2, "0"));
         }
 
         [Fact]
@@ -128,6 +154,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("hi  ", "hi".padEnd(4));
             Assert.Equal("hixx", "hi".padEnd(4, "x"));
+            Assert.Equal("abc01010", "abc".padEnd(8, "01"));
+            Assert.Equal("abc", "abc".padEnd(8, ""));
+            Assert.Equal("abc", "abc".padEnd(2, "0"));
         }
 
         [Fact]
@@ -140,8 +169,9 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void charCodeAt_GetsCharCode()
         {
-            Assert.Equal(101, "hello".charCodeAt(1)); // 'e'
-            Assert.Throws<System.ArgumentOutOfRangeException>(() => "hello".charCodeAt(10));
+            Assert.Equal(101d, "hello".charCodeAt(1)); // 'e'
+            Assert.True(double.IsNaN("hello".charCodeAt(-1)));
+            Assert.True(double.IsNaN("hello".charCodeAt(10)));
         }
 
         [Fact]
@@ -161,6 +191,21 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(2, result.Length);
             Assert.Equal("a", result[0]);
             Assert.Equal("b", result[1]);
+        }
+
+        [Fact]
+        public void split_WithZeroOrNegativeLimit_MatchesJavaScript()
+        {
+            Assert.Empty("a,b,c".split(",", 0));
+
+            var negative = "a,b,c".split(",", -1);
+            Assert.Equal(3, negative.Length);
+            Assert.Equal("a", negative[0]);
+            Assert.Equal("b", negative[1]);
+            Assert.Equal("c", negative[2]);
+
+            var emptySeparator = "abc".split("", 2);
+            Assert.Equal(new[] { "a", "b" }, emptySeparator);
         }
 
         [Fact]
@@ -191,6 +236,10 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal(104, "hello".codePointAt(0)); // 'h'
             Assert.Equal(101, "hello".codePointAt(1)); // 'e'
+            Assert.Equal(0x1F600, "😀".codePointAt(0));
+            Assert.Equal(0xDE00, "😀".codePointAt(1));
+            Assert.Null("hello".codePointAt(-1));
+            Assert.Null("hello".codePointAt(5));
         }
 
         [Fact]
@@ -241,6 +290,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void replaceAll_ReplacesAllOccurrences()
         {
             Assert.Equal("hi hi hi", "hello hello hello".replaceAll("hello", "hi"));
+            Assert.Equal("-a-b-c-", "abc".replaceAll("", "-"));
         }
 
         [Fact]
@@ -256,12 +306,16 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("llo", "hello".substr(2));
             Assert.Equal("ll", "hello".substr(2, 2));
+            Assert.Equal("", "hello".substr(2, -1));
+            Assert.Equal("", "hello".substr(2, 0));
+            Assert.Equal("", "hello".substr(99, 2));
         }
 
         [Fact]
         public void substr_NegativeStart_CountsFromEnd()
         {
             Assert.Equal("lo", "hello".substr(-2));
+            Assert.Equal("he", "hello".substr(-99, 2));
         }
 
         [Fact]

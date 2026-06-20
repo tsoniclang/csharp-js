@@ -15,7 +15,11 @@ namespace Tsonic.CSharp.Js
     /// JavaScript-style resizable array with full JS semantics.
     /// Backed by List&lt;T&gt; for size-changing operations.
     /// </summary>
-    public class JSArray<T> : IEnumerable<T>
+    public interface IJSArray
+    {
+    }
+
+    public class JSArray<T> : IEnumerable<T>, IJSArray
     {
         private readonly List<T> _list;
 
@@ -646,7 +650,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int indexOf(T searchElement, int fromIndex = 0)
         {
-            for (int i = fromIndex; i < _list.Count; i++)
+            int start = NormalizeForwardSearchStart(fromIndex);
+            for (int i = start; i < _list.Count; i++)
             {
                 if (EqualityComparer<T>.Default.Equals(_list[i], searchElement))
                 {
@@ -681,9 +686,20 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Check if array includes element
         /// </summary>
-        public bool includes(T searchElement)
+        public bool includes(T searchElement, int fromIndex = 0)
         {
-            return indexOf(searchElement) >= 0;
+            return indexOf(searchElement, fromIndex) >= 0;
+        }
+
+        private int NormalizeForwardSearchStart(int fromIndex)
+        {
+            if (fromIndex >= _list.Count)
+            {
+                return _list.Count;
+            }
+            return fromIndex < 0
+                ? System.Math.Max(_list.Count + fromIndex, 0)
+                : fromIndex;
         }
 
         /// <summary>
@@ -1071,9 +1087,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static bool isArray(object? value)
         {
-            if (value == null) return false;
-            Type type = value.GetType();
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(JSArray<>);
+            return value is IJSArray;
         }
 
         /// <summary>

@@ -59,9 +59,18 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string substring(this string str, int start, int? end = null)
         {
-            int actualEnd = end ?? str.Length;
-            int length = System.Math.Max(0, actualEnd - start);
-            return str.Substring(start, System.Math.Min(length, str.Length - start));
+            int actualStart = clampStringIndex(start, str.Length);
+            int actualEnd = clampStringIndex(end ?? str.Length, str.Length);
+            if (actualStart > actualEnd)
+            {
+                (actualStart, actualEnd) = (actualEnd, actualStart);
+            }
+            return str.Substring(actualStart, actualEnd - actualStart);
+        }
+
+        private static int clampStringIndex(int index, int length)
+        {
+            return System.Math.Min(System.Math.Max(index, 0), length);
         }
 
         /// <summary>
@@ -83,7 +92,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static int indexOf(this string str, string searchString, int position = 0)
         {
-            return str.IndexOf(searchString, position);
+            int start = System.Math.Min(System.Math.Max(position, 0), str.Length);
+            if (searchString.Length == 0)
+            {
+                return start;
+            }
+            return start >= str.Length
+                ? -1
+                : str.IndexOf(searchString, start, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -91,33 +107,53 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static int lastIndexOf(this string str, string searchString, int? position = null)
         {
-            return position.HasValue
-                ? str.LastIndexOf(searchString, position.Value)
-                : str.LastIndexOf(searchString);
+            int start = position.HasValue
+                ? System.Math.Min(System.Math.Max(position.Value, 0), str.Length)
+                : str.Length;
+            if (searchString.Length == 0)
+            {
+                return start;
+            }
+            int maxStart = System.Math.Min(start, str.Length - searchString.Length);
+            for (int index = maxStart; index >= 0; index--)
+            {
+                if (string.CompareOrdinal(str, index, searchString, 0, searchString.Length) == 0)
+                {
+                    return index;
+                }
+            }
+            return -1;
         }
 
         /// <summary>
         /// Check if string starts with substring
         /// </summary>
-        public static bool startsWith(this string str, string searchString)
+        public static bool startsWith(this string str, string searchString, int position = 0)
         {
-            return str.StartsWith(searchString);
+            int start = System.Math.Min(System.Math.Max(position, 0), str.Length);
+            return start + searchString.Length <= str.Length &&
+                string.CompareOrdinal(str, start, searchString, 0, searchString.Length) == 0;
         }
 
         /// <summary>
         /// Check if string ends with substring
         /// </summary>
-        public static bool endsWith(this string str, string searchString)
+        public static bool endsWith(this string str, string searchString, int? endPosition = null)
         {
-            return str.EndsWith(searchString);
+            int end = endPosition.HasValue
+                ? System.Math.Min(System.Math.Max(endPosition.Value, 0), str.Length)
+                : str.Length;
+            int start = end - searchString.Length;
+            return start >= 0 &&
+                string.CompareOrdinal(str, start, searchString, 0, searchString.Length) == 0;
         }
 
         /// <summary>
         /// Check if string contains substring
         /// </summary>
-        public static bool includes(this string str, string searchString)
+        public static bool includes(this string str, string searchString, int position = 0)
         {
-            return str.Contains(searchString);
+            return str.indexOf(searchString, position) >= 0;
         }
 
         /// <summary>
@@ -125,7 +161,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string replace(this string str, string search, string replacement)
         {
-            return str.Replace(search, replacement);
+            int index = str.IndexOf(search, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                return str;
+            }
+            return str.Substring(0, index) + replacement + str.Substring(index + search.Length);
         }
 
         /// <summary>
@@ -141,7 +182,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string padStart(this string str, int targetLength, string padString = " ")
         {
-            return str.PadLeft(targetLength, padString[0]);
+            if (targetLength <= str.Length || padString.Length == 0)
+            {
+                return str;
+            }
+            return buildPadding(padString, targetLength - str.Length) + str;
         }
 
         /// <summary>
@@ -149,7 +194,21 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string padEnd(this string str, int targetLength, string padString = " ")
         {
-            return str.PadRight(targetLength, padString[0]);
+            if (targetLength <= str.Length || padString.Length == 0)
+            {
+                return str;
+            }
+            return str + buildPadding(padString, targetLength - str.Length);
+        }
+
+        private static string buildPadding(string padString, int length)
+        {
+            var builder = new System.Text.StringBuilder(length + padString.Length);
+            while (builder.Length < length)
+            {
+                builder.Append(padString);
+            }
+            return builder.Length == length ? builder.ToString() : builder.ToString(0, length);
         }
 
         /// <summary>
@@ -162,13 +221,12 @@ namespace Tsonic.CSharp.Js
 
         /// <summary>
         /// Get character code at index.
-        /// Throws ArgumentOutOfRangeException if index is out of bounds.
         /// </summary>
-        public static int charCodeAt(this string str, int index)
+        public static double charCodeAt(this string str, int index)
         {
             if (index < 0 || index >= str.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), "Index out of range");
+                return double.NaN;
             }
             return str[index];
         }
@@ -182,23 +240,21 @@ namespace Tsonic.CSharp.Js
             if (separator == "")
             {
                 var chars = str.ToCharArray().Select(c => c.ToString()).ToArray();
-                if (limit.HasValue && chars.Length > limit.Value)
-                {
-                    return chars.Take(limit.Value).ToArray();
-                }
-                return chars;
+                return applySplitLimit(chars, limit);
             }
 
             string[] parts = str.Split(new[] { separator }, StringSplitOptions.None);
+            return applySplitLimit(parts, limit);
+        }
 
-            if (limit.HasValue && parts.Length > limit.Value)
+        private static string[] applySplitLimit(string[] parts, int? limit)
+        {
+            if (!limit.HasValue || limit.Value < 0 || parts.Length <= limit.Value)
             {
-                string[] limited = new string[limit.Value];
-                System.Array.Copy(parts, limited, limit.Value);
-                return limited;
+                return parts;
             }
 
-            return parts;
+            return parts.Take(limit.Value).ToArray();
         }
 
         /// <summary>
@@ -225,13 +281,18 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get Unicode code point at index
         /// </summary>
-        public static int codePointAt(this string str, int index)
+        public static int? codePointAt(this string str, int index)
         {
             if (index < 0 || index >= str.Length)
             {
-                return -1;
+                return null;
             }
-            return char.ConvertToUtf32(str, index);
+            char first = str[index];
+            if (char.IsHighSurrogate(first) && index + 1 < str.Length && char.IsLowSurrogate(str[index + 1]))
+            {
+                return char.ConvertToUtf32(first, str[index + 1]);
+            }
+            return first;
         }
 
         /// <summary>
@@ -314,6 +375,17 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string replaceAll(this string str, string search, string replacement)
         {
+            if (search.Length == 0)
+            {
+                var builder = new System.Text.StringBuilder();
+                builder.Append(replacement);
+                foreach (char ch in str)
+                {
+                    builder.Append(ch);
+                    builder.Append(replacement);
+                }
+                return builder.ToString();
+            }
             return str.Replace(search, replacement);
         }
 
@@ -344,6 +416,10 @@ namespace Tsonic.CSharp.Js
             }
 
             int actualLength = length ?? (str.Length - actualStart);
+            if (actualLength <= 0)
+            {
+                return "";
+            }
             actualLength = System.Math.Min(actualLength, str.Length - actualStart);
 
             return str.Substring(actualStart, actualLength);

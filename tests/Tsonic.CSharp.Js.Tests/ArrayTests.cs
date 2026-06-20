@@ -183,6 +183,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var arr = new JSArray<string>(new[] { "a", "b", "c", "b" });
             Assert.Equal(3, arr.indexOf("b", 2));
+            Assert.Equal(3, arr.indexOf("b", -1));
+            Assert.Equal(1, arr.indexOf("b", -99));
+            Assert.Equal(-1, arr.indexOf("b", 99));
         }
 
         [Fact]
@@ -190,6 +193,8 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var arr = new JSArray<string>(new[] { "a", "b", "c" });
             Assert.True(arr.includes("b"));
+            Assert.True(arr.includes("b", -2));
+            Assert.False(arr.includes("b", 2));
         }
 
         [Fact]

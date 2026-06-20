@@ -90,6 +90,7 @@ namespace Tsonic.CSharp.Js
 
         public int indexOf(int value, int fromIndex = 0)
         {
+            if (fromIndex >= _array.Length) return -1;
             if (fromIndex < 0) fromIndex = SysMath.Max(0, _array.Length + fromIndex);
             return SysArray.IndexOf(_array, value, fromIndex);
         }

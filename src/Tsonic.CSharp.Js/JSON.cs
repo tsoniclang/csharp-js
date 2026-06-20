@@ -131,7 +131,7 @@ namespace Tsonic.CSharp.Js
                     WriteArray(writer, enumerable);
                     break;
                 default:
-                    throw new NotSupportedException($"JSON.stringify requires a closed JS value carrier, got '{value.GetType().FullName}'.");
+                    throw new NotSupportedException("JSON.stringify requires a closed JS value carrier.");
             }
         }
 
