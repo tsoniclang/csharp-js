@@ -66,12 +66,16 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(1, "hello".indexOf("e"));
             Assert.Equal(2, "hello".indexOf("ll"));
             Assert.Equal(-1, "hello".indexOf("x"));
+            Assert.Equal(0, "hello".indexOf(""));
         }
 
         [Fact]
         public void indexOf_WithPosition_StartsSearch()
         {
             Assert.Equal(4, "hello hello".indexOf("o", 3));
+            Assert.Equal(1, "hello".indexOf("e", -1));
+            Assert.Equal(-1, "hello".indexOf("o", 99));
+            Assert.Equal(5, "hello".indexOf("", 99));
         }
 
         [Fact]
@@ -91,6 +95,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.True("hello".startsWith("hel"));
             Assert.False("hello".startsWith("llo"));
+            Assert.True("hello".startsWith("ll", 2));
+            Assert.True("hello".startsWith("he", -1));
+            Assert.False("hello".startsWith("he", 99));
         }
 
         [Fact]
@@ -98,6 +105,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.True("hello".endsWith("llo"));
             Assert.False("hello".endsWith("hel"));
+            Assert.True("hello".endsWith("ell", 4));
+            Assert.True("hello".endsWith("", 99));
+            Assert.False("hello".endsWith("hello", -1));
         }
 
         [Fact]
@@ -105,6 +115,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.True("hello world".includes("world"));
             Assert.False("hello world".includes("goodbye"));
+            Assert.True("hello".includes("e", -1));
+            Assert.False("hello".includes("o", 99));
+            Assert.True("hello".includes("", 99));
         }
 
         [Fact]

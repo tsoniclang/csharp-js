@@ -83,7 +83,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static int indexOf(this string str, string searchString, int position = 0)
         {
-            return str.IndexOf(searchString, position);
+            int start = System.Math.Min(System.Math.Max(position, 0), str.Length);
+            if (searchString.Length == 0)
+            {
+                return start;
+            }
+            return start >= str.Length
+                ? -1
+                : str.IndexOf(searchString, start, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -112,25 +119,32 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Check if string starts with substring
         /// </summary>
-        public static bool startsWith(this string str, string searchString)
+        public static bool startsWith(this string str, string searchString, int position = 0)
         {
-            return str.StartsWith(searchString);
+            int start = System.Math.Min(System.Math.Max(position, 0), str.Length);
+            return start + searchString.Length <= str.Length &&
+                string.CompareOrdinal(str, start, searchString, 0, searchString.Length) == 0;
         }
 
         /// <summary>
         /// Check if string ends with substring
         /// </summary>
-        public static bool endsWith(this string str, string searchString)
+        public static bool endsWith(this string str, string searchString, int? endPosition = null)
         {
-            return str.EndsWith(searchString);
+            int end = endPosition.HasValue
+                ? System.Math.Min(System.Math.Max(endPosition.Value, 0), str.Length)
+                : str.Length;
+            int start = end - searchString.Length;
+            return start >= 0 &&
+                string.CompareOrdinal(str, start, searchString, 0, searchString.Length) == 0;
         }
 
         /// <summary>
         /// Check if string contains substring
         /// </summary>
-        public static bool includes(this string str, string searchString)
+        public static bool includes(this string str, string searchString, int position = 0)
         {
-            return str.Contains(searchString);
+            return str.indexOf(searchString, position) >= 0;
         }
 
         /// <summary>
