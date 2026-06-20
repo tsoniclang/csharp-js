@@ -112,6 +112,8 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("hi world", "hello world".replace("hello", "hi"));
             Assert.Equal("hxllo", "hello".replace("e", "x"));
+            Assert.Equal("hi hello", "hello hello".replace("hello", "hi"));
+            Assert.Equal("hello", "hello".replace("z", "x"));
         }
 
         [Fact]

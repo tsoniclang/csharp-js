@@ -138,7 +138,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string replace(this string str, string search, string replacement)
         {
-            return str.Replace(search, replacement);
+            int index = str.IndexOf(search, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                return str;
+            }
+            return str.Substring(0, index) + replacement + str.Substring(index + search.Length);
         }
 
         /// <summary>
