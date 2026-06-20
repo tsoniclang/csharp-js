@@ -91,9 +91,22 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static int lastIndexOf(this string str, string searchString, int? position = null)
         {
-            return position.HasValue
-                ? str.LastIndexOf(searchString, position.Value)
-                : str.LastIndexOf(searchString);
+            int start = position.HasValue
+                ? System.Math.Min(System.Math.Max(position.Value, 0), str.Length)
+                : str.Length;
+            if (searchString.Length == 0)
+            {
+                return start;
+            }
+            int maxStart = System.Math.Min(start, str.Length - searchString.Length);
+            for (int index = maxStart; index >= 0; index--)
+            {
+                if (string.CompareOrdinal(str, index, searchString, 0, searchString.Length) == 0)
+                {
+                    return index;
+                }
+            }
+            return -1;
         }
 
         /// <summary>

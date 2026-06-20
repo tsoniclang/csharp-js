@@ -79,6 +79,11 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal(10, "hello hello".lastIndexOf("o"));
             Assert.Equal(4, "hello".lastIndexOf("o"));
+            Assert.Equal(4, "hello".lastIndexOf("o", 99));
+            Assert.Equal(0, "hello".lastIndexOf("h", -1));
+            Assert.Equal(-1, "hello".lastIndexOf("e", -1));
+            Assert.Equal(5, "hello".lastIndexOf(""));
+            Assert.Equal(2, "hello".lastIndexOf("", 2));
         }
 
         [Fact]
