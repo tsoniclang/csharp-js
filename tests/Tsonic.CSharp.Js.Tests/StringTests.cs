@@ -169,8 +169,9 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void charCodeAt_GetsCharCode()
         {
-            Assert.Equal(101, "hello".charCodeAt(1)); // 'e'
-            Assert.Throws<System.ArgumentOutOfRangeException>(() => "hello".charCodeAt(10));
+            Assert.Equal(101d, "hello".charCodeAt(1)); // 'e'
+            Assert.True(double.IsNaN("hello".charCodeAt(-1)));
+            Assert.True(double.IsNaN("hello".charCodeAt(10)));
         }
 
         [Fact]

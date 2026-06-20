@@ -221,13 +221,12 @@ namespace Tsonic.CSharp.Js
 
         /// <summary>
         /// Get character code at index.
-        /// Throws ArgumentOutOfRangeException if index is out of bounds.
         /// </summary>
-        public static int charCodeAt(this string str, int index)
+        public static double charCodeAt(this string str, int index)
         {
             if (index < 0 || index >= str.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), "Index out of range");
+                return double.NaN;
             }
             return str[index];
         }
