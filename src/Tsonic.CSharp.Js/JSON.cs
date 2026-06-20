@@ -5,11 +5,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Text.Json;
-using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Js
 {
@@ -19,34 +17,12 @@ namespace Tsonic.CSharp.Js
     public static class JSON
     {
         /// <summary>
-        /// Parse JSON string to object (returns JS-shaped objects: DynamicObject, Array, primitives)
-        /// TypeScript treats JSON.parse as 'any', so generic T is for type hints only
-        /// If T is a concrete type with a constructor, attempts structural cloning from DynamicObject to T
+        /// Parse JSON string to a closed JavaScript value carrier.
         /// </summary>
-        public static T parse<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] T>(string text) where T : new()
+        public static object? parse(string text)
         {
             using var doc = JsonDocument.Parse(text);
-            var result = ConvertJsonElement(doc.RootElement);
-
-            // If T is object or dynamic, return as-is
-            if (typeof(T) == typeof(object))
-            {
-                return (T)(object?)result!;
-            }
-
-            // For concrete types, try structural cloning from DynamicObject to T
-            if (result is DynamicObject dynObj)
-            {
-                var tempDict = new Dictionary<string, object?>();
-                foreach (var key in dynObj.GetKeys())
-                {
-                    tempDict[key] = dynObj[key];
-                }
-                return Structural.CloneFromDictionary<T>(tempDict)!;
-            }
-
-            // For primitives and arrays, direct cast
-            return (T)(object?)result!;
+            return ConvertJsonElement(doc.RootElement);
         }
 
         /// <summary>
@@ -68,7 +44,7 @@ namespace Tsonic.CSharp.Js
         }
 
         /// <summary>
-        /// Convert JSON array to Tsonic.CSharp.Runtime.Array
+        /// Convert JSON array to a closed JavaScript array carrier.
         /// </summary>
         private static object ConvertJsonArray(JsonElement element)
         {
@@ -81,11 +57,11 @@ namespace Tsonic.CSharp.Js
         }
 
         /// <summary>
-        /// Convert JSON object to DynamicObject
+        /// Convert JSON object to JSObject
         /// </summary>
         private static object ConvertJsonObject(JsonElement element)
         {
-            var obj = new DynamicObject();
+            var obj = new JSObject();
             foreach (var prop in element.EnumerateObject())
             {
                 obj[prop.Name] = ConvertJsonElement(prop.Value);
@@ -94,7 +70,7 @@ namespace Tsonic.CSharp.Js
         }
 
         /// <summary>
-        /// Convert object to JSON string (handles primitives, Array, DynamicObject, IDictionary, IEnumerable)
+        /// Convert a closed JavaScript value carrier to JSON string.
         /// </summary>
         public static string stringify(object? value)
         {
@@ -142,33 +118,33 @@ namespace Tsonic.CSharp.Js
                 case short sh:
                     writer.WriteNumberValue(sh);
                     break;
-                case DynamicObject dynObj:
-                    WriteDynamicObject(writer, dynObj);
+                case JSObject obj:
+                    WriteJsObject(writer, obj);
                     break;
                 case IDictionary<string, object?> dict:
+                    WriteObject(writer, dict);
+                    break;
+                case IReadOnlyDictionary<string, object?> dict:
                     WriteObject(writer, dict);
                     break;
                 case IEnumerable<object?> enumerable:
                     WriteArray(writer, enumerable);
                     break;
                 default:
-                    // For unknown types (regular C# objects), convert to dictionary first
-                    var objDict = Structural.ToDictionary(value);
-                    WriteObject(writer, objDict);
-                    break;
+                    throw new NotSupportedException($"JSON.stringify requires a closed JS value carrier, got '{value.GetType().FullName}'.");
             }
         }
 
         /// <summary>
-        /// Write DynamicObject as JSON object
+        /// Write JSObject as JSON object
         /// </summary>
-        private static void WriteDynamicObject(Utf8JsonWriter writer, DynamicObject obj)
+        private static void WriteJsObject(Utf8JsonWriter writer, JSObject obj)
         {
             writer.WriteStartObject();
-            foreach (var key in obj.GetKeys())
+            foreach (var (key, value) in obj.entries())
             {
                 writer.WritePropertyName(key);
-                WriteValue(writer, obj[key]);
+                WriteValue(writer, value);
             }
             writer.WriteEndObject();
         }
@@ -177,6 +153,17 @@ namespace Tsonic.CSharp.Js
         /// Write dictionary as JSON object
         /// </summary>
         private static void WriteObject(Utf8JsonWriter writer, IDictionary<string, object?> dict)
+        {
+            writer.WriteStartObject();
+            foreach (var kvp in dict)
+            {
+                writer.WritePropertyName(kvp.Key);
+                WriteValue(writer, kvp.Value);
+            }
+            writer.WriteEndObject();
+        }
+
+        private static void WriteObject(Utf8JsonWriter writer, IReadOnlyDictionary<string, object?> dict)
         {
             writer.WriteStartObject();
             foreach (var kvp in dict)

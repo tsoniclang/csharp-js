@@ -1,6 +1,6 @@
 /**
  * JavaScript Array implementation with full JS semantics
- * Use this when you need dynamic arrays with push/pop/splice etc.
+ * Use this when you need resizable arrays with push/pop/splice etc.
  * For fixed-size arrays, use native T[] instead.
  */
 
@@ -12,8 +12,8 @@ using System.Linq;
 namespace Tsonic.CSharp.Js
 {
     /// <summary>
-    /// JavaScript-style dynamic array with full JS semantics.
-    /// Backed by List&lt;T&gt; for dynamic sizing.
+    /// JavaScript-style resizable array with full JS semantics.
+    /// Backed by List&lt;T&gt; for size-changing operations.
     /// </summary>
     public class JSArray<T> : IEnumerable<T>
     {

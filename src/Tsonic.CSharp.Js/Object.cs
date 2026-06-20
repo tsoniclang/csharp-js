@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Js;
 
@@ -14,15 +14,18 @@ public static class Object
         if (value == null)
             return [];
 
-        if (value is DynamicObject dynamicObject)
+        if (value is JSObject jsObject)
         {
-            return dynamicObject.GetKeys().Select(key => new KeyValuePair<string, object?>(key, dynamicObject[key]));
+            return jsObject.entries().Select(entry => new KeyValuePair<string, object?>(entry.key, entry.value));
         }
 
         if (value is IDictionary<string, object?> dictionary)
             return dictionary;
 
-        return Structural.ToDictionary(value);
+        if (value is IReadOnlyDictionary<string, object?> readOnlyDictionary)
+            return readOnlyDictionary;
+
+        throw new NotSupportedException($"Object helpers require a closed JS object carrier, got '{value.GetType().FullName}'.");
     }
 
     public static string[] keys(object? value)
