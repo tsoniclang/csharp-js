@@ -225,13 +225,18 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get Unicode code point at index
         /// </summary>
-        public static int codePointAt(this string str, int index)
+        public static int? codePointAt(this string str, int index)
         {
             if (index < 0 || index >= str.Length)
             {
-                return -1;
+                return null;
             }
-            return char.ConvertToUtf32(str, index);
+            char first = str[index];
+            if (char.IsHighSurrogate(first) && index + 1 < str.Length && char.IsLowSurrogate(str[index + 1]))
+            {
+                return char.ConvertToUtf32(first, str[index + 1]);
+            }
+            return first;
         }
 
         /// <summary>

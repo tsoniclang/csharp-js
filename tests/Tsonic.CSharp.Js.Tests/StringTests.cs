@@ -191,6 +191,10 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal(104, "hello".codePointAt(0)); // 'h'
             Assert.Equal(101, "hello".codePointAt(1)); // 'e'
+            Assert.Equal(0x1F600, "😀".codePointAt(0));
+            Assert.Equal(0xDE00, "😀".codePointAt(1));
+            Assert.Null("hello".codePointAt(-1));
+            Assert.Null("hello".codePointAt(5));
         }
 
         [Fact]
