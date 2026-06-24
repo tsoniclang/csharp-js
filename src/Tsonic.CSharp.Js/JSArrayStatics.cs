@@ -11,73 +11,73 @@ namespace Tsonic.CSharp.Js
     {
         public static bool isArray(object? value)
         {
-            if (value is Array) return true;
+            if (value is System.Array) return true;
             return value is IJSArray;
         }
 
-        public static T[] from<T>(IEnumerable<T> iterable)
+        public static JSArray<T> from<T>(IEnumerable<T> iterable)
         {
-            return JSArray<T>.from(iterable).toArray();
+            return JSArray<T>.from(iterable);
         }
 
-        public static string[] from(string source)
+        public static JSArray<string> from(string source)
         {
-            var chars = new string[source.Length];
+            var chars = new JSArray<string>(source.Length);
             for (var i = 0; i < source.Length; i++)
             {
-                chars[i] = source[i].ToString();
+                chars.push(source[i].ToString());
             }
 
             return chars;
         }
 
-        public static TResult[] from<TSource, TResult>(
+        public static JSArray<TResult> from<TSource, TResult>(
             IEnumerable<TSource> iterable,
             System.Func<TSource, int, TResult> mapFunc
         )
         {
-            return JSArray<TResult>.from(iterable, mapFunc).toArray();
+            return JSArray<TResult>.from(iterable, mapFunc);
         }
 
-        public static TResult[] from<TSource, TResult>(
+        public static JSArray<TResult> from<TSource, TResult>(
             IEnumerable<TSource> iterable,
             System.Func<TSource, TResult> mapFunc
         )
         {
-            return JSArray<TResult>.from(iterable, mapFunc).toArray();
+            return JSArray<TResult>.from(iterable, mapFunc);
         }
 
-        public static TResult[] from<TResult>(
+        public static JSArray<TResult> from<TResult>(
             string source,
             System.Func<string, int, TResult> mapFunc
         )
         {
-            var result = new TResult[source.Length];
+            var result = new JSArray<TResult>(source.Length);
             for (var i = 0; i < source.Length; i++)
             {
-                result[i] = mapFunc(source[i].ToString(), i);
+                result.push(mapFunc(source[i].ToString(), i));
             }
 
             return result;
         }
 
-        public static TResult[] from<TResult>(
+        public static JSArray<TResult> from<TResult>(
             string source,
             System.Func<string, TResult> mapFunc
         )
         {
-            var result = new TResult[source.Length];
+            var result = new JSArray<TResult>(source.Length);
             for (var i = 0; i < source.Length; i++)
             {
-                result[i] = mapFunc(source[i].ToString());
+                result.push(mapFunc(source[i].ToString()));
             }
 
             return result;
         }
 
-        public static T[] of<T>(params T[] items)
+        public static JSArray<T> of<T>(params T[] items)
         {
-            return JSArray<T>.of(items).toArray();
+            return JSArray<T>.of(items);
         }
     }
 }

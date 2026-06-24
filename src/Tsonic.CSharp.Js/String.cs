@@ -234,12 +234,12 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Split string into array
         /// </summary>
-        public static string[] split(this string str, string separator, int? limit = null)
+        public static List<string> split(this string str, string separator, int? limit = null)
         {
             // Handle empty separator - split into individual characters (JS behavior)
             if (separator == "")
             {
-                var chars = str.ToCharArray().Select(c => c.ToString()).ToArray();
+                var chars = str.ToCharArray().Select(c => c.ToString());
                 return applySplitLimit(chars, limit);
             }
 
@@ -247,14 +247,14 @@ namespace Tsonic.CSharp.Js
             return applySplitLimit(parts, limit);
         }
 
-        private static string[] applySplitLimit(string[] parts, int? limit)
+        private static List<string> applySplitLimit(IEnumerable<string> parts, int? limit)
         {
-            if (!limit.HasValue || limit.Value < 0 || parts.Length <= limit.Value)
+            if (!limit.HasValue || limit.Value < 0)
             {
-                return parts;
+                return new List<string>(parts);
             }
 
-            return parts.Take(limit.Value).ToArray();
+            return new List<string>(parts.Take(limit.Value));
         }
 
         /// <summary>

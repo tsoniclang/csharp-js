@@ -48,12 +48,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         private static object ConvertJsonArray(JsonElement element)
         {
-            var items = new List<object?>();
+            var items = new JSArray<object?>();
             foreach (var item in element.EnumerateArray())
             {
-                items.Add(ConvertJsonElement(item));
+                items.push(ConvertJsonElement(item));
             }
-            return items.ToArray();
+            return items;
         }
 
         /// <summary>

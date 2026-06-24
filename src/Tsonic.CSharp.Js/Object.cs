@@ -28,18 +28,18 @@ public static class Object
         throw new NotSupportedException("Object helpers require a closed JS object carrier.");
     }
 
-    public static string[] keys(object? value)
+    public static List<string> keys(object? value)
     {
-        return Enumerate(value).Select(pair => pair.Key).ToArray();
+        return new List<string>(Enumerate(value).Select(pair => pair.Key));
     }
 
-    public static object?[] values(object? value)
+    public static List<object?> values(object? value)
     {
-        return Enumerate(value).Select(pair => pair.Value).ToArray();
+        return new List<object?>(Enumerate(value).Select(pair => pair.Value));
     }
 
-    public static (string key, object? value)[] entries(object? value)
+    public static List<(string key, object? value)> entries(object? value)
     {
-        return Enumerate(value).Select(pair => (pair.Key, pair.Value)).ToArray();
+        return new List<(string key, object? value)>(Enumerate(value).Select(pair => (pair.Key, pair.Value)));
     }
 }

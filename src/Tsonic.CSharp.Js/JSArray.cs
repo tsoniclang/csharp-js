@@ -718,6 +718,21 @@ namespace Tsonic.CSharp.Js
         }
 
         /// <summary>
+        /// Test if every element matches predicate (value, index)
+        /// </summary>
+        public bool every(Func<T, int, bool> callback)
+        {
+            for (int i = 0; i < _list.Count; i++)
+            {
+                if (!callback(_list[i], i))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Test if every element matches predicate (value, index, array)
         /// </summary>
         public bool every(Func<T, int, JSArray<T>, bool> callback)
@@ -740,6 +755,21 @@ namespace Tsonic.CSharp.Js
             for (int i = 0; i < _list.Count; i++)
             {
                 if (callback(_list[i]))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Test if any element matches predicate (value, index)
+        /// </summary>
+        public bool some(Func<T, int, bool> callback)
+        {
+            for (int i = 0; i < _list.Count; i++)
+            {
+                if (callback(_list[i], i))
                 {
                     return true;
                 }

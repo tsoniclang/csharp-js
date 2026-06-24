@@ -49,8 +49,8 @@ namespace Tsonic.CSharp.Js
         public static double pow(double x, double y) => System.Math.Pow(x, y);
 
         // Min/max with params
-        public static double max(params double[] values) => values.Max();
-        public static double min(params double[] values) => values.Min();
+        public static double max(params double[] values) => values.Length == 0 ? double.NegativeInfinity : values.Max();
+        public static double min(params double[] values) => values.Length == 0 ? double.PositiveInfinity : values.Min();
 
         // Trigonometric functions
         public static double sin(double x) => System.Math.Sin(x);
