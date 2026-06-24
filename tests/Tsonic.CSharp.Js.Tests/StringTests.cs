@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using Tsonic.CSharp.Js;
 using Xunit;
 
@@ -21,22 +22,41 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void toLowerCase_UsesNonLocaleJsCaseMapping()
+        {
+            var previousCulture = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
+                Assert.Equal("i", "I".toLowerCase());
+                Assert.Equal("I", "i".toUpperCase());
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
+        }
+
+        [Fact]
         public void trim_RemovesWhitespace()
         {
             Assert.Equal("hello", "  hello  ".trim());
             Assert.Equal("hello", "\thello\n".trim());
+            Assert.Equal("hello", "\uFEFFhello\uFEFF".trim());
         }
 
         [Fact]
         public void trimStart_RemovesLeadingWhitespace()
         {
             Assert.Equal("hello  ", "  hello  ".trimStart());
+            Assert.Equal("hello\uFEFF", "\uFEFFhello\uFEFF".trimStart());
         }
 
         [Fact]
         public void trimEnd_RemovesTrailingWhitespace()
         {
             Assert.Equal("  hello", "  hello  ".trimEnd());
+            Assert.Equal("\uFEFFhello", "\uFEFFhello\uFEFF".trimEnd());
         }
 
         [Fact]
@@ -388,12 +408,14 @@ namespace Tsonic.CSharp.Js.Tests
         public void trimLeft_RemovesLeadingWhitespace()
         {
             Assert.Equal("hello  ", "  hello  ".trimLeft());
+            Assert.Equal("hello\uFEFF", "\uFEFFhello\uFEFF".trimLeft());
         }
 
         [Fact]
         public void trimRight_RemovesTrailingWhitespace()
         {
             Assert.Equal("  hello", "  hello  ".trimRight());
+            Assert.Equal("\uFEFFhello", "\uFEFFhello\uFEFF".trimRight());
         }
 
         [Fact]

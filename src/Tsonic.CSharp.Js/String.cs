@@ -19,7 +19,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string toUpperCase(this string str)
         {
-            return str.ToUpper();
+            return str.ToUpperInvariant();
         }
 
         /// <summary>
@@ -27,7 +27,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string toLowerCase(this string str)
         {
-            return str.ToLower();
+            return str.ToLowerInvariant();
         }
 
         /// <summary>
@@ -35,7 +35,17 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trim(this string str)
         {
-            return str.Trim();
+            var start = 0;
+            var end = str.Length - 1;
+            while (start <= end && isJsTrimChar(str[start]))
+            {
+                start++;
+            }
+            while (end >= start && isJsTrimChar(str[end]))
+            {
+                end--;
+            }
+            return str.Substring(start, end - start + 1);
         }
 
         /// <summary>
@@ -43,7 +53,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trimStart(this string str)
         {
-            return str.TrimStart();
+            var start = 0;
+            while (start < str.Length && isJsTrimChar(str[start]))
+            {
+                start++;
+            }
+            return str.Substring(start);
         }
 
         /// <summary>
@@ -51,7 +66,17 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trimEnd(this string str)
         {
-            return str.TrimEnd();
+            var end = str.Length - 1;
+            while (end >= 0 && isJsTrimChar(str[end]))
+            {
+                end--;
+            }
+            return str.Substring(0, end + 1);
+        }
+
+        private static bool isJsTrimChar(char value)
+        {
+            return value == '\uFEFF' || char.IsWhiteSpace(value);
         }
 
         /// <summary>
@@ -545,7 +570,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trimLeft(this string str)
         {
-            return str.TrimStart();
+            return str.trimStart();
         }
 
         /// <summary>
@@ -553,7 +578,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trimRight(this string str)
         {
-            return str.TrimEnd();
+            return str.trimEnd();
         }
 
         // ==================== Static Factory Methods ====================
