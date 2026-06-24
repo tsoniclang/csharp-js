@@ -140,6 +140,12 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void repeat_NegativeCount_ThrowsRangeError()
+        {
+            Assert.Throws<RangeError>(() => "x".repeat(-1));
+        }
+
+        [Fact]
         public void padStart_PadsAtStart()
         {
             Assert.Equal("  hi", "hi".padStart(4));
@@ -296,9 +302,15 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void normalize_NormalizesUnicode()
         {
-            var str = "\u00e9"; // é
-            var normalized = str.normalize("NFC");
-            Assert.NotNull(normalized);
+            Assert.Equal("\u00e9", "\u0065\u0301".normalize("NFC"));
+            Assert.Equal("\u0065\u0301", "\u00e9".normalize("NFD"));
+            Assert.Equal("\u00e9", "\u0065\u0301".normalize());
+        }
+
+        [Fact]
+        public void normalize_InvalidForm_ThrowsRangeError()
+        {
+            Assert.Throws<RangeError>(() => "hello".normalize("INVALID"));
         }
 
         [Fact]
@@ -381,12 +393,22 @@ namespace Tsonic.CSharp.Js.Tests
         public void fromCharCode_CreatesStringFromCharCodes()
         {
             Assert.Equal("ABC", String.fromCharCode(65, 66, 67));
+            Assert.Equal("\u0000\uffff", String.fromCharCode(0x110000, -1));
         }
 
         [Fact]
         public void fromCodePoint_CreatesStringFromCodePoints()
         {
             Assert.Equal("ABC", String.fromCodePoint(65, 66, 67));
+            Assert.Equal("😀", String.fromCodePoint(0x1F600));
+            Assert.Equal("\ud800", String.fromCodePoint(0xD800));
+        }
+
+        [Fact]
+        public void fromCodePoint_InvalidCodePoint_ThrowsRangeError()
+        {
+            Assert.Throws<RangeError>(() => String.fromCodePoint(-1));
+            Assert.Throws<RangeError>(() => String.fromCodePoint(0x110000));
         }
 
         [Fact]

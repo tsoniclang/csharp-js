@@ -174,7 +174,25 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string repeat(this string str, int count)
         {
-            return string.Concat(Enumerable.Repeat(str, count));
+            if (count < 0)
+            {
+                throw new RangeError("String repeat count must be non-negative.");
+            }
+            if (count == 0 || str.Length == 0)
+            {
+                return "";
+            }
+            if (str.Length > int.MaxValue / count)
+            {
+                throw new RangeError("String repeat count exceeds maximum string length.");
+            }
+
+            var builder = new System.Text.StringBuilder(str.Length * count);
+            for (int i = 0; i < count; i++)
+            {
+                builder.Append(str);
+            }
+            return builder.ToString();
         }
 
         /// <summary>
@@ -396,10 +414,11 @@ namespace Tsonic.CSharp.Js
         {
             System.Text.NormalizationForm normForm = form switch
             {
+                "NFC" => System.Text.NormalizationForm.FormC,
                 "NFD" => System.Text.NormalizationForm.FormD,
                 "NFKC" => System.Text.NormalizationForm.FormKC,
                 "NFKD" => System.Text.NormalizationForm.FormKD,
-                _ => System.Text.NormalizationForm.FormC
+                _ => throw new RangeError("String normalization form must be NFC, NFD, NFKC, or NFKD.")
             };
             return str.Normalize(normForm);
         }
@@ -547,7 +566,7 @@ namespace Tsonic.CSharp.Js
             var chars = new char[codes.Length];
             for (int i = 0; i < codes.Length; i++)
             {
-                chars[i] = (char)codes[i];
+                chars[i] = (char)(codes[i] & 0xFFFF);
             }
             return new string(chars);
         }
@@ -562,9 +581,18 @@ namespace Tsonic.CSharp.Js
             {
                 if (codePoint < 0 || codePoint > 0x10FFFF)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(codePoints), "Invalid code point");
+                    throw new RangeError("Invalid code point.");
                 }
-                result.Append(char.ConvertFromUtf32(codePoint));
+
+                if (codePoint <= 0xFFFF)
+                {
+                    result.Append((char)codePoint);
+                    continue;
+                }
+
+                int offset = codePoint - 0x10000;
+                result.Append((char)(0xD800 + (offset >> 10)));
+                result.Append((char)(0xDC00 + (offset & 0x3FF)));
             }
             return result.ToString();
         }
