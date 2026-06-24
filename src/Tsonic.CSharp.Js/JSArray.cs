@@ -17,6 +17,11 @@ namespace Tsonic.CSharp.Js
     /// </summary>
     public interface IJSArray
     {
+        int length { get; }
+
+        bool hasIndex(int index);
+
+        bool tryGetAtObject(int index, out object? value);
     }
 
     public class JSArray<T> : IEnumerable<T>, IJSArray
@@ -141,6 +146,18 @@ namespace Tsonic.CSharp.Js
             }
 
             value = default(T)!;
+            return false;
+        }
+
+        public bool tryGetAtObject(int index, out object? value)
+        {
+            if (IsPresent(index))
+            {
+                value = _slots[index].Value;
+                return true;
+            }
+
+            value = null;
             return false;
         }
 
@@ -1011,11 +1028,13 @@ namespace Tsonic.CSharp.Js
                 {
                     result._slots.AddRange(jsArr._slots);
                 }
-                else if (item is IEnumerable<T> enumerable)
+                else if (item is IJSArray genericJsArray)
                 {
-                    foreach (var val in enumerable)
+                    for (int i = 0; i < genericJsArray.length; i++)
                     {
-                        result.push(val);
+                        result._slots.Add(genericJsArray.tryGetAtObject(i, out var value)
+                            ? Slot.Present(CastArrayValue<T>(value))
+                            : Slot.Hole);
                     }
                 }
                 else if (item is T value)
@@ -1124,11 +1143,14 @@ namespace Tsonic.CSharp.Js
 
         private static void FlattenValue(object? item, JSArray<object> result, int depth)
         {
-            if (depth > 0 && item != null && item is IEnumerable enumerable && !(item is string))
+            if (depth > 0 && item is IJSArray jsArray)
             {
-                foreach (var nestedItem in enumerable)
+                for (int i = 0; i < jsArray.length; i++)
                 {
-                    FlattenValue(nestedItem, result, depth - 1);
+                    if (jsArray.tryGetAtObject(i, out var nestedItem))
+                    {
+                        FlattenValue(nestedItem, result, depth - 1);
+                    }
                 }
             }
             else
@@ -1152,21 +1174,14 @@ namespace Tsonic.CSharp.Js
 
                 var mapped = callback(_slots[i].Value, i, this);
 
-                if (mapped is JSArray<TResult> jsArr)
+                if (mapped is IJSArray jsArr)
                 {
                     for (int j = 0; j < jsArr.length; j++)
                     {
-                        if (jsArr.tryGetAt(j, out var val))
+                        if (jsArr.tryGetAtObject(j, out var val))
                         {
-                            result.push(val);
+                            result.push(CastArrayValue<TResult>(val));
                         }
-                    }
-                }
-                else if (mapped is IEnumerable<TResult> enumerable)
-                {
-                    foreach (var val in enumerable)
-                    {
-                        result.push(val);
                     }
                 }
                 else if (mapped is TResult singleValue)
@@ -1336,6 +1351,21 @@ namespace Tsonic.CSharp.Js
             {
                 _slots.Add(Slot.Present(item));
             }
+        }
+
+        private static TValue CastArrayValue<TValue>(object? value)
+        {
+            if (value is TValue typed)
+            {
+                return typed;
+            }
+
+            if (value is null && default(TValue) is null)
+            {
+                return default(TValue)!;
+            }
+
+            throw new InvalidCastException("JSArray element is not assignable to the requested closed carrier element type.");
         }
 
         private bool IsPresent(int index)
