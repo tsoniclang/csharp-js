@@ -57,6 +57,33 @@ public static class Object
         return result;
     }
 
+    public static JSArray<string> keys<TValue>(Dictionary<string, TValue> value)
+    {
+        return keys((IReadOnlyDictionary<string, TValue>)value);
+    }
+
+    public static JSArray<string> keys<TValue>(IDictionary<string, TValue> value)
+    {
+        var result = new JSArray<string>();
+        foreach (var pair in EnumerateDictionary(value))
+        {
+            result.push(pair.Key);
+        }
+
+        return result;
+    }
+
+    public static JSArray<string> keys<TValue>(IReadOnlyDictionary<string, TValue> value)
+    {
+        var result = new JSArray<string>();
+        foreach (var pair in EnumerateDictionary(value))
+        {
+            result.push(pair.Key);
+        }
+
+        return result;
+    }
+
     public static JSArray<object?> values(object? value)
     {
         var result = new JSArray<object?>();
@@ -68,10 +95,64 @@ public static class Object
         return result;
     }
 
+    public static JSArray<TValue> values<TValue>(Dictionary<string, TValue> value)
+    {
+        return values((IReadOnlyDictionary<string, TValue>)value);
+    }
+
+    public static JSArray<TValue> values<TValue>(IDictionary<string, TValue> value)
+    {
+        var result = new JSArray<TValue>();
+        foreach (var pair in EnumerateDictionary(value))
+        {
+            result.push(pair.Value);
+        }
+
+        return result;
+    }
+
+    public static JSArray<TValue> values<TValue>(IReadOnlyDictionary<string, TValue> value)
+    {
+        var result = new JSArray<TValue>();
+        foreach (var pair in EnumerateDictionary(value))
+        {
+            result.push(pair.Value);
+        }
+
+        return result;
+    }
+
     public static JSArray<(string key, object? value)> entries(object? value)
     {
         var result = new JSArray<(string key, object? value)>();
         foreach (var pair in Enumerate(value))
+        {
+            result.push((pair.Key, pair.Value));
+        }
+
+        return result;
+    }
+
+    public static JSArray<(string key, TValue value)> entries<TValue>(Dictionary<string, TValue> value)
+    {
+        return entries((IReadOnlyDictionary<string, TValue>)value);
+    }
+
+    public static JSArray<(string key, TValue value)> entries<TValue>(IDictionary<string, TValue> value)
+    {
+        var result = new JSArray<(string key, TValue value)>();
+        foreach (var pair in EnumerateDictionary(value))
+        {
+            result.push((pair.Key, pair.Value));
+        }
+
+        return result;
+    }
+
+    public static JSArray<(string key, TValue value)> entries<TValue>(IReadOnlyDictionary<string, TValue> value)
+    {
+        var result = new JSArray<(string key, TValue value)>();
+        foreach (var pair in EnumerateDictionary(value))
         {
             result.push((pair.Key, pair.Value));
         }
@@ -123,6 +204,18 @@ public static class Object
         }
 
         return target;
+    }
+
+    private static IEnumerable<KeyValuePair<string, TValue>> EnumerateDictionary<TValue>(
+        IEnumerable<KeyValuePair<string, TValue>> dictionary
+    )
+    {
+        if (dictionary == null)
+        {
+            throw new TypeError("Object helper receiver cannot be null.");
+        }
+
+        return dictionary;
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> EnumerateJsArray(IJSArray array)

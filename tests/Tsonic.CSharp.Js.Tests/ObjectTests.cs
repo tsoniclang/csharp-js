@@ -49,6 +49,72 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void keys_values_entries_ReturnTypedArraysForReadOnlyDictionary()
+        {
+            IReadOnlyDictionary<string, int> value = new Dictionary<string, int>
+            {
+                ["first"] = 10,
+                ["second"] = 20
+            };
+
+            var keys = JsObjectStatics.keys(value);
+            var values = JsObjectStatics.values(value);
+            var entries = JsObjectStatics.entries(value);
+
+            Assert.IsType<JSArray<string>>(keys);
+            Assert.IsType<JSArray<int>>(values);
+            Assert.IsType<JSArray<(string key, int value)>>(entries);
+            Assert.Equal(new[] { "first", "second" }, keys);
+            Assert.Equal(new[] { 10, 20 }, values);
+            Assert.Equal(("first", 10), entries[0]);
+            Assert.Equal(("second", 20), entries[1]);
+        }
+
+        [Fact]
+        public void keys_values_entries_ReturnTypedArraysForMutableDictionaryInterface()
+        {
+            IDictionary<string, string> value = new Dictionary<string, string>
+            {
+                ["name"] = "tsonic",
+                ["target"] = "csharp"
+            };
+
+            var keys = JsObjectStatics.keys(value);
+            var values = JsObjectStatics.values(value);
+            var entries = JsObjectStatics.entries(value);
+
+            Assert.IsType<JSArray<string>>(keys);
+            Assert.IsType<JSArray<string>>(values);
+            Assert.IsType<JSArray<(string key, string value)>>(entries);
+            Assert.Equal(new[] { "name", "target" }, keys);
+            Assert.Equal(new[] { "tsonic", "csharp" }, values);
+            Assert.Equal(("name", "tsonic"), entries[0]);
+            Assert.Equal(("target", "csharp"), entries[1]);
+        }
+
+        [Fact]
+        public void keys_values_entries_ReturnTypedArraysForConcreteDictionaryWithoutAmbiguousOverload()
+        {
+            var value = new Dictionary<string, bool>
+            {
+                ["ok"] = true,
+                ["done"] = false
+            };
+
+            var keys = JsObjectStatics.keys(value);
+            var values = JsObjectStatics.values(value);
+            var entries = JsObjectStatics.entries(value);
+
+            Assert.IsType<JSArray<string>>(keys);
+            Assert.IsType<JSArray<bool>>(values);
+            Assert.IsType<JSArray<(string key, bool value)>>(entries);
+            Assert.Equal(new[] { "ok", "done" }, keys);
+            Assert.Equal(new[] { true, false }, values);
+            Assert.Equal(("ok", true), entries[0]);
+            Assert.Equal(("done", false), entries[1]);
+        }
+
+        [Fact]
         public void keys_values_entries_SupportStringBoxingWithoutReflection()
         {
             Assert.Equal(new[] { "0", "1", "2" }, JsObjectStatics.keys("abc"));
