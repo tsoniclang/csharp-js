@@ -21,9 +21,9 @@ namespace Tsonic.CSharp.Js.Tests
             var values = JsObjectStatics.values(value);
             var entries = JsObjectStatics.entries(value);
 
-            Assert.IsType<JSArray<string>>(keys);
-            Assert.IsType<JSArray<object?>>(values);
-            Assert.IsType<JSArray<(string key, object? value)>>(entries);
+            Assert.IsType<List<string>>(keys);
+            Assert.IsType<List<object?>>(values);
+            Assert.IsType<List<(string key, object? value)>>(entries);
             Assert.Equal(new[] { "name", "count" }, keys);
             Assert.Equal(new object?[] { "tsonic", 3 }, values);
             Assert.Equal(("name", (object?)"tsonic"), entries[0]);
@@ -43,7 +43,7 @@ namespace Tsonic.CSharp.Js.Tests
 
             var entries = JsObjectStatics.entries(value);
 
-            Assert.Equal(2, entries.length);
+            Assert.Equal(2, entries.Count);
             Assert.Equal(("1", (object?)20), entries[0]);
             Assert.Equal(("3", (object?)40), entries[1]);
         }
@@ -61,9 +61,9 @@ namespace Tsonic.CSharp.Js.Tests
             var values = JsObjectStatics.values(value);
             var entries = JsObjectStatics.entries(value);
 
-            Assert.IsType<JSArray<string>>(keys);
-            Assert.IsType<JSArray<int>>(values);
-            Assert.IsType<JSArray<(string key, int value)>>(entries);
+            Assert.IsType<List<string>>(keys);
+            Assert.IsType<List<int>>(values);
+            Assert.IsType<List<(string key, int value)>>(entries);
             Assert.Equal(new[] { "first", "second" }, keys);
             Assert.Equal(new[] { 10, 20 }, values);
             Assert.Equal(("first", 10), entries[0]);
@@ -83,9 +83,9 @@ namespace Tsonic.CSharp.Js.Tests
             var values = JsObjectStatics.values(value);
             var entries = JsObjectStatics.entries(value);
 
-            Assert.IsType<JSArray<string>>(keys);
-            Assert.IsType<JSArray<string>>(values);
-            Assert.IsType<JSArray<(string key, string value)>>(entries);
+            Assert.IsType<List<string>>(keys);
+            Assert.IsType<List<string>>(values);
+            Assert.IsType<List<(string key, string value)>>(entries);
             Assert.Equal(new[] { "name", "target" }, keys);
             Assert.Equal(new[] { "tsonic", "csharp" }, values);
             Assert.Equal(("name", "tsonic"), entries[0]);
@@ -105,9 +105,9 @@ namespace Tsonic.CSharp.Js.Tests
             var values = JsObjectStatics.values(value);
             var entries = JsObjectStatics.entries(value);
 
-            Assert.IsType<JSArray<string>>(keys);
-            Assert.IsType<JSArray<bool>>(values);
-            Assert.IsType<JSArray<(string key, bool value)>>(entries);
+            Assert.IsType<List<string>>(keys);
+            Assert.IsType<List<bool>>(values);
+            Assert.IsType<List<(string key, bool value)>>(entries);
             Assert.Equal(new[] { "ok", "done" }, keys);
             Assert.Equal(new[] { true, false }, values);
             Assert.Equal(("ok", true), entries[0]);
