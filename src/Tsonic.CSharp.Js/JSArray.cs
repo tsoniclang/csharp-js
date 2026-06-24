@@ -13,7 +13,7 @@ namespace Tsonic.CSharp.Js
 {
     /// <summary>
     /// JavaScript-style resizable array with full JS semantics.
-    /// Backed by List&lt;T&gt; for size-changing operations.
+    /// Backed by slots so empty array elements remain distinct from present default values.
     /// </summary>
     public interface IJSArray
     {
@@ -21,7 +21,29 @@ namespace Tsonic.CSharp.Js
 
     public class JSArray<T> : IEnumerable<T>, IJSArray
     {
-        private readonly List<T> _list;
+        private readonly List<Slot> _slots;
+
+        private readonly struct Slot
+        {
+            private readonly T _value;
+
+            private Slot(bool isPresent, T value)
+            {
+                IsPresent = isPresent;
+                _value = value;
+            }
+
+            public bool IsPresent { get; }
+
+            public T Value => IsPresent ? _value : default(T)!;
+
+            public static Slot Hole => default;
+
+            public static Slot Present(T value)
+            {
+                return new Slot(true, value);
+            }
+        }
 
         // ==================== Constructors ====================
 
@@ -30,7 +52,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray()
         {
-            _list = new List<T>();
+            _slots = new List<Slot>();
         }
 
         /// <summary>
@@ -38,7 +60,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray(int capacity)
         {
-            _list = new List<T>(capacity);
+            _slots = new List<Slot>(capacity);
         }
 
         /// <summary>
@@ -46,7 +68,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray(T[] source)
         {
-            _list = new List<T>(source);
+            _slots = new List<Slot>(source.Length);
+            AddPresentRange(source);
         }
 
         /// <summary>
@@ -54,7 +77,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray(List<T> source)
         {
-            _list = new List<T>(source);
+            _slots = new List<Slot>(source.Count);
+            AddPresentRange(source);
         }
 
         /// <summary>
@@ -62,7 +86,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray(IEnumerable<T> source)
         {
-            _list = new List<T>(source);
+            _slots = new List<Slot>();
+            AddPresentRange(source);
         }
 
         // ==================== Properties ====================
@@ -70,7 +95,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get array length
         /// </summary>
-        public int length => _list.Count;
+        public int length => _slots.Count;
 
         // ==================== Indexer ====================
 
@@ -81,11 +106,7 @@ namespace Tsonic.CSharp.Js
         {
             get
             {
-                if (index < 0 || index >= _list.Count)
-                {
-                    return default(T)!;
-                }
-                return _list[index];
+                return ReadValue(index);
             }
             set
             {
@@ -94,20 +115,52 @@ namespace Tsonic.CSharp.Js
                     throw new ArgumentException("Array index cannot be negative", nameof(index));
                 }
 
-                // Fill gaps with default(T) if index is beyond current length
-                while (_list.Count <= index)
-                {
-                    _list.Add(default(T)!);
-                }
+                EnsureLengthForIndex(index);
 
-                _list[index] = value;
+                _slots[index] = Slot.Present(value);
             }
+        }
+
+        /// <summary>
+        /// Check whether an array index is present.
+        /// </summary>
+        public bool hasIndex(int index)
+        {
+            return IsPresent(index);
+        }
+
+        /// <summary>
+        /// Read a present array index without conflating holes with present default values.
+        /// </summary>
+        public bool tryGetAt(int index, out T value)
+        {
+            if (IsPresent(index))
+            {
+                value = _slots[index].Value;
+                return true;
+            }
+
+            value = default(T)!;
+            return false;
+        }
+
+        /// <summary>
+        /// Delete an array index, leaving a hole and preserving length.
+        /// </summary>
+        public bool deleteAt(int index)
+        {
+            if (index >= 0 && index < _slots.Count)
+            {
+                _slots[index] = Slot.Hole;
+            }
+
+            return true;
         }
 
         // ==================== Length Manipulation ====================
 
         /// <summary>
-        /// Set array length (truncate or extend with defaults)
+        /// Set array length (truncate or extend with holes)
         /// </summary>
         public void setLength(int newLength)
         {
@@ -116,16 +169,16 @@ namespace Tsonic.CSharp.Js
                 throw new ArgumentException("Invalid array length", nameof(newLength));
             }
 
-            if (newLength < _list.Count)
+            if (newLength < _slots.Count)
             {
-                _list.RemoveRange(newLength, _list.Count - newLength);
+                _slots.RemoveRange(newLength, _slots.Count - newLength);
             }
-            else if (newLength > _list.Count)
+            else if (newLength > _slots.Count)
             {
-                int toAdd = newLength - _list.Count;
+                int toAdd = newLength - _slots.Count;
                 for (int i = 0; i < toAdd; i++)
                 {
-                    _list.Add(default(T)!);
+                    _slots.Add(Slot.Hole);
                 }
             }
         }
@@ -137,8 +190,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int push(T item)
         {
-            _list.Add(item);
-            return _list.Count;
+            _slots.Add(Slot.Present(item));
+            return _slots.Count;
         }
 
         /// <summary>
@@ -146,8 +199,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int push(params T[] items)
         {
-            _list.AddRange(items);
-            return _list.Count;
+            AddPresentRange(items);
+            return _slots.Count;
         }
 
         /// <summary>
@@ -155,13 +208,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T pop()
         {
-            if (_list.Count == 0)
+            if (_slots.Count == 0)
             {
                 return default(T)!;
             }
 
-            T item = _list[_list.Count - 1];
-            _list.RemoveAt(_list.Count - 1);
+            T item = _slots[_slots.Count - 1].Value;
+            _slots.RemoveAt(_slots.Count - 1);
             return item;
         }
 
@@ -170,13 +223,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T shift()
         {
-            if (_list.Count == 0)
+            if (_slots.Count == 0)
             {
                 return default(T)!;
             }
 
-            T item = _list[0];
-            _list.RemoveAt(0);
+            T item = _slots[0].Value;
+            _slots.RemoveAt(0);
             return item;
         }
 
@@ -185,8 +238,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int unshift(T item)
         {
-            _list.Insert(0, item);
-            return _list.Count;
+            _slots.Insert(0, Slot.Present(item));
+            return _slots.Count;
         }
 
         /// <summary>
@@ -194,8 +247,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int unshift(params T[] items)
         {
-            _list.InsertRange(0, items);
-            return _list.Count;
+            for (int i = items.Length - 1; i >= 0; i--)
+            {
+                _slots.Insert(0, Slot.Present(items[i]));
+            }
+
+            return _slots.Count;
         }
 
         // ==================== Slicing Methods ====================
@@ -205,20 +262,26 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> slice(int start = 0, int? end = null)
         {
-            int actualStart = start < 0 ? System.Math.Max(0, _list.Count + start) : start;
+            int actualStart = start < 0 ? System.Math.Max(0, _slots.Count + start) : start;
             int actualEnd = end.HasValue
-                ? (end.Value < 0 ? System.Math.Max(0, _list.Count + end.Value) : end.Value)
-                : _list.Count;
+                ? (end.Value < 0 ? System.Math.Max(0, _slots.Count + end.Value) : end.Value)
+                : _slots.Count;
 
-            actualStart = System.Math.Min(actualStart, _list.Count);
-            actualEnd = System.Math.Min(actualEnd, _list.Count);
+            actualStart = System.Math.Min(actualStart, _slots.Count);
+            actualEnd = System.Math.Min(actualEnd, _slots.Count);
 
             if (actualStart >= actualEnd)
             {
                 return new JSArray<T>();
             }
 
-            return new JSArray<T>(_list.GetRange(actualStart, actualEnd - actualStart));
+            var result = new JSArray<T>(actualEnd - actualStart);
+            for (int i = actualStart; i < actualEnd; i++)
+            {
+                result._slots.Add(_slots[i]);
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -226,20 +289,20 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> splice(int start, int? deleteCount = null, params T[] items)
         {
-            int actualStart = start < 0 ? System.Math.Max(0, _list.Count + start) : System.Math.Min(start, _list.Count);
-            int actualDeleteCount = deleteCount ?? (_list.Count - actualStart);
-            actualDeleteCount = System.Math.Max(0, System.Math.Min(actualDeleteCount, _list.Count - actualStart));
+            int actualStart = start < 0 ? System.Math.Max(0, _slots.Count + start) : System.Math.Min(start, _slots.Count);
+            int actualDeleteCount = deleteCount ?? (_slots.Count - actualStart);
+            actualDeleteCount = System.Math.Max(0, System.Math.Min(actualDeleteCount, _slots.Count - actualStart));
 
-            var deleted = new JSArray<T>();
+            var deleted = new JSArray<T>(actualDeleteCount);
             for (int i = 0; i < actualDeleteCount; i++)
             {
-                deleted.push(_list[actualStart]);
-                _list.RemoveAt(actualStart);
+                deleted._slots.Add(_slots[actualStart]);
+                _slots.RemoveAt(actualStart);
             }
 
             for (int i = 0; i < items.Length; i++)
             {
-                _list.Insert(actualStart + i, items[i]);
+                _slots.Insert(actualStart + i, Slot.Present(items[i]));
             }
 
             return deleted;
@@ -252,10 +315,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<TResult> map<TResult>(Func<T, TResult> callback)
         {
-            var result = new JSArray<TResult>(_list.Count);
-            for (int i = 0; i < _list.Count; i++)
+            var result = new JSArray<TResult>(_slots.Count);
+            result.setLength(_slots.Count);
+            for (int i = 0; i < _slots.Count; i++)
             {
-                result.push(callback(_list[i]));
+                if (_slots[i].IsPresent)
+                {
+                    result[i] = callback(_slots[i].Value);
+                }
             }
             return result;
         }
@@ -265,10 +332,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<TResult> map<TResult>(Func<T, int, TResult> callback)
         {
-            var result = new JSArray<TResult>(_list.Count);
-            for (int i = 0; i < _list.Count; i++)
+            var result = new JSArray<TResult>(_slots.Count);
+            result.setLength(_slots.Count);
+            for (int i = 0; i < _slots.Count; i++)
             {
-                result.push(callback(_list[i], i));
+                if (_slots[i].IsPresent)
+                {
+                    result[i] = callback(_slots[i].Value, i);
+                }
             }
             return result;
         }
@@ -278,10 +349,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<TResult> map<TResult>(Func<T, int, JSArray<T>, TResult> callback)
         {
-            var result = new JSArray<TResult>(_list.Count);
-            for (int i = 0; i < _list.Count; i++)
+            var result = new JSArray<TResult>(_slots.Count);
+            result.setLength(_slots.Count);
+            for (int i = 0; i < _slots.Count; i++)
             {
-                result.push(callback(_list[i], i, this));
+                if (_slots[i].IsPresent)
+                {
+                    result[i] = callback(_slots[i].Value, i, this);
+                }
             }
             return result;
         }
@@ -292,11 +367,11 @@ namespace Tsonic.CSharp.Js
         public JSArray<T> filter(Func<T, bool> callback)
         {
             var result = new JSArray<T>();
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i]))
+                if (_slots[i].IsPresent && callback(_slots[i].Value))
                 {
-                    result.push(_list[i]);
+                    result.push(_slots[i].Value);
                 }
             }
             return result;
@@ -308,11 +383,11 @@ namespace Tsonic.CSharp.Js
         public JSArray<T> filter(Func<T, int, bool> callback)
         {
             var result = new JSArray<T>();
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i], i))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i))
                 {
-                    result.push(_list[i]);
+                    result.push(_slots[i].Value);
                 }
             }
             return result;
@@ -324,11 +399,11 @@ namespace Tsonic.CSharp.Js
         public JSArray<T> filter(Func<T, int, JSArray<T>, bool> callback)
         {
             var result = new JSArray<T>();
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i], i, this))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i, this))
                 {
-                    result.push(_list[i]);
+                    result.push(_slots[i].Value);
                 }
             }
             return result;
@@ -340,9 +415,12 @@ namespace Tsonic.CSharp.Js
         public TResult reduce<TResult>(Func<TResult, T, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                accumulator = callback(accumulator, _list[i]);
+                if (_slots[i].IsPresent)
+                {
+                    accumulator = callback(accumulator, _slots[i].Value);
+                }
             }
             return accumulator;
         }
@@ -353,9 +431,12 @@ namespace Tsonic.CSharp.Js
         public TResult reduce<TResult>(Func<TResult, T, int, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                accumulator = callback(accumulator, _list[i], i);
+                if (_slots[i].IsPresent)
+                {
+                    accumulator = callback(accumulator, _slots[i].Value, i);
+                }
             }
             return accumulator;
         }
@@ -366,9 +447,12 @@ namespace Tsonic.CSharp.Js
         public TResult reduce<TResult>(Func<TResult, T, int, JSArray<T>, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                accumulator = callback(accumulator, _list[i], i, this);
+                if (_slots[i].IsPresent)
+                {
+                    accumulator = callback(accumulator, _slots[i].Value, i, this);
+                }
             }
             return accumulator;
         }
@@ -378,16 +462,31 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T reduce(Func<T, T, T> callback)
         {
-            if (_list.Count == 0)
+            bool hasAccumulator = false;
+            T accumulator = default(T)!;
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                if (!_slots[i].IsPresent)
+                {
+                    continue;
+                }
+
+                if (!hasAccumulator)
+                {
+                    accumulator = _slots[i].Value;
+                    hasAccumulator = true;
+                }
+                else
+                {
+                    accumulator = callback(accumulator, _slots[i].Value);
+                }
+            }
+
+            if (!hasAccumulator)
             {
                 throw new InvalidOperationException("Reduce of empty array with no initial value");
             }
 
-            T accumulator = _list[0];
-            for (int i = 1; i < _list.Count; i++)
-            {
-                accumulator = callback(accumulator, _list[i]);
-            }
             return accumulator;
         }
 
@@ -397,9 +496,12 @@ namespace Tsonic.CSharp.Js
         public TResult reduceRight<TResult>(Func<TResult, T, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                accumulator = callback(accumulator, _list[i]);
+                if (_slots[i].IsPresent)
+                {
+                    accumulator = callback(accumulator, _slots[i].Value);
+                }
             }
             return accumulator;
         }
@@ -410,9 +512,12 @@ namespace Tsonic.CSharp.Js
         public TResult reduceRight<TResult>(Func<TResult, T, int, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                accumulator = callback(accumulator, _list[i], i);
+                if (_slots[i].IsPresent)
+                {
+                    accumulator = callback(accumulator, _slots[i].Value, i);
+                }
             }
             return accumulator;
         }
@@ -423,9 +528,12 @@ namespace Tsonic.CSharp.Js
         public TResult reduceRight<TResult>(Func<TResult, T, int, JSArray<T>, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                accumulator = callback(accumulator, _list[i], i, this);
+                if (_slots[i].IsPresent)
+                {
+                    accumulator = callback(accumulator, _slots[i].Value, i, this);
+                }
             }
             return accumulator;
         }
@@ -435,9 +543,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                callback(_list[i]);
+                if (_slots[i].IsPresent)
+                {
+                    callback(_slots[i].Value);
+                }
             }
         }
 
@@ -446,9 +557,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T, int> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                callback(_list[i], i);
+                if (_slots[i].IsPresent)
+                {
+                    callback(_slots[i].Value, i);
+                }
             }
         }
 
@@ -457,9 +571,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T, int, JSArray<T>> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                callback(_list[i], i, this);
+                if (_slots[i].IsPresent)
+                {
+                    callback(_slots[i].Value, i, this);
+                }
             }
         }
 
@@ -470,11 +587,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T find(Func<T, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i]))
+                if (_slots[i].IsPresent && callback(_slots[i].Value))
                 {
-                    return _list[i];
+                    return _slots[i].Value;
                 }
             }
             return default(T)!;
@@ -485,11 +602,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T find(Func<T, int, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i], i))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i))
                 {
-                    return _list[i];
+                    return _slots[i].Value;
                 }
             }
             return default(T)!;
@@ -500,11 +617,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T find(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i], i, this))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i, this))
                 {
-                    return _list[i];
+                    return _slots[i].Value;
                 }
             }
             return default(T)!;
@@ -515,9 +632,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findIndex(Func<T, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i]))
+                if (_slots[i].IsPresent && callback(_slots[i].Value))
                 {
                     return i;
                 }
@@ -530,9 +647,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findIndex(Func<T, int, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i], i))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i))
                 {
                     return i;
                 }
@@ -545,9 +662,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findIndex(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i], i, this))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i, this))
                 {
                     return i;
                 }
@@ -560,11 +677,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T findLast(Func<T, bool> callback)
         {
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                if (callback(_list[i]))
+                if (_slots[i].IsPresent && callback(_slots[i].Value))
                 {
-                    return _list[i];
+                    return _slots[i].Value;
                 }
             }
             return default(T)!;
@@ -575,11 +692,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T findLast(Func<T, int, bool> callback)
         {
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                if (callback(_list[i], i))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i))
                 {
-                    return _list[i];
+                    return _slots[i].Value;
                 }
             }
             return default(T)!;
@@ -590,11 +707,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T findLast(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                if (callback(_list[i], i, this))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i, this))
                 {
-                    return _list[i];
+                    return _slots[i].Value;
                 }
             }
             return default(T)!;
@@ -605,9 +722,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findLastIndex(Func<T, bool> callback)
         {
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                if (callback(_list[i]))
+                if (_slots[i].IsPresent && callback(_slots[i].Value))
                 {
                     return i;
                 }
@@ -620,9 +737,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findLastIndex(Func<T, int, bool> callback)
         {
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                if (callback(_list[i], i))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i))
                 {
                     return i;
                 }
@@ -635,9 +752,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findLastIndex(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = _list.Count - 1; i >= 0; i--)
+            for (int i = _slots.Count - 1; i >= 0; i--)
             {
-                if (callback(_list[i], i, this))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i, this))
                 {
                     return i;
                 }
@@ -651,9 +768,9 @@ namespace Tsonic.CSharp.Js
         public int indexOf(T searchElement, int fromIndex = 0)
         {
             int start = NormalizeForwardSearchStart(fromIndex);
-            for (int i = start; i < _list.Count; i++)
+            for (int i = start; i < _slots.Count; i++)
             {
-                if (EqualityComparer<T>.Default.Equals(_list[i], searchElement))
+                if (_slots[i].IsPresent && EqualityComparer<T>.Default.Equals(_slots[i].Value, searchElement))
                 {
                     return i;
                 }
@@ -666,16 +783,16 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int lastIndexOf(T searchElement, int? fromIndex = null)
         {
-            int startIndex = fromIndex ?? _list.Count - 1;
+            int startIndex = fromIndex ?? _slots.Count - 1;
             if (startIndex < 0)
             {
-                startIndex = _list.Count + startIndex;
+                startIndex = _slots.Count + startIndex;
             }
-            startIndex = System.Math.Min(startIndex, _list.Count - 1);
+            startIndex = System.Math.Min(startIndex, _slots.Count - 1);
 
             for (int i = startIndex; i >= 0; i--)
             {
-                if (EqualityComparer<T>.Default.Equals(_list[i], searchElement))
+                if (_slots[i].IsPresent && EqualityComparer<T>.Default.Equals(_slots[i].Value, searchElement))
                 {
                     return i;
                 }
@@ -693,12 +810,12 @@ namespace Tsonic.CSharp.Js
 
         private int NormalizeForwardSearchStart(int fromIndex)
         {
-            if (fromIndex >= _list.Count)
+            if (fromIndex >= _slots.Count)
             {
-                return _list.Count;
+                return _slots.Count;
             }
             return fromIndex < 0
-                ? System.Math.Max(_list.Count + fromIndex, 0)
+                ? System.Math.Max(_slots.Count + fromIndex, 0)
                 : fromIndex;
         }
 
@@ -707,9 +824,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool every(Func<T, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (!callback(_list[i]))
+                if (_slots[i].IsPresent && !callback(_slots[i].Value))
                 {
                     return false;
                 }
@@ -722,9 +839,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool every(Func<T, int, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (!callback(_list[i], i))
+                if (_slots[i].IsPresent && !callback(_slots[i].Value, i))
                 {
                     return false;
                 }
@@ -737,9 +854,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool every(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (!callback(_list[i], i, this))
+                if (_slots[i].IsPresent && !callback(_slots[i].Value, i, this))
                 {
                     return false;
                 }
@@ -752,9 +869,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool some(Func<T, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i]))
+                if (_slots[i].IsPresent && callback(_slots[i].Value))
                 {
                     return true;
                 }
@@ -767,9 +884,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool some(Func<T, int, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i], i))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i))
                 {
                     return true;
                 }
@@ -782,9 +899,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool some(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                if (callback(_list[i], i, this))
+                if (_slots[i].IsPresent && callback(_slots[i].Value, i, this))
                 {
                     return true;
                 }
@@ -799,9 +916,18 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> sort(Func<T, T, double>? compareFunc = null)
         {
+            var presentValues = new List<T>();
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                if (_slots[i].IsPresent)
+                {
+                    presentValues.Add(_slots[i].Value);
+                }
+            }
+
             if (compareFunc != null)
             {
-                _list.Sort((a, b) =>
+                presentValues.Sort((a, b) =>
                 {
                     double result = compareFunc(a, b);
                     return result < 0 ? -1 : result > 0 ? 1 : 0;
@@ -809,13 +935,25 @@ namespace Tsonic.CSharp.Js
             }
             else
             {
-                _list.Sort((a, b) =>
+                presentValues.Sort((a, b) =>
                 {
                     string aStr = a?.ToString() ?? "";
                     string bStr = b?.ToString() ?? "";
                     return string.Compare(aStr, bStr, StringComparison.Ordinal);
                 });
             }
+
+            int valueIndex = 0;
+            for (; valueIndex < presentValues.Count; valueIndex++)
+            {
+                _slots[valueIndex] = Slot.Present(presentValues[valueIndex]);
+            }
+
+            for (int i = valueIndex; i < _slots.Count; i++)
+            {
+                _slots[i] = Slot.Hole;
+            }
+
             return this;
         }
 
@@ -824,7 +962,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> reverse()
         {
-            _list.Reverse();
+            _slots.Reverse();
             return this;
         }
 
@@ -836,9 +974,9 @@ namespace Tsonic.CSharp.Js
         public string join(string separator = ",")
         {
             var parts = new List<string>();
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                parts.Add(_list[i]?.ToString() ?? "");
+                parts.Add(_slots[i].IsPresent ? _slots[i].Value?.ToString() ?? "" : "");
             }
             return string.Join(separator, parts);
         }
@@ -864,16 +1002,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> concat(params object[] items)
         {
-            var result = new JSArray<T>(_list);
+            var result = new JSArray<T>(_slots.Count);
+            result._slots.AddRange(_slots);
 
             foreach (var item in items)
             {
                 if (item is JSArray<T> jsArr)
                 {
-                    foreach (var val in jsArr)
-                    {
-                        result.push(val);
-                    }
+                    result._slots.AddRange(jsArr._slots);
                 }
                 else if (item is IEnumerable<T> enumerable)
                 {
@@ -896,7 +1032,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T[] toArray()
         {
-            return _list.ToArray();
+            var result = new T[_slots.Count];
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                result[i] = _slots[i].Value;
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -904,7 +1046,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public List<T> toList()
         {
-            return new List<T>(_list);
+            var result = new List<T>(_slots.Count);
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                result.Add(_slots[i].Value);
+            }
+
+            return result;
         }
 
         // ==================== Iterator Methods ====================
@@ -914,9 +1062,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<(int index, T value)> entries()
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                yield return (i, _list[i]);
+                yield return (i, _slots[i].Value);
             }
         }
 
@@ -925,7 +1073,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<int> keys()
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
                 yield return i;
             }
@@ -936,9 +1084,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<T> values()
         {
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                yield return _list[i];
+                yield return _slots[i].Value;
             }
         }
 
@@ -949,12 +1097,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T at(int index)
         {
-            int actualIndex = index < 0 ? _list.Count + index : index;
-            if (actualIndex < 0 || actualIndex >= _list.Count)
+            int actualIndex = index < 0 ? _slots.Count + index : index;
+            if (actualIndex < 0 || actualIndex >= _slots.Count)
             {
                 return default(T)!;
             }
-            return _list[actualIndex];
+            return _slots[actualIndex].Value;
         }
 
         /// <summary>
@@ -963,26 +1111,29 @@ namespace Tsonic.CSharp.Js
         public JSArray<object> flat(int depth = 1)
         {
             var result = new JSArray<object>();
-            FlattenHelper(_list, result, depth);
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                if (_slots[i].IsPresent)
+                {
+                    FlattenValue(_slots[i].Value, result, depth);
+                }
+            }
+
             return result;
         }
 
-        private static void FlattenHelper<TSource>(IEnumerable<TSource> source, JSArray<object> result, int depth)
+        private static void FlattenValue(object? item, JSArray<object> result, int depth)
         {
-            foreach (var item in source)
+            if (depth > 0 && item != null && item is IEnumerable enumerable && !(item is string))
             {
-                if (depth > 0 && item != null && item is IEnumerable enumerable && !(item is string))
+                foreach (var nestedItem in enumerable)
                 {
-                    foreach (var nestedItem in enumerable)
-                    {
-                        var tempList = new List<object> { nestedItem };
-                        FlattenHelper(tempList, result, depth - 1);
-                    }
+                    FlattenValue(nestedItem, result, depth - 1);
                 }
-                else
-                {
-                    result.push(item!);
-                }
+            }
+            else
+            {
+                result.push(item!);
             }
         }
 
@@ -992,15 +1143,23 @@ namespace Tsonic.CSharp.Js
         public JSArray<TResult> flatMap<TResult>(Func<T, int, JSArray<T>, object> callback)
         {
             var result = new JSArray<TResult>();
-            for (int i = 0; i < _list.Count; i++)
+            for (int i = 0; i < _slots.Count; i++)
             {
-                var mapped = callback(_list[i], i, this);
+                if (!_slots[i].IsPresent)
+                {
+                    continue;
+                }
+
+                var mapped = callback(_slots[i].Value, i, this);
 
                 if (mapped is JSArray<TResult> jsArr)
                 {
-                    foreach (var val in jsArr)
+                    for (int j = 0; j < jsArr.length; j++)
                     {
-                        result.push(val);
+                        if (jsArr.tryGetAt(j, out var val))
+                        {
+                            result.push(val);
+                        }
                     }
                 }
                 else if (mapped is IEnumerable<TResult> enumerable)
@@ -1023,14 +1182,17 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> fill(T value, int start = 0, int? end = null)
         {
-            int actualStart = start < 0 ? System.Math.Max(0, _list.Count + start) : start;
+            int actualStart = start < 0 ? System.Math.Max(0, _slots.Count + start) : start;
             int actualEnd = end.HasValue
-                ? (end.Value < 0 ? _list.Count + end.Value : end.Value)
-                : _list.Count;
+                ? (end.Value < 0 ? _slots.Count + end.Value : end.Value)
+                : _slots.Count;
 
-            for (int i = actualStart; i < actualEnd && i < _list.Count; i++)
+            actualStart = System.Math.Min(System.Math.Max(actualStart, 0), _slots.Count);
+            actualEnd = System.Math.Min(System.Math.Max(actualEnd, 0), _slots.Count);
+
+            for (int i = actualStart; i < actualEnd; i++)
             {
-                _list[i] = value;
+                _slots[i] = Slot.Present(value);
             }
             return this;
         }
@@ -1040,23 +1202,28 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> copyWithin(int target, int start = 0, int? end = null)
         {
-            int actualTarget = target < 0 ? System.Math.Max(0, _list.Count + target) : target;
-            int actualStart = start < 0 ? System.Math.Max(0, _list.Count + start) : start;
+            int actualTarget = target < 0 ? System.Math.Max(0, _slots.Count + target) : target;
+            int actualStart = start < 0 ? System.Math.Max(0, _slots.Count + start) : start;
             int actualEnd = end.HasValue
-                ? (end.Value < 0 ? _list.Count + end.Value : end.Value)
-                : _list.Count;
+                ? (end.Value < 0 ? _slots.Count + end.Value : end.Value)
+                : _slots.Count;
 
-            int count = System.Math.Min(actualEnd - actualStart, _list.Count - actualTarget);
+            actualTarget = System.Math.Min(System.Math.Max(actualTarget, 0), _slots.Count);
+            actualStart = System.Math.Min(System.Math.Max(actualStart, 0), _slots.Count);
+            actualEnd = System.Math.Min(System.Math.Max(actualEnd, 0), _slots.Count);
 
-            var temp = new List<T>();
+            int count = System.Math.Min(actualEnd - actualStart, _slots.Count - actualTarget);
+            count = System.Math.Max(0, System.Math.Min(count, _slots.Count - actualStart));
+
+            var temp = new List<Slot>();
             for (int i = 0; i < count; i++)
             {
-                temp.Add(_list[actualStart + i]);
+                temp.Add(_slots[actualStart + i]);
             }
 
             for (int i = 0; i < count; i++)
             {
-                _list[actualTarget + i] = temp[i];
+                _slots[actualTarget + i] = temp[i];
             }
 
             return this;
@@ -1069,13 +1236,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> with(int index, T value)
         {
-            int actualIndex = index < 0 ? _list.Count + index : index;
-            if (actualIndex < 0 || actualIndex >= _list.Count)
+            int actualIndex = index < 0 ? _slots.Count + index : index;
+            if (actualIndex < 0 || actualIndex >= _slots.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            var result = new JSArray<T>(_list);
+            var result = CopySlots();
             result[actualIndex] = value;
             return result;
         }
@@ -1085,7 +1252,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> toReversed()
         {
-            var result = new JSArray<T>(_list);
+            var result = CopySlots();
             result.reverse();
             return result;
         }
@@ -1095,7 +1262,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> toSorted(Func<T, T, double>? compareFunc = null)
         {
-            var result = new JSArray<T>(_list);
+            var result = CopySlots();
             result.sort(compareFunc);
             return result;
         }
@@ -1105,7 +1272,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> toSpliced(int start, int? deleteCount = null, params T[] items)
         {
-            var result = new JSArray<T>(_list);
+            var result = CopySlots();
             result.splice(start, deleteCount, items);
             return result;
         }
@@ -1163,11 +1330,44 @@ namespace Tsonic.CSharp.Js
             return new JSArray<T>(items);
         }
 
+        private void AddPresentRange(IEnumerable<T> items)
+        {
+            foreach (var item in items)
+            {
+                _slots.Add(Slot.Present(item));
+            }
+        }
+
+        private bool IsPresent(int index)
+        {
+            return index >= 0 && index < _slots.Count && _slots[index].IsPresent;
+        }
+
+        private T ReadValue(int index)
+        {
+            return index >= 0 && index < _slots.Count ? _slots[index].Value : default(T)!;
+        }
+
+        private void EnsureLengthForIndex(int index)
+        {
+            while (_slots.Count <= index)
+            {
+                _slots.Add(Slot.Hole);
+            }
+        }
+
+        private JSArray<T> CopySlots()
+        {
+            var result = new JSArray<T>(_slots.Count);
+            result._slots.AddRange(_slots);
+            return result;
+        }
+
         // ==================== IEnumerable Implementation ====================
 
         public IEnumerator<T> GetEnumerator()
         {
-            return _list.GetEnumerator();
+            return values().GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

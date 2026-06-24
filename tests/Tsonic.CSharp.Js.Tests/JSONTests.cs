@@ -134,7 +134,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             object value = JSON.parse("{\"mounts\":[{\"name\":\"docs\"}]}")!;
             var entries = Object.entries(value);
-            var mounts = Assert.IsType<object?[]>(entries[0].value);
+            var mounts = Assert.IsType<JSArray<object?>>(entries[0].value);
 
             Assert.True(JSArrayStatics.isArray(mounts));
             var firstMount = Assert.IsType<JSObject>(mounts[0]);

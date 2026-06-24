@@ -30,7 +30,9 @@ namespace Tsonic.CSharp.Js.Tests
             arr[10] = 42;
 
             Assert.Equal(11, arr.length);
-            Assert.Equal(0, arr[0]); // Hole returns default
+            Assert.Equal(0, arr[0]); // Hole reads as undefined/default
+            Assert.False(arr.hasIndex(0));
+            Assert.True(arr.hasIndex(10));
             Assert.Equal(42, arr[10]);
         }
 
@@ -50,7 +52,88 @@ namespace Tsonic.CSharp.Js.Tests
             arr.setLength(5);
 
             Assert.Equal(5, arr.length);
-            Assert.Equal(0, arr[4]); // New slots filled with default
+            Assert.Equal(0, arr[4]); // New hole reads as undefined/default
+            Assert.False(arr.hasIndex(4));
+        }
+
+        [Fact]
+        public void tryGetAt_DistinguishesPresentDefaultsFromHoles()
+        {
+            var numbers = new JSArray<int>();
+            numbers[0] = 0;
+            numbers[2] = 42;
+
+            Assert.True(numbers.tryGetAt(0, out var zero));
+            Assert.Equal(0, zero);
+            Assert.False(numbers.tryGetAt(1, out var holeNumber));
+            Assert.Equal(0, holeNumber);
+            Assert.False(numbers.tryGetAt(99, out var missingNumber));
+            Assert.Equal(0, missingNumber);
+
+            var booleans = new JSArray<bool>();
+            booleans[0] = false;
+            booleans.setLength(2);
+
+            Assert.True(booleans.tryGetAt(0, out var falseValue));
+            Assert.False(falseValue);
+            Assert.False(booleans.tryGetAt(1, out _));
+
+            var nullableStrings = new JSArray<string?>();
+            nullableStrings[0] = null;
+            nullableStrings.setLength(2);
+
+            Assert.True(nullableStrings.tryGetAt(0, out var nullValue));
+            Assert.Null(nullValue);
+            Assert.False(nullableStrings.tryGetAt(1, out _));
+        }
+
+        [Fact]
+        public void deleteAt_CreatesHoleWithoutChangingLength()
+        {
+            var arr = new JSArray<int>(new[] { 1, 0, 3 });
+
+            Assert.True(arr.deleteAt(1));
+
+            Assert.Equal(3, arr.length);
+            Assert.Equal(0, arr[1]);
+            Assert.False(arr.hasIndex(1));
+            Assert.False(arr.tryGetAt(1, out var deletedValue));
+            Assert.Equal(0, deletedValue);
+            Assert.Equal(-1, arr.indexOf(0));
+            Assert.Equal("1,,3", arr.join());
+            Assert.True(arr.deleteAt(99));
+            Assert.Equal(3, arr.length);
+
+            arr[1] = 0;
+
+            Assert.True(arr.hasIndex(1));
+            Assert.Equal(1, arr.indexOf(0));
+        }
+
+        [Fact]
+        public void setLength_ClearAndExtend_UsesHoles()
+        {
+            var arr = new JSArray<int>(new[] { 1, 2, 3 });
+
+            arr.setLength(0);
+
+            Assert.Equal(0, arr.length);
+            Assert.False(arr.hasIndex(0));
+
+            arr.setLength(3);
+
+            Assert.Equal(3, arr.length);
+            Assert.False(arr.hasIndex(0));
+            Assert.False(arr.hasIndex(1));
+            Assert.False(arr.hasIndex(2));
+
+            arr[1] = 5;
+            arr.push(7);
+
+            Assert.Equal(4, arr.length);
+            Assert.Equal(5, arr[1]);
+            Assert.Equal(7, arr[3]);
+            Assert.Equal(12, arr.reduce((sum, value) => sum + value, 0));
         }
 
         [Fact]
