@@ -844,6 +844,54 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void StaticPopShift_ReturnTypedNullishCarriers()
+        {
+            var numbers = new List<int> { 1, 2 };
+            Assert.Equal(2, Tsonic.CSharp.Js.Array.popValue(numbers));
+            Assert.Equal(1, Tsonic.CSharp.Js.Array.shiftValue(numbers));
+            Assert.Null(Tsonic.CSharp.Js.Array.popValue(numbers));
+            Assert.Null(Tsonic.CSharp.Js.Array.shiftValue(numbers));
+
+            var strings = new List<string> { "a", "b" };
+            Assert.Equal("b", Tsonic.CSharp.Js.Array.popReference(strings));
+            Assert.Equal("a", Tsonic.CSharp.Js.Array.shiftReference(strings));
+            Assert.Null(Tsonic.CSharp.Js.Array.popReference(strings));
+            Assert.Null(Tsonic.CSharp.Js.Array.shiftReference(strings));
+        }
+
+        [Fact]
+        public void StaticFind_ReturnTypedNullishCarriers()
+        {
+            var numbers = new List<int> { 1, 2, 3, 4 };
+            Assert.Equal(3, Tsonic.CSharp.Js.Array.findValue(numbers, value => value > 2));
+            Assert.Equal(4, Tsonic.CSharp.Js.Array.findValue(numbers, (value, index) => value + index > 5));
+            Assert.Equal(4, Tsonic.CSharp.Js.Array.findValue(numbers, (value, index, array) => index == array.Count - 1 && value == 4));
+            Assert.Null(Tsonic.CSharp.Js.Array.findValue(numbers, value => value > 9));
+
+            var strings = new List<string> { "a", "bb", "ccc" };
+            Assert.Equal("bb", Tsonic.CSharp.Js.Array.findReference(strings, value => value.Length == 2));
+            Assert.Equal("ccc", Tsonic.CSharp.Js.Array.findReference(strings, (value, index) => index == 2 && value.Length == 3));
+            Assert.Equal("ccc", Tsonic.CSharp.Js.Array.findReference(strings, (value, index, array) => index == array.Count - 1));
+            Assert.Null(Tsonic.CSharp.Js.Array.findReference(strings, value => value.Length > 9));
+        }
+
+        [Fact]
+        public void StaticFindLast_ReturnTypedNullishCarriers()
+        {
+            var numbers = new List<int> { 1, 2, 3, 4 };
+            Assert.Equal(4, Tsonic.CSharp.Js.Array.findLastValue(numbers, value => value > 2));
+            Assert.Equal(3, Tsonic.CSharp.Js.Array.findLastValue(numbers, (value, index) => value + index < 6));
+            Assert.Equal(4, Tsonic.CSharp.Js.Array.findLastValue(numbers, (value, index, array) => index == array.Count - 1 && value == 4));
+            Assert.Null(Tsonic.CSharp.Js.Array.findLastValue(numbers, value => value > 9));
+
+            var strings = new List<string> { "a", "bb", "ccc", "dd" };
+            Assert.Equal("dd", Tsonic.CSharp.Js.Array.findLastReference(strings, value => value.Length == 2));
+            Assert.Equal("ccc", Tsonic.CSharp.Js.Array.findLastReference(strings, (value, index) => index < 3 && value.Length == 3));
+            Assert.Equal("dd", Tsonic.CSharp.Js.Array.findLastReference(strings, (value, index, array) => index == array.Count - 1));
+            Assert.Null(Tsonic.CSharp.Js.Array.findLastReference(strings, value => value.Length > 9));
+        }
+
+        [Fact]
         public void flat_FlattensNestedArrays()
         {
             var arr = new JSArray<object>(new object[] { 1, 2, 3 });
