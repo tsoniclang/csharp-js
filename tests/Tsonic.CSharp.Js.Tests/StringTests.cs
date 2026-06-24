@@ -238,6 +238,13 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void at_OutOfBounds_ReturnsNullishCarrier()
+        {
+            Assert.Null("hello".at(5));
+            Assert.Null("hello".at(-6));
+        }
+
+        [Fact]
         public void codePointAt_ReturnsCodePoint()
         {
             Assert.Equal(104, "hello".codePointAt(0)); // 'h'

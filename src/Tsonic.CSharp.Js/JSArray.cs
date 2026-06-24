@@ -1114,14 +1114,25 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get element at index (supports negative indices)
         /// </summary>
-        public T at(int index)
+        public object? at(int index)
         {
             int actualIndex = index < 0 ? _slots.Count + index : index;
             if (actualIndex < 0 || actualIndex >= _slots.Count)
             {
-                return default(T)!;
+                return null;
             }
             return _slots[actualIndex].Value;
+        }
+
+        public TValue? atValue<TValue>(int index) where TValue : struct
+        {
+            object? value = at(index);
+            return value == null ? null : (TValue)value;
+        }
+
+        public TReference? atReference<TReference>(int index) where TReference : class
+        {
+            return at(index) as TReference;
         }
 
         /// <summary>

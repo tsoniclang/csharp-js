@@ -819,6 +819,31 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void at_OutOfBounds_ReturnsNullishCarrier()
+        {
+            var arr = new JSArray<int>(new[] { 1, 2, 3 });
+            Assert.Null(arr.at(3));
+            Assert.Null(arr.at(-4));
+        }
+
+        [Fact]
+        public void StaticAt_ReturnsElementOrNullishCarrier()
+        {
+            var arr = new List<int> { 1, 2, 3 };
+            Assert.Equal(2, Tsonic.CSharp.Js.Array.at(arr, 1));
+            Assert.Equal(3, Tsonic.CSharp.Js.Array.at(arr, -1));
+            Assert.Null(Tsonic.CSharp.Js.Array.at(arr, 3));
+            Assert.Null(Tsonic.CSharp.Js.Array.at(arr, -4));
+            Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
+            Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
+            Assert.Null(Tsonic.CSharp.Js.Array.atValue(arr, 3));
+            Assert.Null(Tsonic.CSharp.Js.Array.atValue(arr, -4));
+            var strings = new List<string> { "a", "b" };
+            Assert.Equal("b", Tsonic.CSharp.Js.Array.atReference(strings, -1));
+            Assert.Null(Tsonic.CSharp.Js.Array.atReference(strings, 2));
+        }
+
+        [Fact]
         public void flat_FlattensNestedArrays()
         {
             var arr = new JSArray<object>(new object[] { 1, 2, 3 });

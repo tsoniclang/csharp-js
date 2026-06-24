@@ -94,6 +94,36 @@ namespace Tsonic.CSharp.Js
             return array.Count;
         }
 
+        public static object? at<T>(IReadOnlyList<T> array, int index)
+        {
+            var actualIndex = index < 0 ? array.Count + index : index;
+            if (actualIndex < 0 || actualIndex >= array.Count)
+            {
+                return null;
+            }
+            return array[actualIndex];
+        }
+
+        public static T? atValue<T>(IReadOnlyList<T> array, int index) where T : struct
+        {
+            var actualIndex = index < 0 ? array.Count + index : index;
+            if (actualIndex < 0 || actualIndex >= array.Count)
+            {
+                return null;
+            }
+            return array[actualIndex];
+        }
+
+        public static T? atReference<T>(IReadOnlyList<T> array, int index) where T : class
+        {
+            var actualIndex = index < 0 ? array.Count + index : index;
+            if (actualIndex < 0 || actualIndex >= array.Count)
+            {
+                return null;
+            }
+            return array[actualIndex];
+        }
+
         public static bool includes<T>(IReadOnlyList<T> array, T searchElement, int fromIndex = 0)
         {
             return indexOf(array, searchElement, fromIndex) >= 0;

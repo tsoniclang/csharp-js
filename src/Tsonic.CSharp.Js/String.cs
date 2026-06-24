@@ -286,12 +286,12 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get character at index (supports negative indices)
         /// </summary>
-        public static string at(this string str, int index)
+        public static string? at(this string str, int index)
         {
             int actualIndex = index < 0 ? str.Length + index : index;
             if (actualIndex < 0 || actualIndex >= str.Length)
             {
-                return "";
+                return null;
             }
             return str[actualIndex].ToString();
         }
