@@ -3,7 +3,6 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -121,14 +120,14 @@ namespace Tsonic.CSharp.Js
                 case JSObject obj:
                     WriteJsObject(writer, obj);
                     break;
+                case IJSArray array:
+                    WriteJsArray(writer, array);
+                    break;
                 case IDictionary<string, object?> dict:
                     WriteObject(writer, dict);
                     break;
                 case IReadOnlyDictionary<string, object?> dict:
                     WriteObject(writer, dict);
-                    break;
-                case IEnumerable<object?> enumerable:
-                    WriteArray(writer, enumerable);
                     break;
                 default:
                     throw new NotSupportedException("JSON.stringify requires a closed JS value carrier.");
@@ -174,15 +173,19 @@ namespace Tsonic.CSharp.Js
             writer.WriteEndObject();
         }
 
-        /// <summary>
-        /// Write enumerable as JSON array
-        /// </summary>
-        private static void WriteArray(Utf8JsonWriter writer, IEnumerable enumerable)
+        private static void WriteJsArray(Utf8JsonWriter writer, IJSArray array)
         {
             writer.WriteStartArray();
-            foreach (var item in enumerable)
+            for (var index = 0; index < array.length; index++)
             {
-                WriteValue(writer, item);
+                if (array.tryGetAtObject(index, out var item))
+                {
+                    WriteValue(writer, item);
+                }
+                else
+                {
+                    writer.WriteNullValue();
+                }
             }
             writer.WriteEndArray();
         }

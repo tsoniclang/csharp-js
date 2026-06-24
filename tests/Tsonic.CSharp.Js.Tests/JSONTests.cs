@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests
@@ -139,6 +140,31 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.True(JSArrayStatics.isArray(mounts));
             var firstMount = Assert.IsType<JSObject>(mounts[0]);
             Assert.Equal("docs", firstMount["name"]);
+        }
+
+        [Fact]
+        public void stringify_SerializesJsArrayCarrier()
+        {
+            var value = new JSArray<int>(new[] { 1, 2, 3 });
+
+            Assert.Equal("[1,2,3]", JSON.stringify(value));
+        }
+
+        [Fact]
+        public void stringify_SerializesJsArrayHolesAsNull()
+        {
+            var value = new JSArray<object?>();
+            value.setLength(4);
+            value[1] = 2;
+            value[3] = null;
+
+            Assert.Equal("[null,2,null,null]", JSON.stringify(value));
+        }
+
+        [Fact]
+        public void stringify_RejectsNonCarrierEnumerables()
+        {
+            Assert.Throws<NotSupportedException>(() => JSON.stringify(new List<object?> { 1, 2, 3 }));
         }
     }
 }
