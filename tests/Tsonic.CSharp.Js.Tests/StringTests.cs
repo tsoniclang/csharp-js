@@ -178,7 +178,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void split_SplitsString()
         {
             var result = "a,b,c".split(",");
-            Assert.Equal(3, result.length);
+            Assert.Equal(3, result.Count);
             Assert.Equal("a", result[0]);
             Assert.Equal("b", result[1]);
             Assert.Equal("c", result[2]);
@@ -188,7 +188,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void split_WithLimit_LimitsResults()
         {
             var result = "a,b,c,d".split(",", 2);
-            Assert.Equal(2, result.length);
+            Assert.Equal(2, result.Count);
             Assert.Equal("a", result[0]);
             Assert.Equal("b", result[1]);
         }
@@ -199,7 +199,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Empty("a,b,c".split(",", 0));
 
             var negative = "a,b,c".split(",", -1);
-            Assert.Equal(3, negative.length);
+            Assert.Equal(3, negative.Count);
             Assert.Equal("a", negative[0]);
             Assert.Equal("b", negative[1]);
             Assert.Equal("c", negative[2]);
