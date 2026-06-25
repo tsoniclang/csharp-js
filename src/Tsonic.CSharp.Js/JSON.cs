@@ -18,10 +18,10 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Parse JSON string to a closed JavaScript value carrier.
         /// </summary>
-        public static object? parse(string text)
+        public static TsValue parse(string text)
         {
             using var doc = JsonDocument.Parse(text);
-            return ConvertJsonElement(doc.RootElement);
+            return TsValue.from(ConvertJsonElement(doc.RootElement));
         }
 
         /// <summary>
@@ -78,6 +78,11 @@ namespace Tsonic.CSharp.Js
             WriteValue(writer, value);
             writer.Flush();
             return Encoding.UTF8.GetString(stream.ToArray());
+        }
+
+        public static string stringify(TsValue value)
+        {
+            return stringify(value.unwrap());
         }
 
         /// <summary>
