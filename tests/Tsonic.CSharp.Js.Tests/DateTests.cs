@@ -42,6 +42,36 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void Date_ObjectConstructor_AcceptsClosedNumberCarrier()
+        {
+            object value = 946684800000.0;
+            var date = new Date(value);
+            Assert.Equal(2000, date.getUTCFullYear());
+            Assert.Equal(0, date.getUTCMonth());
+            Assert.Equal(1, date.getUTCDate());
+        }
+
+        [Fact]
+        public void Date_ObjectConstructor_AcceptsClosedStringCarrier()
+        {
+            object value = "2023-06-15T12:30:45.123Z";
+            var date = new Date(value);
+            Assert.Equal(2023, date.getUTCFullYear());
+            Assert.Equal(5, date.getUTCMonth());
+            Assert.Equal(15, date.getUTCDate());
+        }
+
+        [Fact]
+        public void Date_ObjectConstructor_AcceptsClosedDateCarrier()
+        {
+            object value = new Date(946684800000);
+            var date = new Date(value);
+            Assert.Equal(2000, date.getUTCFullYear());
+            Assert.Equal(0, date.getUTCMonth());
+            Assert.Equal(1, date.getUTCDate());
+        }
+
+        [Fact]
         public void Date_ComponentsConstructor_CreatesCorrectDate()
         {
             // Month is 0-indexed in JavaScript
@@ -105,6 +135,13 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(30, date.getUTCMinutes());
             Assert.Equal(45, date.getUTCSeconds());
             Assert.Equal(123, date.getUTCMilliseconds());
+        }
+
+        [Fact]
+        public void Date_call_ReturnsCurrentDateString()
+        {
+            var value = Date.call();
+            Assert.False(string.IsNullOrEmpty(value));
         }
 
         // ==================== UTC Getter Tests ====================
