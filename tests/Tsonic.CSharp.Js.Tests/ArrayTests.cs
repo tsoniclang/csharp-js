@@ -15,6 +15,23 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void Constructor_Length_CreatesHoles()
+        {
+            var arr = new JSArray<int>(3);
+
+            Assert.Equal(3, arr.length);
+            Assert.False(arr.hasIndex(0));
+            Assert.False(arr.hasIndex(1));
+            Assert.False(arr.hasIndex(2));
+            Assert.Equal(0, arr[0]);
+            Assert.Equal("||", arr.join("|"));
+
+            var numericLength = new JSArray<string>(2.0);
+            Assert.Equal(2, numericLength.length);
+            Assert.False(numericLength.hasIndex(0));
+        }
+
+        [Fact]
         public void Constructor_FromNativeArray_CreatesArrayWithItems()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });

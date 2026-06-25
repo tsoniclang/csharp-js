@@ -22,7 +22,7 @@ namespace Tsonic.CSharp.Js
 
         public static JSArray<string> from(string source)
         {
-            var chars = new JSArray<string>(source.Length);
+            var chars = JSArray<string>.createWithCapacity(source.Length);
             for (var i = 0; i < source.Length; i++)
             {
                 chars.push(source[i].ToString());
@@ -52,7 +52,7 @@ namespace Tsonic.CSharp.Js
             System.Func<string, int, TResult> mapFunc
         )
         {
-            var result = new JSArray<TResult>(source.Length);
+            var result = JSArray<TResult>.createWithCapacity(source.Length);
             for (var i = 0; i < source.Length; i++)
             {
                 result.push(mapFunc(source[i].ToString(), i));
@@ -66,7 +66,7 @@ namespace Tsonic.CSharp.Js
             System.Func<string, TResult> mapFunc
         )
         {
-            var result = new JSArray<TResult>(source.Length);
+            var result = JSArray<TResult>.createWithCapacity(source.Length);
             for (var i = 0; i < source.Length; i++)
             {
                 result.push(mapFunc(source[i].ToString()));

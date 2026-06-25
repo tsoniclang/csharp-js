@@ -61,9 +61,30 @@ namespace Tsonic.CSharp.Js
         }
 
         /// <summary>
-        /// Create JSArray with specified initial capacity
+        /// Create JSArray with JavaScript Array(length) semantics.
         /// </summary>
-        public JSArray(int capacity)
+        public JSArray(int length)
+        {
+            if (length < 0)
+            {
+                throw new ArgumentException("Invalid array length", nameof(length));
+            }
+
+            _slots = new List<Slot>(length);
+            AddHoles(length);
+        }
+
+        public JSArray(double length)
+            : this(ToArrayLength(length))
+        {
+        }
+
+        internal static JSArray<T> createWithCapacity(int capacity)
+        {
+            return new JSArray<T>(capacity, false);
+        }
+
+        private JSArray(int capacity, bool _)
         {
             _slots = new List<Slot>(capacity);
         }
@@ -192,11 +213,7 @@ namespace Tsonic.CSharp.Js
             }
             else if (newLength > _slots.Count)
             {
-                int toAdd = newLength - _slots.Count;
-                for (int i = 0; i < toAdd; i++)
-                {
-                    _slots.Add(Slot.Hole);
-                }
+                AddHoles(newLength - _slots.Count);
             }
         }
 
@@ -292,7 +309,7 @@ namespace Tsonic.CSharp.Js
                 return new JSArray<T>();
             }
 
-            var result = new JSArray<T>(actualEnd - actualStart);
+            var result = JSArray<T>.createWithCapacity(actualEnd - actualStart);
             for (int i = actualStart; i < actualEnd; i++)
             {
                 result._slots.Add(_slots[i]);
@@ -310,7 +327,7 @@ namespace Tsonic.CSharp.Js
             int actualDeleteCount = deleteCount ?? (_slots.Count - actualStart);
             actualDeleteCount = System.Math.Max(0, System.Math.Min(actualDeleteCount, _slots.Count - actualStart));
 
-            var deleted = new JSArray<T>(actualDeleteCount);
+            var deleted = JSArray<T>.createWithCapacity(actualDeleteCount);
             for (int i = 0; i < actualDeleteCount; i++)
             {
                 deleted._slots.Add(_slots[actualStart]);
@@ -332,7 +349,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<TResult> map<TResult>(Func<T, TResult> callback)
         {
-            var result = new JSArray<TResult>(_slots.Count);
+            var result = JSArray<TResult>.createWithCapacity(_slots.Count);
             result.setLength(_slots.Count);
             for (int i = 0; i < _slots.Count; i++)
             {
@@ -349,7 +366,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<TResult> map<TResult>(Func<T, int, TResult> callback)
         {
-            var result = new JSArray<TResult>(_slots.Count);
+            var result = JSArray<TResult>.createWithCapacity(_slots.Count);
             result.setLength(_slots.Count);
             for (int i = 0; i < _slots.Count; i++)
             {
@@ -366,7 +383,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<TResult> map<TResult>(Func<T, int, JSArray<T>, TResult> callback)
         {
-            var result = new JSArray<TResult>(_slots.Count);
+            var result = JSArray<TResult>.createWithCapacity(_slots.Count);
             result.setLength(_slots.Count);
             for (int i = 0; i < _slots.Count; i++)
             {
@@ -1019,7 +1036,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray<T> concat(params object[] items)
         {
-            var result = new JSArray<T>(_slots.Count);
+            var result = JSArray<T>.createWithCapacity(_slots.Count);
             result._slots.AddRange(_slots);
 
             foreach (var item in items)
@@ -1397,9 +1414,27 @@ namespace Tsonic.CSharp.Js
             }
         }
 
+        private void AddHoles(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                _slots.Add(Slot.Hole);
+            }
+        }
+
+        private static int ToArrayLength(double length)
+        {
+            if (double.IsNaN(length) || double.IsInfinity(length) || length < 0 || length > int.MaxValue || System.Math.Truncate(length) != length)
+            {
+                throw new ArgumentException("Invalid array length", nameof(length));
+            }
+
+            return (int)length;
+        }
+
         private JSArray<T> CopySlots()
         {
-            var result = new JSArray<T>(_slots.Count);
+            var result = JSArray<T>.createWithCapacity(_slots.Count);
             result._slots.AddRange(_slots);
             return result;
         }
