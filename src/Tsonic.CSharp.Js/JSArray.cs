@@ -24,7 +24,7 @@ namespace Tsonic.CSharp.Js
         bool tryGetAtObject(int index, out object? value);
     }
 
-    public class JSArray<T> : IEnumerable<T>, IJSArray
+    public class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IJSArray
     {
         private readonly List<Slot> _slots;
 
@@ -122,6 +122,8 @@ namespace Tsonic.CSharp.Js
         /// Get array length
         /// </summary>
         public int length => _slots.Count;
+
+        public int Count => _slots.Count;
 
         // ==================== Indexer ====================
 
