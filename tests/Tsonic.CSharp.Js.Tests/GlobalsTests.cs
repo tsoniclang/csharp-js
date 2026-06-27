@@ -193,6 +193,12 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(0, Globals.Number(null));
         }
 
+        [Fact]
+        public void Number_NoArgument_ReturnsZero()
+        {
+            Assert.Equal(0, Globals.Number());
+        }
+
         [Theory]
         [InlineData(true, 1)]
         [InlineData(false, 0)]

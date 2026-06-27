@@ -338,7 +338,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Convert value to number
         /// </summary>
-        public static double Number(object? value)
+        public static double Number(object? value = null)
         {
             if (value == null) return 0;
 
