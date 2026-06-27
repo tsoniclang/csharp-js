@@ -64,20 +64,29 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Assert condition and log if false
         /// </summary>
-        public static void assert(bool condition, string? message = null)
+        public static void assert(bool condition = false, params object[] data)
         {
             if (!condition)
             {
-                error("Assertion failed: " + (message ?? ""));
+                if (data.Length == 0)
+                {
+                    error("Assertion failed");
+                    return;
+                }
+
+                var message = new object[data.Length + 1];
+                message[0] = "Assertion failed:";
+                System.Array.Copy(data, 0, message, 1, data.Length);
+                error(message);
             }
         }
 
         /// <summary>
         /// Display data in tabular format
         /// </summary>
-        public static void table(object data)
+        public static void table(object? tabularData = null, object? properties = null)
         {
-            log(data); // Simplified - just log for now
+            log(properties == null ? new object[] { tabularData! } : new object[] { tabularData!, properties });
         }
 
         // Timing
@@ -116,6 +125,14 @@ namespace Tsonic.CSharp.Js
                 double ms = elapsed * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                 log($"{label}: {ms:F3}ms", data);
             }
+        }
+
+        /// <summary>
+        /// Record a timestamp marker
+        /// </summary>
+        public static void timeStamp(string label = "default")
+        {
+            log(label);
         }
 
         // Counting
@@ -185,17 +202,17 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Display object properties
         /// </summary>
-        public static void dir(object obj)
+        public static void dir(object? item = null, object? options = null)
         {
-            log(obj);
+            log(options == null ? new object[] { item! } : new object[] { item!, options });
         }
 
         /// <summary>
         /// Display XML/HTML element
         /// </summary>
-        public static void dirxml(object obj)
+        public static void dirxml(params object[] data)
         {
-            log(obj);
+            log(data);
         }
     }
 }
