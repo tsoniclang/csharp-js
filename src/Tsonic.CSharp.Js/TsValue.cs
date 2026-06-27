@@ -24,6 +24,11 @@ namespace Tsonic.CSharp.Js
             return new TsValue(value);
         }
 
+        public static TsValue undefined()
+        {
+            return new TsValue(JSUndefined.value);
+        }
+
         public object? unwrap()
         {
             return _value;
@@ -49,6 +54,7 @@ namespace Tsonic.CSharp.Js
                 ushort => true,
                 JSObject => true,
                 IJSArray => true,
+                JSUndefined => true,
                 IDictionary<string, object?> => true,
                 IReadOnlyDictionary<string, object?> => true,
                 _ => false

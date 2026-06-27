@@ -107,19 +107,74 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static double parseFloat(string str)
         {
-            if (string.IsNullOrWhiteSpace(str))
+            if (string.IsNullOrEmpty(str))
             {
                 return double.NaN;
             }
 
-            str = str.Trim();
-
-            if (double.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
+            var span = str.AsSpan().TrimStart();
+            if (span.Length == 0)
             {
-                return result;
+                return double.NaN;
             }
 
-            return double.NaN;
+            var cursor = 0;
+            if (span[cursor] == '+' || span[cursor] == '-')
+            {
+                cursor++;
+            }
+
+            if (span[cursor..].StartsWith("Infinity", StringComparison.Ordinal))
+            {
+                return cursor > 0 && span[0] == '-'
+                    ? double.NegativeInfinity
+                    : double.PositiveInfinity;
+            }
+
+            var digitStart = cursor;
+            while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
+            {
+                cursor++;
+            }
+
+            if (cursor < span.Length && span[cursor] == '.')
+            {
+                cursor++;
+                while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
+                {
+                    cursor++;
+                }
+            }
+
+            if (cursor == digitStart || (cursor == digitStart + 1 && span[digitStart] == '.'))
+            {
+                return double.NaN;
+            }
+
+            var exponentStart = cursor;
+            if (cursor < span.Length && (span[cursor] == 'e' || span[cursor] == 'E'))
+            {
+                cursor++;
+                if (cursor < span.Length && (span[cursor] == '+' || span[cursor] == '-'))
+                {
+                    cursor++;
+                }
+
+                var exponentDigitStart = cursor;
+                while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
+                {
+                    cursor++;
+                }
+
+                if (cursor == exponentDigitStart)
+                {
+                    cursor = exponentStart;
+                }
+            }
+
+            return double.TryParse(span[..cursor], NumberStyles.Float, CultureInfo.InvariantCulture, out var result)
+                ? result
+                : (span[0] == '-' ? double.NegativeInfinity : double.PositiveInfinity);
         }
 
         /// <summary>

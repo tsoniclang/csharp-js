@@ -169,12 +169,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string toString(this double value)
         {
-            return value.ToString(CultureInfo.InvariantCulture);
+            return formatJsNumber(value);
         }
 
         public static string toString(this double? value)
         {
-            return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            return value.HasValue ? formatJsNumber(value.Value) : string.Empty;
         }
 
         public static string toString(this int value)
@@ -228,6 +228,11 @@ namespace Tsonic.CSharp.Js
         public static long? valueOf(this long? value)
         {
             return value;
+        }
+
+        private static string formatJsNumber(double value)
+        {
+            return value == 0 ? "0" : value.ToString(CultureInfo.InvariantCulture);
         }
     }
 }

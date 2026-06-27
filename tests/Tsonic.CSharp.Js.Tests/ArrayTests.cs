@@ -249,6 +249,40 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void StaticHelpers_OnJSArray_PreserveHoleSemantics()
+        {
+            var numbers = new JSArray<int>();
+            numbers.setLength(4);
+            numbers[1] = 0;
+            numbers[2] = 5;
+
+            Assert.Null(Tsonic.CSharp.Js.Array.atValue(numbers, 0));
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.atValue(numbers, 1));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(numbers, 0));
+            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(numbers, 0));
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(numbers, 9));
+
+            var visited = new List<int>();
+            var mapped = Tsonic.CSharp.Js.Array.map(numbers, (int value, int index, JSArray<int> source) =>
+            {
+                visited.Add(index);
+                return value + source.length;
+            });
+
+            Assert.Equal(new[] { 1, 2 }, visited);
+            Assert.Equal(4, mapped.length);
+            Assert.False(mapped.hasIndex(0));
+            Assert.Equal(4, mapped[1]);
+            Assert.Equal(9, mapped[2]);
+            Assert.False(mapped.hasIndex(3));
+
+            Assert.Null(Tsonic.CSharp.Js.Array.popValue(numbers));
+            Assert.Equal(3, numbers.length);
+            Assert.Equal(5, Tsonic.CSharp.Js.Array.popValue(numbers));
+            Assert.Equal(2, numbers.length);
+        }
+
+        [Fact]
         public void SparseCopyingMethods_PreserveHoleState()
         {
             var source = new JSArray<string>();

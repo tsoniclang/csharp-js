@@ -85,6 +85,24 @@ namespace Tsonic.CSharp.Js
             return stringify(value.unwrap());
         }
 
+        public static string stringify<TValue>(IDictionary<string, TValue>? value)
+        {
+            using var stream = new MemoryStream();
+            using var writer = new Utf8JsonWriter(stream);
+            WriteObject(writer, value);
+            writer.Flush();
+            return Encoding.UTF8.GetString(stream.ToArray());
+        }
+
+        public static string stringify<TValue>(IReadOnlyDictionary<string, TValue>? value)
+        {
+            using var stream = new MemoryStream();
+            using var writer = new Utf8JsonWriter(stream);
+            WriteObject(writer, value);
+            writer.Flush();
+            return Encoding.UTF8.GetString(stream.ToArray());
+        }
+
         /// <summary>
         /// Write value to Utf8JsonWriter
         /// </summary>
@@ -169,6 +187,23 @@ namespace Tsonic.CSharp.Js
 
         private static void WriteObject(Utf8JsonWriter writer, IReadOnlyDictionary<string, object?> dict)
         {
+            writer.WriteStartObject();
+            foreach (var kvp in dict)
+            {
+                writer.WritePropertyName(kvp.Key);
+                WriteValue(writer, kvp.Value);
+            }
+            writer.WriteEndObject();
+        }
+
+        private static void WriteObject<TValue>(Utf8JsonWriter writer, IEnumerable<KeyValuePair<string, TValue>>? dict)
+        {
+            if (dict == null)
+            {
+                writer.WriteNullValue();
+                return;
+            }
+
             writer.WriteStartObject();
             foreach (var kvp in dict)
             {
