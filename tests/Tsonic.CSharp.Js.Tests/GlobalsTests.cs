@@ -264,5 +264,11 @@ namespace Tsonic.CSharp.Js.Tests
             var obj = new { Name = "Test" };
             Assert.True(Globals.Boolean(obj));
         }
+
+        [Fact]
+        public void Boolean_WithoutArgument_ReturnsFalse()
+        {
+            Assert.False(Globals.Boolean());
+        }
     }
 }

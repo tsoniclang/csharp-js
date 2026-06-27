@@ -385,7 +385,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Convert value to boolean
         /// </summary>
-        public static bool Boolean(object? value)
+        public static bool Boolean(object? value = null)
         {
             if (value == null) return false;
 
