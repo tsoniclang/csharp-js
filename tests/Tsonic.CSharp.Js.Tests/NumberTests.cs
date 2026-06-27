@@ -6,6 +6,19 @@ namespace Tsonic.CSharp.Js.Tests
     public class NumberTests
     {
         [Fact]
+        public void Constants_MatchJavaScriptNumberValues()
+        {
+            Assert.Equal(double.MaxValue, Number.MAX_VALUE);
+            Assert.Equal(double.Epsilon, Number.MIN_VALUE);
+            Assert.Equal(9007199254740991d, Number.MAX_SAFE_INTEGER);
+            Assert.Equal(-9007199254740991d, Number.MIN_SAFE_INTEGER);
+            Assert.Equal(double.PositiveInfinity, Number.POSITIVE_INFINITY);
+            Assert.Equal(double.NegativeInfinity, Number.NEGATIVE_INFINITY);
+            Assert.True(double.IsNaN(Number.NaN));
+            Assert.Equal(2.220446049250313e-16, Number.EPSILON);
+        }
+
+        [Fact]
         public void toString_UsesInvariantFormatting()
         {
             Assert.Equal("42", 42d.toString());
