@@ -188,7 +188,7 @@ namespace Tsonic.CSharp.Js
             var actualIndex = index < 0 ? array.Count + index : index;
             if (actualIndex < 0 || actualIndex >= array.Count)
             {
-                return null;
+                return JSUndefined.value;
             }
             return array[actualIndex];
         }
@@ -196,7 +196,7 @@ namespace Tsonic.CSharp.Js
         public static object? at<T>(JSArray<T> array, int index)
         {
             var actualIndex = normalizeAtIndex(index, array.length);
-            return actualIndex >= 0 && array.tryGetAtObject(actualIndex, out var value) ? value : null;
+            return actualIndex >= 0 && array.tryGetAtObject(actualIndex, out var value) ? value : JSUndefined.value;
         }
 
         public static T? atValue<T>(IReadOnlyList<T> array, int index) where T : struct
@@ -233,7 +233,15 @@ namespace Tsonic.CSharp.Js
 
         public static bool includes<T>(IReadOnlyList<T> array, T searchElement, int fromIndex = 0)
         {
-            return indexOf(array, searchElement, fromIndex) >= 0;
+            var start = normalizeStart(fromIndex, array.Count);
+            for (var index = start; index < array.Count; index++)
+            {
+                if (JSKeyEquality.sameValueZero(array[index], searchElement))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public static bool includes<T>(JSArray<T> array, T searchElement, int fromIndex = 0)
@@ -244,10 +252,9 @@ namespace Tsonic.CSharp.Js
         public static int indexOf<T>(IReadOnlyList<T> array, T searchElement, int fromIndex = 0)
         {
             var start = normalizeStart(fromIndex, array.Count);
-            var comparer = EqualityComparer<T>.Default;
             for (var index = start; index < array.Count; index++)
             {
-                if (comparer.Equals(array[index], searchElement))
+                if (JSKeyEquality.strictEquals(array[index], searchElement))
                 {
                     return index;
                 }
@@ -271,10 +278,9 @@ namespace Tsonic.CSharp.Js
             {
                 start = array.Count - 1;
             }
-            var comparer = EqualityComparer<T>.Default;
             for (var index = start; index >= 0; index--)
             {
-                if (comparer.Equals(array[index], searchElement))
+                if (JSKeyEquality.strictEquals(array[index], searchElement))
                 {
                     return index;
                 }

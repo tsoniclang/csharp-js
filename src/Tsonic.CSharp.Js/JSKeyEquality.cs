@@ -7,6 +7,51 @@ namespace Tsonic.CSharp.Js
             return sameValueZero((object?)left, (object?)right);
         }
 
+        public static bool strictEquals<T>(T left, T right)
+        {
+            return strictEquals((object?)left, (object?)right);
+        }
+
+        private static bool strictEquals(object? left, object? right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+
+            if (left is TsValue leftValue)
+            {
+                return strictEquals(leftValue.unwrap(), right);
+            }
+
+            if (right is TsValue rightValue)
+            {
+                return strictEquals(left, rightValue.unwrap());
+            }
+
+            if (left is null || right is null)
+            {
+                return false;
+            }
+
+            if (tryReadNumber(left, out var leftNumber) && tryReadNumber(right, out var rightNumber))
+            {
+                return !double.IsNaN(leftNumber) && !double.IsNaN(rightNumber) && leftNumber.Equals(rightNumber);
+            }
+
+            if (left is string leftString && right is string rightString)
+            {
+                return string.Equals(leftString, rightString, System.StringComparison.Ordinal);
+            }
+
+            if (left is bool leftBool && right is bool rightBool)
+            {
+                return leftBool == rightBool;
+            }
+
+            return false;
+        }
+
         private static bool sameValueZero(object? left, object? right)
         {
             if (ReferenceEquals(left, right))

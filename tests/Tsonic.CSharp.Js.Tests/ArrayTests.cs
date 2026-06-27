@@ -249,6 +249,24 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void Search_UsesStrictEqualityForIndexOfAndSameValueZeroForIncludes()
+        {
+            var denseNumbers = new List<double> { double.NaN, 0.0, -0.0 };
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, double.NaN));
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.lastIndexOf(denseNumbers, double.NaN));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, double.NaN));
+            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, -0.0));
+
+            var sparseNumbers = new JSArray<double>();
+            sparseNumbers.setLength(3);
+            sparseNumbers[1] = double.NaN;
+
+            Assert.Equal(-1, sparseNumbers.indexOf(double.NaN));
+            Assert.Equal(-1, sparseNumbers.lastIndexOf(double.NaN));
+            Assert.True(sparseNumbers.includes(double.NaN));
+        }
+
+        [Fact]
         public void StaticHelpers_OnJSArray_PreserveHoleSemantics()
         {
             var numbers = new JSArray<int>();
@@ -873,8 +891,21 @@ namespace Tsonic.CSharp.Js.Tests
         public void at_OutOfBounds_ReturnsNullishCarrier()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            Assert.Null(arr.at(3));
-            Assert.Null(arr.at(-4));
+            Assert.Same(JSUndefined.value, arr.at(3));
+            Assert.Same(JSUndefined.value, arr.at(-4));
+        }
+
+        [Fact]
+        public void at_DistinguishesSparseUndefinedFromPresentNull()
+        {
+            var arr = new JSArray<object?>();
+            arr.setLength(2);
+            arr[1] = null;
+
+            Assert.Same(JSUndefined.value, arr.at(0));
+            Assert.Null(arr.at(1));
+            Assert.Null(arr.atReference<object>(0));
+            Assert.Null(arr.atReference<object>(1));
         }
 
         [Fact]
@@ -883,8 +914,8 @@ namespace Tsonic.CSharp.Js.Tests
             var arr = new List<int> { 1, 2, 3 };
             Assert.Equal(2, Tsonic.CSharp.Js.Array.at(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.at(arr, -1));
-            Assert.Null(Tsonic.CSharp.Js.Array.at(arr, 3));
-            Assert.Null(Tsonic.CSharp.Js.Array.at(arr, -4));
+            Assert.Same(JSUndefined.value, Tsonic.CSharp.Js.Array.at(arr, 3));
+            Assert.Same(JSUndefined.value, Tsonic.CSharp.Js.Array.at(arr, -4));
             Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
             Assert.Null(Tsonic.CSharp.Js.Array.atValue(arr, 3));
