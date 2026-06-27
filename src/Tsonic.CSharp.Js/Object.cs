@@ -160,6 +160,37 @@ public static class Object
         return result;
     }
 
+    public static bool hasOwn(JSObject value, string key)
+    {
+        if (value == null)
+        {
+            throw new TypeError("Object.hasOwn receiver cannot be null.");
+        }
+
+        return value.hasOwnProperty(key);
+    }
+
+    public static bool hasOwn(IJSArray value, string key)
+    {
+        if (value == null)
+        {
+            throw new TypeError("Object.hasOwn receiver cannot be null.");
+        }
+
+        return TryParseArrayIndex(key, value.length, out var index) &&
+            value.tryGetAtObject(index, out _);
+    }
+
+    public static bool hasOwn(string value, string key)
+    {
+        if (value == null)
+        {
+            throw new TypeError("Object.hasOwn receiver cannot be null.");
+        }
+
+        return TryParseArrayIndex(key, value.Length, out _);
+    }
+
     public static JSObject assign(JSObject target, params object?[] sources)
     {
         if (target == null)
@@ -241,6 +272,18 @@ public static class Object
                 text[index].ToString()
             );
         }
+    }
+
+    private static bool TryParseArrayIndex(string key, int length, out int index)
+    {
+        if (!int.TryParse(key, NumberStyles.None, CultureInfo.InvariantCulture, out index))
+        {
+            return false;
+        }
+
+        return index >= 0 &&
+            index < length &&
+            key == index.ToString(CultureInfo.InvariantCulture);
     }
 
     private static bool HasNoEnumerableOwnProperties(object value)
