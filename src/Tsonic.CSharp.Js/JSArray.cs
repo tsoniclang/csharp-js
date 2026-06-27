@@ -1060,6 +1060,10 @@ namespace Tsonic.CSharp.Js
                 {
                     result.push(value);
                 }
+                else if (item is IEnumerable<T> values)
+                {
+                    result.AddPresentRange(values);
+                }
             }
 
             return result;
@@ -1140,7 +1144,7 @@ namespace Tsonic.CSharp.Js
             {
                 return null;
             }
-            return _slots[actualIndex].Value;
+            return _slots[actualIndex].IsPresent ? _slots[actualIndex].Value : null;
         }
 
         public TValue? atValue<TValue>(int index) where TValue : struct
