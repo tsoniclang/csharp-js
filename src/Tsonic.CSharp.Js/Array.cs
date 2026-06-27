@@ -67,31 +67,93 @@ namespace Tsonic.CSharp.Js
 
         public static T? pop<T>(List<T> array)
         {
+            return tryPop(array, out var value) ? value : default;
+        }
+
+        public static T? popValue<T>(List<T> array) where T : struct
+        {
+            return tryPop(array, out var value) ? value : null;
+        }
+
+        public static T? popReference<T>(List<T> array) where T : class
+        {
+            return tryPop(array, out var value) ? value : null;
+        }
+
+        private static bool tryPop<T>(List<T> array, out T value)
+        {
             if (array.Count == 0)
             {
-                return default;
+                value = default!;
+                return false;
             }
             var index = array.Count - 1;
-            var value = array[index];
+            value = array[index];
             array.RemoveAt(index);
-            return value;
+            return true;
         }
 
         public static T? shift<T>(List<T> array)
         {
+            return tryShift(array, out var value) ? value : default;
+        }
+
+        public static T? shiftValue<T>(List<T> array) where T : struct
+        {
+            return tryShift(array, out var value) ? value : null;
+        }
+
+        public static T? shiftReference<T>(List<T> array) where T : class
+        {
+            return tryShift(array, out var value) ? value : null;
+        }
+
+        private static bool tryShift<T>(List<T> array, out T value)
+        {
             if (array.Count == 0)
             {
-                return default;
+                value = default!;
+                return false;
             }
-            var value = array[0];
+            value = array[0];
             array.RemoveAt(0);
-            return value;
+            return true;
         }
 
         public static int unshift<T>(List<T> array, T item)
         {
             array.Insert(0, item);
             return array.Count;
+        }
+
+        public static object? at<T>(IReadOnlyList<T> array, int index)
+        {
+            var actualIndex = index < 0 ? array.Count + index : index;
+            if (actualIndex < 0 || actualIndex >= array.Count)
+            {
+                return null;
+            }
+            return array[actualIndex];
+        }
+
+        public static T? atValue<T>(IReadOnlyList<T> array, int index) where T : struct
+        {
+            var actualIndex = index < 0 ? array.Count + index : index;
+            if (actualIndex < 0 || actualIndex >= array.Count)
+            {
+                return null;
+            }
+            return array[actualIndex];
+        }
+
+        public static T? atReference<T>(IReadOnlyList<T> array, int index) where T : class
+        {
+            var actualIndex = index < 0 ? array.Count + index : index;
+            if (actualIndex < 0 || actualIndex >= array.Count)
+            {
+                return null;
+            }
+            return array[actualIndex];
         }
 
         public static bool includes<T>(IReadOnlyList<T> array, T searchElement, int fromIndex = 0)
@@ -320,38 +382,176 @@ namespace Tsonic.CSharp.Js
 
         public static T? find<T>(IReadOnlyList<T> array, Func<T, bool> callback)
         {
+            return tryFind(array, callback, out var value) ? value : default;
+        }
+
+        public static T? findValue<T>(IReadOnlyList<T> array, Func<T, bool> callback) where T : struct
+        {
+            return tryFind(array, callback, out var value) ? value : null;
+        }
+
+        public static T? findReference<T>(IReadOnlyList<T> array, Func<T, bool> callback) where T : class
+        {
+            return tryFind(array, callback, out var value) ? value : null;
+        }
+
+        private static bool tryFind<T>(IReadOnlyList<T> array, Func<T, bool> callback, out T value)
+        {
             for (var index = 0; index < array.Count; index++)
             {
                 if (callback(array[index]))
                 {
-                    return array[index];
+                    value = array[index];
+                    return true;
                 }
             }
-            return default;
+            value = default!;
+            return false;
         }
 
         public static T? find<T>(IReadOnlyList<T> array, Func<T, int, bool> callback)
+        {
+            return tryFind(array, callback, out var value) ? value : default;
+        }
+
+        public static T? findValue<T>(IReadOnlyList<T> array, Func<T, int, bool> callback) where T : struct
+        {
+            return tryFind(array, callback, out var value) ? value : null;
+        }
+
+        public static T? findReference<T>(IReadOnlyList<T> array, Func<T, int, bool> callback) where T : class
+        {
+            return tryFind(array, callback, out var value) ? value : null;
+        }
+
+        private static bool tryFind<T>(IReadOnlyList<T> array, Func<T, int, bool> callback, out T value)
         {
             for (var index = 0; index < array.Count; index++)
             {
                 if (callback(array[index], index))
                 {
-                    return array[index];
+                    value = array[index];
+                    return true;
                 }
             }
-            return default;
+            value = default!;
+            return false;
         }
 
         public static T? find<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback)
+        {
+            return tryFind(array, callback, out var value) ? value : default;
+        }
+
+        public static T? findValue<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback) where T : struct
+        {
+            return tryFind(array, callback, out var value) ? value : null;
+        }
+
+        public static T? findReference<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback) where T : class
+        {
+            return tryFind(array, callback, out var value) ? value : null;
+        }
+
+        private static bool tryFind<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback, out T value)
         {
             for (var index = 0; index < array.Count; index++)
             {
                 if (callback(array[index], index, array))
                 {
-                    return array[index];
+                    value = array[index];
+                    return true;
                 }
             }
-            return default;
+            value = default!;
+            return false;
+        }
+
+        public static T? findLast<T>(IReadOnlyList<T> array, Func<T, bool> callback)
+        {
+            return tryFindLast(array, callback, out var value) ? value : default;
+        }
+
+        public static T? findLastValue<T>(IReadOnlyList<T> array, Func<T, bool> callback) where T : struct
+        {
+            return tryFindLast(array, callback, out var value) ? value : null;
+        }
+
+        public static T? findLastReference<T>(IReadOnlyList<T> array, Func<T, bool> callback) where T : class
+        {
+            return tryFindLast(array, callback, out var value) ? value : null;
+        }
+
+        private static bool tryFindLast<T>(IReadOnlyList<T> array, Func<T, bool> callback, out T value)
+        {
+            for (var index = array.Count - 1; index >= 0; index--)
+            {
+                if (callback(array[index]))
+                {
+                    value = array[index];
+                    return true;
+                }
+            }
+            value = default!;
+            return false;
+        }
+
+        public static T? findLast<T>(IReadOnlyList<T> array, Func<T, int, bool> callback)
+        {
+            return tryFindLast(array, callback, out var value) ? value : default;
+        }
+
+        public static T? findLastValue<T>(IReadOnlyList<T> array, Func<T, int, bool> callback) where T : struct
+        {
+            return tryFindLast(array, callback, out var value) ? value : null;
+        }
+
+        public static T? findLastReference<T>(IReadOnlyList<T> array, Func<T, int, bool> callback) where T : class
+        {
+            return tryFindLast(array, callback, out var value) ? value : null;
+        }
+
+        private static bool tryFindLast<T>(IReadOnlyList<T> array, Func<T, int, bool> callback, out T value)
+        {
+            for (var index = array.Count - 1; index >= 0; index--)
+            {
+                if (callback(array[index], index))
+                {
+                    value = array[index];
+                    return true;
+                }
+            }
+            value = default!;
+            return false;
+        }
+
+        public static T? findLast<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback)
+        {
+            return tryFindLast(array, callback, out var value) ? value : default;
+        }
+
+        public static T? findLastValue<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback) where T : struct
+        {
+            return tryFindLast(array, callback, out var value) ? value : null;
+        }
+
+        public static T? findLastReference<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback) where T : class
+        {
+            return tryFindLast(array, callback, out var value) ? value : null;
+        }
+
+        private static bool tryFindLast<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback, out T value)
+        {
+            for (var index = array.Count - 1; index >= 0; index--)
+            {
+                if (callback(array[index], index, array))
+                {
+                    value = array[index];
+                    return true;
+                }
+            }
+            value = default!;
+            return false;
         }
 
         public static int findIndex<T>(IReadOnlyList<T> array, Func<T, bool> callback)

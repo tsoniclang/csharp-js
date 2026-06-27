@@ -33,6 +33,74 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Date(double milliseconds)
         {
+            SetFromMilliseconds(milliseconds);
+        }
+
+        /// <summary>
+        /// Create Date from date string
+        /// </summary>
+        public Date(string dateString)
+        {
+            SetFromString(dateString);
+        }
+
+        /// <summary>
+        /// Create Date from the closed JavaScript Date constructor carrier.
+        /// </summary>
+        public Date(object value)
+        {
+            switch (value)
+            {
+                case Date date:
+                    _value = date._value;
+                    break;
+                case string text:
+                    SetFromString(text);
+                    break;
+                case double number:
+                    SetFromMilliseconds(number);
+                    break;
+                case float number:
+                    SetFromMilliseconds(number);
+                    break;
+                case decimal number:
+                    SetFromMilliseconds((double)number);
+                    break;
+                case long number:
+                    SetFromMilliseconds(number);
+                    break;
+                case ulong number:
+                    SetFromMilliseconds(number);
+                    break;
+                case int number:
+                    SetFromMilliseconds(number);
+                    break;
+                case uint number:
+                    SetFromMilliseconds(number);
+                    break;
+                case short number:
+                    SetFromMilliseconds(number);
+                    break;
+                case ushort number:
+                    SetFromMilliseconds(number);
+                    break;
+                case sbyte number:
+                    SetFromMilliseconds(number);
+                    break;
+                case byte number:
+                    SetFromMilliseconds(number);
+                    break;
+                case null:
+                    SetFromMilliseconds(0);
+                    break;
+                default:
+                    _value = DateTimeOffset.MinValue;
+                    break;
+            }
+        }
+
+        private void SetFromMilliseconds(double milliseconds)
+        {
             if (double.IsNaN(milliseconds) || double.IsInfinity(milliseconds))
             {
                 _value = DateTimeOffset.MinValue;
@@ -43,10 +111,7 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        /// <summary>
-        /// Create Date from date string
-        /// </summary>
-        public Date(string dateString)
+        private void SetFromString(string dateString)
         {
             if (DateTimeOffset.TryParse(dateString, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
             {
@@ -110,6 +175,8 @@ namespace Tsonic.CSharp.Js
                 return double.NaN;
             }
         }
+
+        public static string call() => new Date().ToString();
 
         // ==================== Instance Methods - Getters (Local Time) ====================
 

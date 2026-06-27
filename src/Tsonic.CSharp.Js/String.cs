@@ -19,7 +19,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string toUpperCase(this string str)
         {
-            return str.ToUpper();
+            return str.ToUpperInvariant();
         }
 
         /// <summary>
@@ -27,7 +27,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string toLowerCase(this string str)
         {
-            return str.ToLower();
+            return str.ToLowerInvariant();
         }
 
         /// <summary>
@@ -35,7 +35,17 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trim(this string str)
         {
-            return str.Trim();
+            var start = 0;
+            var end = str.Length - 1;
+            while (start <= end && isJsTrimChar(str[start]))
+            {
+                start++;
+            }
+            while (end >= start && isJsTrimChar(str[end]))
+            {
+                end--;
+            }
+            return str.Substring(start, end - start + 1);
         }
 
         /// <summary>
@@ -43,7 +53,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trimStart(this string str)
         {
-            return str.TrimStart();
+            var start = 0;
+            while (start < str.Length && isJsTrimChar(str[start]))
+            {
+                start++;
+            }
+            return str.Substring(start);
         }
 
         /// <summary>
@@ -51,7 +66,17 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trimEnd(this string str)
         {
-            return str.TrimEnd();
+            var end = str.Length - 1;
+            while (end >= 0 && isJsTrimChar(str[end]))
+            {
+                end--;
+            }
+            return str.Substring(0, end + 1);
+        }
+
+        private static bool isJsTrimChar(char value)
+        {
+            return value == '\uFEFF' || char.IsWhiteSpace(value);
         }
 
         /// <summary>
@@ -174,7 +199,25 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string repeat(this string str, int count)
         {
-            return string.Concat(Enumerable.Repeat(str, count));
+            if (count < 0)
+            {
+                throw new RangeError("String repeat count must be non-negative.");
+            }
+            if (count == 0 || str.Length == 0)
+            {
+                return "";
+            }
+            if (str.Length > int.MaxValue / count)
+            {
+                throw new RangeError("String repeat count exceeds maximum string length.");
+            }
+
+            var builder = new System.Text.StringBuilder(str.Length * count);
+            for (int i = 0; i < count; i++)
+            {
+                builder.Append(str);
+            }
+            return builder.ToString();
         }
 
         /// <summary>
@@ -251,10 +294,10 @@ namespace Tsonic.CSharp.Js
         {
             if (!limit.HasValue || limit.Value < 0)
             {
-                return new List<string>(parts);
+                return parts.ToList();
             }
 
-            return new List<string>(parts.Take(limit.Value));
+            return parts.Take(limit.Value).ToList();
         }
 
         /// <summary>
@@ -268,12 +311,12 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get character at index (supports negative indices)
         /// </summary>
-        public static string at(this string str, int index)
+        public static string? at(this string str, int index)
         {
             int actualIndex = index < 0 ? str.Length + index : index;
             if (actualIndex < 0 || actualIndex >= str.Length)
             {
-                return "";
+                return null;
             }
             return str[actualIndex].ToString();
         }
@@ -396,10 +439,11 @@ namespace Tsonic.CSharp.Js
         {
             System.Text.NormalizationForm normForm = form switch
             {
+                "NFC" => System.Text.NormalizationForm.FormC,
                 "NFD" => System.Text.NormalizationForm.FormD,
                 "NFKC" => System.Text.NormalizationForm.FormKC,
                 "NFKD" => System.Text.NormalizationForm.FormKD,
-                _ => System.Text.NormalizationForm.FormC
+                _ => throw new RangeError("String normalization form must be NFC, NFD, NFKC, or NFKD.")
             };
             return str.Normalize(normForm);
         }
@@ -526,7 +570,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trimLeft(this string str)
         {
-            return str.TrimStart();
+            return str.trimStart();
         }
 
         /// <summary>
@@ -534,7 +578,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string trimRight(this string str)
         {
-            return str.TrimEnd();
+            return str.trimEnd();
         }
 
         // ==================== Static Factory Methods ====================
@@ -547,7 +591,7 @@ namespace Tsonic.CSharp.Js
             var chars = new char[codes.Length];
             for (int i = 0; i < codes.Length; i++)
             {
-                chars[i] = (char)codes[i];
+                chars[i] = (char)(codes[i] & 0xFFFF);
             }
             return new string(chars);
         }
@@ -562,9 +606,18 @@ namespace Tsonic.CSharp.Js
             {
                 if (codePoint < 0 || codePoint > 0x10FFFF)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(codePoints), "Invalid code point");
+                    throw new RangeError("Invalid code point.");
                 }
-                result.Append(char.ConvertFromUtf32(codePoint));
+
+                if (codePoint <= 0xFFFF)
+                {
+                    result.Append((char)codePoint);
+                    continue;
+                }
+
+                int offset = codePoint - 0x10000;
+                result.Append((char)(0xD800 + (offset >> 10)));
+                result.Append((char)(0xDC00 + (offset & 0x3FF)));
             }
             return result.ToString();
         }

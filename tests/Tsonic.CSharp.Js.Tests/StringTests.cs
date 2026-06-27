@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using Tsonic.CSharp.Js;
 using Xunit;
 
@@ -21,22 +22,41 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void toLowerCase_UsesNonLocaleJsCaseMapping()
+        {
+            var previousCulture = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
+                Assert.Equal("i", "I".toLowerCase());
+                Assert.Equal("I", "i".toUpperCase());
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
+        }
+
+        [Fact]
         public void trim_RemovesWhitespace()
         {
             Assert.Equal("hello", "  hello  ".trim());
             Assert.Equal("hello", "\thello\n".trim());
+            Assert.Equal("hello", "\uFEFFhello\uFEFF".trim());
         }
 
         [Fact]
         public void trimStart_RemovesLeadingWhitespace()
         {
             Assert.Equal("hello  ", "  hello  ".trimStart());
+            Assert.Equal("hello\uFEFF", "\uFEFFhello\uFEFF".trimStart());
         }
 
         [Fact]
         public void trimEnd_RemovesTrailingWhitespace()
         {
             Assert.Equal("  hello", "  hello  ".trimEnd());
+            Assert.Equal("\uFEFFhello", "\uFEFFhello\uFEFF".trimEnd());
         }
 
         [Fact]
@@ -140,6 +160,12 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void repeat_NegativeCount_ThrowsRangeError()
+        {
+            Assert.Throws<RangeError>(() => "x".repeat(-1));
+        }
+
+        [Fact]
         public void padStart_PadsAtStart()
         {
             Assert.Equal("  hi", "hi".padStart(4));
@@ -178,7 +204,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void split_SplitsString()
         {
             var result = "a,b,c".split(",");
-            Assert.Equal(3, result.Length);
+            Assert.Equal(3, result.Count);
             Assert.Equal("a", result[0]);
             Assert.Equal("b", result[1]);
             Assert.Equal("c", result[2]);
@@ -188,7 +214,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void split_WithLimit_LimitsResults()
         {
             var result = "a,b,c,d".split(",", 2);
-            Assert.Equal(2, result.Length);
+            Assert.Equal(2, result.Count);
             Assert.Equal("a", result[0]);
             Assert.Equal("b", result[1]);
         }
@@ -199,7 +225,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Empty("a,b,c".split(",", 0));
 
             var negative = "a,b,c".split(",", -1);
-            Assert.Equal(3, negative.Length);
+            Assert.Equal(3, negative.Count);
             Assert.Equal("a", negative[0]);
             Assert.Equal("b", negative[1]);
             Assert.Equal("c", negative[2]);
@@ -229,6 +255,13 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("o", "hello".at(-1));
             Assert.Equal("l", "hello".at(-2));
+        }
+
+        [Fact]
+        public void at_OutOfBounds_ReturnsNullishCarrier()
+        {
+            Assert.Null("hello".at(5));
+            Assert.Null("hello".at(-6));
         }
 
         [Fact]
@@ -296,9 +329,15 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void normalize_NormalizesUnicode()
         {
-            var str = "\u00e9"; // é
-            var normalized = str.normalize("NFC");
-            Assert.NotNull(normalized);
+            Assert.Equal("\u00e9", "\u0065\u0301".normalize("NFC"));
+            Assert.Equal("\u0065\u0301", "\u00e9".normalize("NFD"));
+            Assert.Equal("\u00e9", "\u0065\u0301".normalize());
+        }
+
+        [Fact]
+        public void normalize_InvalidForm_ThrowsRangeError()
+        {
+            Assert.Throws<RangeError>(() => "hello".normalize("INVALID"));
         }
 
         [Fact]
@@ -369,24 +408,36 @@ namespace Tsonic.CSharp.Js.Tests
         public void trimLeft_RemovesLeadingWhitespace()
         {
             Assert.Equal("hello  ", "  hello  ".trimLeft());
+            Assert.Equal("hello\uFEFF", "\uFEFFhello\uFEFF".trimLeft());
         }
 
         [Fact]
         public void trimRight_RemovesTrailingWhitespace()
         {
             Assert.Equal("  hello", "  hello  ".trimRight());
+            Assert.Equal("\uFEFFhello", "\uFEFFhello\uFEFF".trimRight());
         }
 
         [Fact]
         public void fromCharCode_CreatesStringFromCharCodes()
         {
             Assert.Equal("ABC", String.fromCharCode(65, 66, 67));
+            Assert.Equal("\u0000\uffff", String.fromCharCode(0x110000, -1));
         }
 
         [Fact]
         public void fromCodePoint_CreatesStringFromCodePoints()
         {
             Assert.Equal("ABC", String.fromCodePoint(65, 66, 67));
+            Assert.Equal("😀", String.fromCodePoint(0x1F600));
+            Assert.Equal("\ud800", String.fromCodePoint(0xD800));
+        }
+
+        [Fact]
+        public void fromCodePoint_InvalidCodePoint_ThrowsRangeError()
+        {
+            Assert.Throws<RangeError>(() => String.fromCodePoint(-1));
+            Assert.Throws<RangeError>(() => String.fromCodePoint(0x110000));
         }
 
         [Fact]
