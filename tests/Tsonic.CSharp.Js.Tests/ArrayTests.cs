@@ -58,8 +58,9 @@ namespace Tsonic.CSharp.Js.Tests
         public void length_SetToSmallerValue_TruncatesArray()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3, 4, 5 });
-            arr.setLength(3);
+            var result = arr.setLength(3);
 
+            Assert.Equal(3, result);
             Assert.Equal(3, arr.length);
         }
 
@@ -67,8 +68,9 @@ namespace Tsonic.CSharp.Js.Tests
         public void length_SetToLargerValue_ExtendsArray()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            arr.setLength(5);
+            var result = arr.setLength(5);
 
+            Assert.Equal(5, result);
             Assert.Equal(5, arr.length);
             Assert.Equal(0, arr[4]); // New hole reads as undefined/default
             Assert.False(arr.hasIndex(4));
@@ -246,6 +248,86 @@ namespace Tsonic.CSharp.Js.Tests
 
             Assert.Equal(-1, nullableStrings.indexOf(null));
             Assert.False(nullableStrings.includes(null));
+        }
+
+        [Fact]
+        public void Search_UsesStrictEqualityForIndexOfAndSameValueZeroForIncludes()
+        {
+            var denseNumbers = new List<double> { double.NaN, 0.0, -0.0 };
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, double.NaN));
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.lastIndexOf(denseNumbers, double.NaN));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, double.NaN));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, 0.0));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, -0.0));
+            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, 0.0));
+            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, -0.0));
+
+            var sparseNumbers = new JSArray<double>();
+            sparseNumbers.setLength(3);
+            sparseNumbers[1] = double.NaN;
+
+            Assert.Equal(-1, sparseNumbers.indexOf(double.NaN));
+            Assert.Equal(-1, sparseNumbers.lastIndexOf(double.NaN));
+            Assert.True(sparseNumbers.includes(double.NaN));
+            Assert.True(sparseNumbers.includes(double.NaN, -2));
+
+            sparseNumbers[2] = -0.0;
+
+            Assert.True(sparseNumbers.includes(0.0));
+            Assert.True(sparseNumbers.includes(-0.0));
+            Assert.Equal(2, sparseNumbers.indexOf(0.0));
+            Assert.Equal(2, sparseNumbers.indexOf(-0.0));
+        }
+
+        [Fact]
+        public void Includes_TreatsSparseHolesAsUndefinedButIndexOfSkipsThem()
+        {
+            var values = new JSArray<object?>();
+            values.setLength(2);
+            values[1] = null;
+
+            Assert.True(values.includes(JSUndefined.value));
+            Assert.True(values.includes(TsValue.undefined()));
+            Assert.Equal(-1, values.indexOf(JSUndefined.value));
+            Assert.True(values.includes(null));
+            Assert.Equal(1, values.indexOf(null));
+
+            Assert.True(Tsonic.CSharp.Js.Array.includes(values, JSUndefined.value));
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(values, JSUndefined.value));
+        }
+
+        [Fact]
+        public void StaticHelpers_OnJSArray_PreserveHoleSemantics()
+        {
+            var numbers = new JSArray<int>();
+            numbers.setLength(4);
+            numbers[1] = 0;
+            numbers[2] = 5;
+
+            Assert.Null(Tsonic.CSharp.Js.Array.atValue(numbers, 0));
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.atValue(numbers, 1));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(numbers, 0));
+            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(numbers, 0));
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(numbers, 9));
+
+            var visited = new List<int>();
+            var mapped = Tsonic.CSharp.Js.Array.map(numbers, (int value, int index, JSArray<int> source) =>
+            {
+                visited.Add(index);
+                return value + source.length;
+            });
+
+            Assert.Equal(new[] { 1, 2 }, visited);
+            Assert.Equal(4, mapped.length);
+            Assert.False(mapped.hasIndex(0));
+            Assert.Equal(4, mapped[1]);
+            Assert.Equal(9, mapped[2]);
+            Assert.False(mapped.hasIndex(3));
+
+            Assert.Null(Tsonic.CSharp.Js.Array.popValue(numbers));
+            Assert.Equal(3, numbers.length);
+            Assert.Equal(5, Tsonic.CSharp.Js.Array.popValue(numbers));
+            Assert.Equal(2, numbers.length);
         }
 
         [Fact]
@@ -839,8 +921,21 @@ namespace Tsonic.CSharp.Js.Tests
         public void at_OutOfBounds_ReturnsNullishCarrier()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            Assert.Null(arr.at(3));
-            Assert.Null(arr.at(-4));
+            Assert.Same(JSUndefined.value, arr.at(3));
+            Assert.Same(JSUndefined.value, arr.at(-4));
+        }
+
+        [Fact]
+        public void at_DistinguishesSparseUndefinedFromPresentNull()
+        {
+            var arr = new JSArray<object?>();
+            arr.setLength(2);
+            arr[1] = null;
+
+            Assert.Same(JSUndefined.value, arr.at(0));
+            Assert.Null(arr.at(1));
+            Assert.Null(arr.atReference<object>(0));
+            Assert.Null(arr.atReference<object>(1));
         }
 
         [Fact]
@@ -849,8 +944,8 @@ namespace Tsonic.CSharp.Js.Tests
             var arr = new List<int> { 1, 2, 3 };
             Assert.Equal(2, Tsonic.CSharp.Js.Array.at(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.at(arr, -1));
-            Assert.Null(Tsonic.CSharp.Js.Array.at(arr, 3));
-            Assert.Null(Tsonic.CSharp.Js.Array.at(arr, -4));
+            Assert.Same(JSUndefined.value, Tsonic.CSharp.Js.Array.at(arr, 3));
+            Assert.Same(JSUndefined.value, Tsonic.CSharp.Js.Array.at(arr, -4));
             Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
             Assert.Null(Tsonic.CSharp.Js.Array.atValue(arr, 3));

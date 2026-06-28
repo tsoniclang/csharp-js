@@ -1,21 +1,20 @@
 /**
- * JavaScript Set implementation
- * Wraps native .NET HashSet<T> with JavaScript Set semantics
+ * Closed JavaScript Set carrier.
+ * Uses explicit SameValueZero value matching and insertion-order storage instead of native collection equality semantics.
  */
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Tsonic.CSharp.Js
 {
     /// <summary>
-    /// JavaScript Set - unique value collection with insertion order preservation
+    /// JavaScript Set carrier with insertion order, null/undefined values, NaN equality, and object identity.
     /// </summary>
     public class Set<T> : IEnumerable<T>
     {
-        private readonly HashSet<T> _set = new();
+        private readonly List<T> _values = new();
 
         // ==================== Constructors ====================
 
@@ -31,7 +30,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var value in values)
             {
-                _set.Add(value);
+                add(value);
             }
         }
 
@@ -40,7 +39,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Number of unique values in the Set
         /// </summary>
-        public int size => _set.Count;
+        public int size => _values.Count;
 
         // ==================== Core Methods ====================
 
@@ -49,7 +48,11 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Set<T> add(T value)
         {
-            _set.Add(value);
+            var canonicalValue = JSKeyEquality.canonicalizeKeyedCollectionKey(value);
+            if (indexOfValue(canonicalValue) < 0)
+            {
+                _values.Add(canonicalValue);
+            }
             return this;
         }
 
@@ -58,7 +61,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool has(T value)
         {
-            return _set.Contains(value);
+            return indexOfValue(JSKeyEquality.canonicalizeKeyedCollectionKey(value)) >= 0;
         }
 
         /// <summary>
@@ -66,7 +69,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(T value)
         {
-            return _set.Remove(value);
+            var index = indexOfValue(JSKeyEquality.canonicalizeKeyedCollectionKey(value));
+            if (index < 0)
+            {
+                return false;
+            }
+
+            _values.RemoveAt(index);
+            return true;
         }
 
         /// <summary>
@@ -74,7 +84,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void clear()
         {
-            _set.Clear();
+            _values.Clear();
         }
 
         // ==================== Iteration Methods ====================
@@ -84,7 +94,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<T> keys()
         {
-            return _set;
+            return _values;
         }
 
         /// <summary>
@@ -92,7 +102,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<T> values()
         {
-            return _set;
+            return _values;
         }
 
         /// <summary>
@@ -100,7 +110,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<(T, T)> entries()
         {
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 yield return (value, value);
             }
@@ -111,7 +121,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T, T, Set<T>> callback)
         {
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 callback(value, value, this);
             }
@@ -122,7 +132,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T, T> callback)
         {
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 callback(value, value);
             }
@@ -133,7 +143,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T> callback)
         {
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 callback(value);
             }
@@ -147,7 +157,7 @@ namespace Tsonic.CSharp.Js
         public Set<T> difference(Set<T> other)
         {
             var result = new Set<T>();
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 if (!other.has(value))
                 {
@@ -163,7 +173,7 @@ namespace Tsonic.CSharp.Js
         public Set<T> intersection(Set<T> other)
         {
             var result = new Set<T>();
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 if (other.has(value))
                 {
@@ -178,7 +188,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Set<T> union(Set<T> other)
         {
-            var result = new Set<T>(_set);
+            var result = new Set<T>(_values);
             foreach (var value in other)
             {
                 result.add(value);
@@ -192,7 +202,7 @@ namespace Tsonic.CSharp.Js
         public Set<T> symmetricDifference(Set<T> other)
         {
             var result = new Set<T>();
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 if (!other.has(value))
                 {
@@ -214,7 +224,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool isSubsetOf(Set<T> other)
         {
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 if (!other.has(value))
                 {
@@ -237,7 +247,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool isDisjointFrom(Set<T> other)
         {
-            foreach (var value in _set)
+            foreach (var value in _values)
             {
                 if (other.has(value))
                 {
@@ -254,12 +264,25 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerator<T> GetEnumerator()
         {
-            return _set.GetEnumerator();
+            return _values.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        private int indexOfValue(T value)
+        {
+            for (var index = 0; index < _values.Count; index++)
+            {
+                if (JSKeyEquality.sameValueZero(_values[index], value))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
         }
     }
 }

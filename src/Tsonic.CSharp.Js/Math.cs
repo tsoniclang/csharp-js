@@ -3,7 +3,6 @@
  */
 
 using System;
-using System.Linq;
 
 namespace Tsonic.CSharp.Js
 {
@@ -24,33 +23,69 @@ namespace Tsonic.CSharp.Js
 
         // Common mathematical functions
         public static double abs(double x) => System.Math.Abs(x);
-        public static long ceil(double x)
+        public static double ceil(double x) => System.Math.Ceiling(x);
+        public static double floor(double x) => System.Math.Floor(x);
+        public static double round(double x)
         {
-            if (double.IsPositiveInfinity(x)) return long.MaxValue;
-            if (double.IsNegativeInfinity(x)) return long.MinValue;
-            if (double.IsNaN(x)) return 0;
-            return (long)System.Math.Ceiling(x);
-        }
-        public static long floor(double x)
-        {
-            if (double.IsPositiveInfinity(x)) return long.MaxValue;
-            if (double.IsNegativeInfinity(x)) return long.MinValue;
-            if (double.IsNaN(x)) return 0;
-            return (long)System.Math.Floor(x);
-        }
-        public static long round(double x)
-        {
-            if (double.IsPositiveInfinity(x)) return long.MaxValue;
-            if (double.IsNegativeInfinity(x)) return long.MinValue;
-            if (double.IsNaN(x)) return 0;
-            return (long)System.Math.Round(x);
+            if (double.IsNaN(x) || double.IsInfinity(x) || x == 0)
+            {
+                return x;
+            }
+
+            var rounded = System.Math.Floor(x + 0.5);
+            return rounded == 0 && x < 0 ? -0.0 : rounded;
         }
         public static double sqrt(double x) => System.Math.Sqrt(x);
         public static double pow(double x, double y) => System.Math.Pow(x, y);
 
         // Min/max with params
-        public static double max(params double[] values) => values.Length == 0 ? double.NegativeInfinity : values.Max();
-        public static double min(params double[] values) => values.Length == 0 ? double.PositiveInfinity : values.Min();
+        public static double max(params double[] values)
+        {
+            if (values.Length == 0)
+            {
+                return double.NegativeInfinity;
+            }
+
+            var result = values[0];
+            foreach (var value in values)
+            {
+                if (double.IsNaN(value))
+                {
+                    return double.NaN;
+                }
+
+                if (value > result || (value == 0 && result == 0 && IsNegativeZero(result) && !IsNegativeZero(value)))
+                {
+                    result = value;
+                }
+            }
+
+            return result;
+        }
+
+        public static double min(params double[] values)
+        {
+            if (values.Length == 0)
+            {
+                return double.PositiveInfinity;
+            }
+
+            var result = values[0];
+            foreach (var value in values)
+            {
+                if (double.IsNaN(value))
+                {
+                    return double.NaN;
+                }
+
+                if (value < result || (value == 0 && result == 0 && !IsNegativeZero(result) && IsNegativeZero(value)))
+                {
+                    result = value;
+                }
+            }
+
+            return result;
+        }
 
         // Trigonometric functions
         public static double sin(double x) => System.Math.Sin(x);
@@ -72,14 +107,16 @@ namespace Tsonic.CSharp.Js
         public static double random() => _random.NextDouble();
 
         // Sign and truncation
-        public static int sign(double x) => System.Math.Sign(x);
-        public static long trunc(double x)
+        public static double sign(double x)
         {
-            if (double.IsPositiveInfinity(x)) return long.MaxValue;
-            if (double.IsNegativeInfinity(x)) return long.MinValue;
-            if (double.IsNaN(x)) return 0;
-            return (long)System.Math.Truncate(x);
+            if (double.IsNaN(x) || x == 0)
+            {
+                return x;
+            }
+
+            return x > 0 ? 1 : -1;
         }
+        public static double trunc(double x) => System.Math.Truncate(x);
 
         // Hyperbolic functions
         public static double sinh(double x) => System.Math.Sinh(x);
@@ -93,12 +130,43 @@ namespace Tsonic.CSharp.Js
         public static double cbrt(double x) => System.Math.Cbrt(x);
         public static double hypot(params double[] values)
         {
-            double sum = 0;
-            foreach (double v in values)
+            var maxAbs = 0.0;
+            var hasNaN = false;
+            foreach (var value in values)
             {
-                sum += v * v;
+                var abs = System.Math.Abs(value);
+                if (double.IsInfinity(abs))
+                {
+                    return double.PositiveInfinity;
+                }
+
+                if (double.IsNaN(abs))
+                {
+                    hasNaN = true;
+                    continue;
+                }
+
+                maxAbs = System.Math.Max(maxAbs, abs);
             }
-            return System.Math.Sqrt(sum);
+
+            if (hasNaN)
+            {
+                return double.NaN;
+            }
+
+            if (maxAbs == 0)
+            {
+                return 0;
+            }
+
+            var sum = 0.0;
+            foreach (var value in values)
+            {
+                var scaled = value / maxAbs;
+                sum += scaled * scaled;
+            }
+
+            return maxAbs * System.Math.Sqrt(sum);
         }
 
         public static double expm1(double x) => System.Math.Exp(x) - 1;
@@ -106,7 +174,7 @@ namespace Tsonic.CSharp.Js
 
         // Floating point operations
         public static double fround(double x) => (double)(float)x;
-        public static int imul(int a, int b) => a * b;
+        public static int imul(int a, int b) => unchecked(a * b);
         public static int clz32(int x)
         {
             if (x == 0) return 32;
@@ -119,6 +187,11 @@ namespace Tsonic.CSharp.Js
             // Convert to half precision (16-bit) and back
             var half = (Half)(float)x;
             return (double)half;
+        }
+
+        private static bool IsNegativeZero(double value)
+        {
+            return value == 0 && double.IsNegative(value);
         }
     }
 }

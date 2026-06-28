@@ -208,6 +208,87 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Empty(set.entries());
         }
 
+        [Fact]
+        public void iteration_PreservesInsertionOrderAcrossDuplicateDeleteAndReadd()
+        {
+            var set = new Set<string>();
+            set.add("a").add("b").add("a").add("c");
+            set.delete("b");
+            set.add("b");
+
+            Assert.Equal(new[] { "a", "c", "b" }, set.keys().ToArray());
+            Assert.Equal(new[] { "a", "c", "b" }, set.values().ToArray());
+            Assert.Equal(new[] { ("a", "a"), ("c", "c"), ("b", "b") }, set.entries().ToArray());
+        }
+
+        [Fact]
+        public void SameValueZero_NumberValues_MatchNaNAndSignedZero()
+        {
+            var set = new Set<double>();
+            set.add(double.NaN).add(double.NaN).add(0.0).add(-0.0);
+
+            Assert.Equal(2, set.size);
+            Assert.True(set.has(double.NaN));
+            Assert.True(set.has(0.0));
+            Assert.True(set.has(-0.0));
+        }
+
+        [Fact]
+        public void SameValueZero_NumberValues_CanonicalizeNegativeZeroForIteration()
+        {
+            var set = new Set<double>();
+            set.add(-0.0).add(0.0);
+
+            var value = Assert.Single(set.values());
+
+            Assert.Equal(1, set.size);
+            Assert.Equal(double.PositiveInfinity, 1.0 / value);
+            Assert.True(set.has(-0.0));
+            Assert.True(set.has(0.0));
+        }
+
+        [Fact]
+        public void SameValueZero_ObjectCarrier_CanonicalizesBoxedNegativeZero()
+        {
+            var set = new Set<object?>();
+            set.add((object)(-0.0)).add((object)0.0);
+
+            var value = Assert.IsType<double>(Assert.Single(set.values()));
+
+            Assert.Equal(1, set.size);
+            Assert.Equal(double.PositiveInfinity, 1.0 / value);
+            Assert.True(set.has((object)(-0.0)));
+            Assert.True(set.has((object)0.0));
+        }
+
+        [Fact]
+        public void SameValueZero_ObjectValues_UseIdentityNotStructuralEquality()
+        {
+            var left = new StructurallyEqualValue(1);
+            var right = new StructurallyEqualValue(1);
+            var set = new Set<object>();
+
+            set.add(left).add(right);
+
+            Assert.Equal(2, set.size);
+            Assert.True(set.has(left));
+            Assert.True(set.has(right));
+        }
+
+        [Fact]
+        public void SameValueZero_ObjectCarrier_SupportsNullUndefinedAndPrimitiveValues()
+        {
+            var set = new Set<object?>();
+            set.add(null).add(JSUndefined.value).add(TsValue.undefined()).add(1).add(1.0);
+
+            Assert.Equal(3, set.size);
+            Assert.True(set.has(null));
+            Assert.True(set.has(JSUndefined.value));
+            Assert.True(set.has(TsValue.undefined()));
+            Assert.True(set.has(1));
+            Assert.True(set.has(1.0));
+        }
+
         // ==================== forEach Tests ====================
 
         [Fact]
@@ -370,6 +451,26 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(2, set.size);
             Assert.True(set.has(obj1));
             Assert.True(set.has(obj2));
+        }
+
+        private sealed class StructurallyEqualValue
+        {
+            private readonly int _id;
+
+            public StructurallyEqualValue(int id)
+            {
+                _id = id;
+            }
+
+            public override bool Equals(object? obj)
+            {
+                return obj is StructurallyEqualValue other && other._id == _id;
+            }
+
+            public override int GetHashCode()
+            {
+                return _id;
+            }
         }
     }
 }

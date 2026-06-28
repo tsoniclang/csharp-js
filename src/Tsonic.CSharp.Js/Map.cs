@@ -1,21 +1,33 @@
 /**
- * JavaScript Map implementation
- * Wraps native .NET Dictionary<K,V> with JavaScript Map semantics
+ * Closed JavaScript Map carrier.
+ * Uses explicit SameValueZero key matching and insertion-order storage instead of native collection key semantics.
  */
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Tsonic.CSharp.Js
 {
     /// <summary>
-    /// JavaScript Map - key-value collection with insertion order preservation
+    /// JavaScript Map carrier with insertion order, overwrite ordering, null/undefined keys, NaN equality, and object identity.
     /// </summary>
-    public class Map<K, V> : IEnumerable<(K key, V value)> where K : notnull
+    public class Map<K, V> : IEnumerable<(K key, V value)>
     {
-        private readonly Dictionary<K, V> _dict = new();
+        private readonly List<Entry> _entries = new();
+
+        private struct Entry
+        {
+            public Entry(K key, V value)
+            {
+                Key = key;
+                Value = value;
+            }
+
+            public K Key { get; }
+
+            public V Value { get; set; }
+        }
 
         // ==================== Constructors ====================
 
@@ -31,7 +43,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var (key, value) in entries)
             {
-                _dict[key] = value;
+                set(key, value);
             }
         }
 
@@ -42,7 +54,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var kvp in entries)
             {
-                _dict[kvp.Key] = kvp.Value;
+                set(kvp.Key, kvp.Value);
             }
         }
 
@@ -51,7 +63,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Number of key-value pairs in the Map
         /// </summary>
-        public int size => _dict.Count;
+        public int size => _entries.Count;
 
         // ==================== Core Methods ====================
 
@@ -60,7 +72,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public V? get(K key)
         {
-            return _dict.TryGetValue(key, out var value) ? value : default;
+            var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
+            return index >= 0 ? _entries[index].Value : default;
         }
 
         /// <summary>
@@ -68,7 +81,16 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Map<K, V> set(K key, V value)
         {
-            _dict[key] = value;
+            var canonicalKey = JSKeyEquality.canonicalizeKeyedCollectionKey(key);
+            var index = indexOfKey(canonicalKey);
+            if (index >= 0)
+            {
+                _entries[index] = new Entry(_entries[index].Key, value);
+            }
+            else
+            {
+                _entries.Add(new Entry(canonicalKey, value));
+            }
             return this;
         }
 
@@ -77,7 +99,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool has(K key)
         {
-            return _dict.ContainsKey(key);
+            return indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key)) >= 0;
         }
 
         /// <summary>
@@ -85,7 +107,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(K key)
         {
-            return _dict.Remove(key);
+            var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
+            if (index < 0)
+            {
+                return false;
+            }
+
+            _entries.RemoveAt(index);
+            return true;
         }
 
         /// <summary>
@@ -93,7 +122,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void clear()
         {
-            _dict.Clear();
+            _entries.Clear();
         }
 
         // ==================== Iteration Methods ====================
@@ -103,7 +132,10 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<K> keys()
         {
-            return _dict.Keys;
+            foreach (var entry in _entries)
+            {
+                yield return entry.Key;
+            }
         }
 
         /// <summary>
@@ -111,7 +143,10 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<V> values()
         {
-            return _dict.Values;
+            foreach (var entry in _entries)
+            {
+                yield return entry.Value;
+            }
         }
 
         /// <summary>
@@ -119,9 +154,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<(K key, V value)> entries()
         {
-            foreach (var kvp in _dict)
+            foreach (var entry in _entries)
             {
-                yield return (kvp.Key, kvp.Value);
+                yield return (entry.Key, entry.Value);
             }
         }
 
@@ -130,9 +165,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<V, K, Map<K, V>> callback)
         {
-            foreach (var kvp in _dict)
+            foreach (var entry in _entries)
             {
-                callback(kvp.Value, kvp.Key, this);
+                callback(entry.Value, entry.Key, this);
             }
         }
 
@@ -141,9 +176,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<V, K> callback)
         {
-            foreach (var kvp in _dict)
+            foreach (var entry in _entries)
             {
-                callback(kvp.Value, kvp.Key);
+                callback(entry.Value, entry.Key);
             }
         }
 
@@ -152,9 +187,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<V> callback)
         {
-            foreach (var kvp in _dict)
+            foreach (var entry in _entries)
             {
-                callback(kvp.Value);
+                callback(entry.Value);
             }
         }
 
@@ -165,15 +200,28 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerator<(K key, V value)> GetEnumerator()
         {
-            foreach (var kvp in _dict)
+            foreach (var entry in _entries)
             {
-                yield return (kvp.Key, kvp.Value);
+                yield return (entry.Key, entry.Value);
             }
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        private int indexOfKey(K key)
+        {
+            for (var index = 0; index < _entries.Count; index++)
+            {
+                if (JSKeyEquality.sameValueZero(_entries[index].Key, key))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
         }
     }
 }

@@ -277,6 +277,18 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void FloatArrays_UseStrictEqualityForIndexOfAndSameValueZeroForIncludes()
+        {
+            var floats = new Float32Array(new[] { float.NaN, 1f });
+            Assert.Equal(-1, floats.indexOf(float.NaN));
+            Assert.True(floats.includes(float.NaN));
+
+            var doubles = new Float64Array(new[] { double.NaN, 1.0 });
+            Assert.Equal(-1, doubles.indexOf(double.NaN));
+            Assert.True(doubles.includes(double.NaN));
+        }
+
+        [Fact]
         public void Float64Array_byteLength_IsOctupleLength()
         {
             var arr = new Float64Array(4);

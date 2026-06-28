@@ -239,6 +239,98 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Empty(map.entries());
         }
 
+        [Fact]
+        public void iteration_PreservesInsertionOrderAcrossUpdateDeleteAndReadd()
+        {
+            var map = new Map<string, int>();
+            map.set("a", 1).set("b", 2).set("a", 3).set("c", 4);
+            map.delete("b");
+            map.set("b", 5);
+
+            Assert.Equal(new[] { "a", "c", "b" }, map.keys().ToArray());
+            Assert.Equal(new[] { 3, 4, 5 }, map.values().ToArray());
+            Assert.Equal(new[] { ("a", 3), ("c", 4), ("b", 5) }, map.entries().ToArray());
+        }
+
+        [Fact]
+        public void SameValueZero_NumberKeys_MatchNaNAndSignedZero()
+        {
+            var map = new Map<double, string>();
+            map.set(double.NaN, "nan");
+            map.set(0.0, "zero");
+            map.set(-0.0, "signed-zero");
+
+            Assert.Equal(2, map.size);
+            Assert.Equal("nan", map.get(double.NaN));
+            Assert.Equal("signed-zero", map.get(0.0));
+            Assert.Equal("signed-zero", map.get(-0.0));
+        }
+
+        [Fact]
+        public void SameValueZero_NumberKeys_CanonicalizeNegativeZeroForIteration()
+        {
+            var map = new Map<double, string>();
+            map.set(-0.0, "negative-zero");
+
+            var key = Assert.Single(map.keys());
+
+            Assert.Equal(double.PositiveInfinity, 1.0 / key);
+            Assert.Equal("negative-zero", map.get(0.0));
+
+            map.set(0.0, "positive-zero");
+
+            Assert.Equal(1, map.size);
+            Assert.Equal(double.PositiveInfinity, 1.0 / Assert.Single(map.keys()));
+            Assert.Equal("positive-zero", map.get(-0.0));
+        }
+
+        [Fact]
+        public void SameValueZero_ObjectCarrier_CanonicalizesBoxedNegativeZero()
+        {
+            var map = new Map<object?, string>();
+            map.set((object)(-0.0), "negative-zero");
+
+            var key = Assert.IsType<double>(Assert.Single(map.keys()));
+
+            Assert.Equal(double.PositiveInfinity, 1.0 / key);
+            Assert.True(map.has((object)0.0));
+            Assert.Equal("negative-zero", map.get((object)0.0));
+        }
+
+        [Fact]
+        public void SameValueZero_ObjectKeys_UseIdentityNotStructuralEquality()
+        {
+            var left = new StructurallyEqualKey(1);
+            var right = new StructurallyEqualKey(1);
+            var map = new Map<object, string>();
+
+            map.set(left, "left");
+            map.set(right, "right");
+
+            Assert.Equal(2, map.size);
+            Assert.Equal("left", map.get(left));
+            Assert.Equal("right", map.get(right));
+        }
+
+        [Fact]
+        public void SameValueZero_ObjectCarrier_SupportsNullUndefinedAndPrimitiveKeys()
+        {
+            var map = new Map<object?, int>();
+            map.set(null, 1);
+            map.set(JSUndefined.value, 2);
+            map.set(TsValue.undefined(), 3);
+            map.set((object)1, 4);
+            map.set((object)1.0, 5);
+
+            Assert.Equal(3, map.size);
+            Assert.True(map.has(null));
+            Assert.True(map.has(JSUndefined.value));
+            Assert.True(map.has(TsValue.undefined()));
+            Assert.Equal(1, map.get(null));
+            Assert.Equal(3, map.get(JSUndefined.value));
+            Assert.Equal(5, map.get(1));
+        }
+
         // ==================== forEach Tests ====================
 
         [Fact]
@@ -320,6 +412,26 @@ namespace Tsonic.CSharp.Js.Tests
             map.set(key1, "first").set(key2, "second");
             Assert.Equal("first", map.get(key1));
             Assert.Equal("second", map.get(key2));
+        }
+
+        private sealed class StructurallyEqualKey
+        {
+            private readonly int _id;
+
+            public StructurallyEqualKey(int id)
+            {
+                _id = id;
+            }
+
+            public override bool Equals(object? obj)
+            {
+                return obj is StructurallyEqualKey other && other._id == _id;
+            }
+
+            public override int GetHashCode()
+            {
+                return _id;
+            }
         }
     }
 }

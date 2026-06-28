@@ -10,6 +10,31 @@ namespace Tsonic.CSharp.Js;
 /// </summary>
 public static class Object
 {
+    public static bool @is(object? value, object? other)
+    {
+        if (value == null || other == null)
+        {
+            return value == null && other == null;
+        }
+
+        if (tryGetNumericValue(value, out var left) && tryGetNumericValue(other, out var right))
+        {
+            if (double.IsNaN(left) && double.IsNaN(right))
+            {
+                return true;
+            }
+
+            if (left == 0 && right == 0)
+            {
+                return double.IsNegative(left) == double.IsNegative(right);
+            }
+
+            return left.Equals(right);
+        }
+
+        return ReferenceEquals(value, other) || value.Equals(other);
+    }
+
     private static IEnumerable<KeyValuePair<string, object?>> Enumerate(object? value)
     {
         if (value == null)
@@ -160,6 +185,37 @@ public static class Object
         return result;
     }
 
+    public static bool hasOwn(JSObject value, string key)
+    {
+        if (value == null)
+        {
+            throw new TypeError("Object.hasOwn receiver cannot be null.");
+        }
+
+        return value.hasOwnProperty(key);
+    }
+
+    public static bool hasOwn(IJSArray value, string key)
+    {
+        if (value == null)
+        {
+            throw new TypeError("Object.hasOwn receiver cannot be null.");
+        }
+
+        return TryParseArrayIndex(key, value.length, out var index) &&
+            value.tryGetAtObject(index, out _);
+    }
+
+    public static bool hasOwn(string value, string key)
+    {
+        if (value == null)
+        {
+            throw new TypeError("Object.hasOwn receiver cannot be null.");
+        }
+
+        return TryParseArrayIndex(key, value.Length, out _);
+    }
+
     public static JSObject assign(JSObject target, params object?[] sources)
     {
         if (target == null)
@@ -243,6 +299,18 @@ public static class Object
         }
     }
 
+    private static bool TryParseArrayIndex(string key, int length, out int index)
+    {
+        if (!int.TryParse(key, NumberStyles.None, CultureInfo.InvariantCulture, out index))
+        {
+            return false;
+        }
+
+        return index >= 0 &&
+            index < length &&
+            key == index.ToString(CultureInfo.InvariantCulture);
+    }
+
     private static bool HasNoEnumerableOwnProperties(object value)
     {
         return value is bool
@@ -258,5 +326,48 @@ public static class Object
             or double
             or decimal
             or char;
+    }
+
+    private static bool tryGetNumericValue(object value, out double result)
+    {
+        switch (value)
+        {
+            case byte typed:
+                result = typed;
+                return true;
+            case sbyte typed:
+                result = typed;
+                return true;
+            case short typed:
+                result = typed;
+                return true;
+            case ushort typed:
+                result = typed;
+                return true;
+            case int typed:
+                result = typed;
+                return true;
+            case uint typed:
+                result = typed;
+                return true;
+            case long typed:
+                result = typed;
+                return true;
+            case ulong typed:
+                result = typed;
+                return true;
+            case float typed:
+                result = typed;
+                return true;
+            case double typed:
+                result = typed;
+                return true;
+            case decimal typed:
+                result = (double)typed;
+                return true;
+            default:
+                result = 0;
+                return false;
+        }
     }
 }

@@ -92,10 +92,29 @@ namespace Tsonic.CSharp.Js
         {
             if (fromIndex >= _array.Length) return -1;
             if (fromIndex < 0) fromIndex = SysMath.Max(0, _array.Length + fromIndex);
-            return SysArray.IndexOf(_array, value, fromIndex);
+            for (var index = fromIndex; index < _array.Length; index++)
+            {
+                if (JSKeyEquality.strictEquals(_array[index], value))
+                {
+                    return index;
+                }
+            }
+            return -1;
         }
 
-        public bool includes(double value, int fromIndex = 0) => indexOf(value, fromIndex) >= 0;
+        public bool includes(double value, int fromIndex = 0)
+        {
+            if (fromIndex >= _array.Length) return false;
+            if (fromIndex < 0) fromIndex = SysMath.Max(0, _array.Length + fromIndex);
+            for (var index = fromIndex; index < _array.Length; index++)
+            {
+                if (JSKeyEquality.sameValueZero(_array[index], value))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         public string join(string separator = ",") => string.Join(separator, _array);
 

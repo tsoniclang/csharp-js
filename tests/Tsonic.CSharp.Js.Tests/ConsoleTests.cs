@@ -64,11 +64,20 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void assert_AcceptsOptionalConditionAndMultipleData()
+        {
+            console.assert();
+            console.assert(false, "Assertion failed", 123, true);
+            console.assert(true, "This should not be printed", 123);
+        }
+
+        [Fact]
         public void table_DisplaysData()
         {
             // Just verify it doesn't throw
             var data = new { Name = "Test", Value = 42 };
             console.table(data);
+            console.table(data, new[] { "Name" });
         }
 
         [Fact]
@@ -98,6 +107,13 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void timeStamp_AcceptsOptionalLabel()
+        {
+            console.timeStamp();
+            console.timeStamp("checkpoint");
+        }
+
+        [Fact]
         public void count_IncrementsCounter()
         {
             // Should log incrementing count
@@ -113,6 +129,15 @@ namespace Tsonic.CSharp.Js.Tests
             console.count("resetCounter");
             console.countReset("resetCounter");
             console.count("resetCounter"); // Should be 1 again
+        }
+
+        [Fact]
+        public void profile_Methods_AreDeterministicNoOps()
+        {
+            console.profile();
+            console.profile("load");
+            console.profileEnd();
+            console.profileEnd("load");
         }
 
         [Fact]
@@ -154,6 +179,8 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var obj = new { Name = "Test", Value = 42 };
             console.dir(obj);
+            console.dir(obj, new { depth = 1 });
+            console.dir();
         }
 
         [Fact]
@@ -161,6 +188,8 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var element = "<div>Test</div>";
             console.dirxml(element);
+            console.dirxml(element, "<span>More</span>");
+            console.dirxml();
         }
     }
 }

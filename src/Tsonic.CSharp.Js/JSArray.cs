@@ -202,7 +202,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Set array length (truncate or extend with holes)
         /// </summary>
-        public void setLength(int newLength)
+        public int setLength(int newLength)
         {
             if (newLength < 0)
             {
@@ -217,6 +217,8 @@ namespace Tsonic.CSharp.Js
             {
                 AddHoles(newLength - _slots.Count);
             }
+
+            return newLength;
         }
 
         // ==================== Basic Mutation Methods ====================
@@ -806,7 +808,7 @@ namespace Tsonic.CSharp.Js
             int start = NormalizeForwardSearchStart(fromIndex);
             for (int i = start; i < _slots.Count; i++)
             {
-                if (_slots[i].IsPresent && EqualityComparer<T>.Default.Equals(_slots[i].Value, searchElement))
+                if (_slots[i].IsPresent && JSKeyEquality.strictEquals(_slots[i].Value, searchElement))
                 {
                     return i;
                 }
@@ -828,7 +830,7 @@ namespace Tsonic.CSharp.Js
 
             for (int i = startIndex; i >= 0; i--)
             {
-                if (_slots[i].IsPresent && EqualityComparer<T>.Default.Equals(_slots[i].Value, searchElement))
+                if (_slots[i].IsPresent && JSKeyEquality.strictEquals(_slots[i].Value, searchElement))
                 {
                     return i;
                 }
@@ -841,7 +843,17 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool includes(T searchElement, int fromIndex = 0)
         {
-            return indexOf(searchElement, fromIndex) >= 0;
+            int start = NormalizeForwardSearchStart(fromIndex);
+            for (int i = start; i < _slots.Count; i++)
+            {
+                if (_slots[i].IsPresent
+                    ? JSKeyEquality.sameValueZero(_slots[i].Value, searchElement)
+                    : JSKeyEquality.sameValueZeroUndefined(searchElement))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private int NormalizeForwardSearchStart(int fromIndex)
@@ -1060,6 +1072,10 @@ namespace Tsonic.CSharp.Js
                 {
                     result.push(value);
                 }
+                else if (item is IEnumerable<T> values)
+                {
+                    result.AddPresentRange(values);
+                }
             }
 
             return result;
@@ -1138,20 +1154,21 @@ namespace Tsonic.CSharp.Js
             int actualIndex = index < 0 ? _slots.Count + index : index;
             if (actualIndex < 0 || actualIndex >= _slots.Count)
             {
-                return null;
+                return JSUndefined.value;
             }
-            return _slots[actualIndex].Value;
+            return _slots[actualIndex].IsPresent ? _slots[actualIndex].Value : JSUndefined.value;
         }
 
         public TValue? atValue<TValue>(int index) where TValue : struct
         {
             object? value = at(index);
-            return value == null ? null : (TValue)value;
+            return value is null or JSUndefined ? null : (TValue)value;
         }
 
         public TReference? atReference<TReference>(int index) where TReference : class
         {
-            return at(index) as TReference;
+            object? value = at(index);
+            return value is JSUndefined ? null : value as TReference;
         }
 
         /// <summary>

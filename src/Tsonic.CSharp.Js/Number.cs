@@ -169,12 +169,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string toString(this double value)
         {
-            return value.ToString(CultureInfo.InvariantCulture);
+            return formatJsNumber(value);
         }
 
         public static string toString(this double? value)
         {
-            return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            return value.HasValue ? formatJsNumber(value.Value) : string.Empty;
         }
 
         public static string toString(this int value)
@@ -195,6 +195,65 @@ namespace Tsonic.CSharp.Js
         public static string toString(this long? value)
         {
             return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+
+        public static string toExponential(this double value, int? fractionDigits = null)
+        {
+            var special = formatSpecialJsNumber(value);
+            if (special != null)
+            {
+                return special;
+            }
+
+            if (fractionDigits.HasValue)
+            {
+                validateFractionDigits(fractionDigits.Value);
+                return normalizeExponent(value.ToString($"E{fractionDigits.Value}", CultureInfo.InvariantCulture));
+            }
+
+            return normalizeExponent(trimMantissaZeros(value.ToString("E15", CultureInfo.InvariantCulture)));
+        }
+
+        public static string toFixed(this double value, int? digits = null)
+        {
+            var special = formatSpecialJsNumber(value);
+            if (special != null)
+            {
+                return special;
+            }
+
+            var fractionDigits = digits ?? 0;
+            validateFractionDigits(fractionDigits);
+            if (System.Math.Abs(value) >= 1e21)
+            {
+                return formatJsNumber(value);
+            }
+
+            return value.ToString($"F{fractionDigits}", CultureInfo.InvariantCulture);
+        }
+
+        public static string toPrecision(this double value, int? precision = null)
+        {
+            var special = formatSpecialJsNumber(value);
+            if (special != null)
+            {
+                return special;
+            }
+
+            if (!precision.HasValue)
+            {
+                return formatJsNumber(value);
+            }
+
+            validatePrecision(precision.Value);
+            return normalizeExponent(value.ToString($"G{precision.Value}", CultureInfo.InvariantCulture));
+        }
+
+        public static string toLocaleString(this double value, object? locales = null, object? options = null)
+        {
+            _ = locales;
+            _ = options;
+            return formatJsNumber(value);
         }
 
         /// <summary>
@@ -228,6 +287,76 @@ namespace Tsonic.CSharp.Js
         public static long? valueOf(this long? value)
         {
             return value;
+        }
+
+        private static string formatJsNumber(double value)
+        {
+            var special = formatSpecialJsNumber(value);
+            if (special != null)
+            {
+                return special;
+            }
+
+            return value == 0 ? "0" : value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string? formatSpecialJsNumber(double value)
+        {
+            if (double.IsNaN(value))
+            {
+                return "NaN";
+            }
+
+            if (double.IsPositiveInfinity(value))
+            {
+                return "Infinity";
+            }
+
+            return double.IsNegativeInfinity(value) ? "-Infinity" : null;
+        }
+
+        private static void validateFractionDigits(int value)
+        {
+            if (value < 0 || value > 100)
+            {
+                throw new RangeError("Number fraction digits must be between 0 and 100.");
+            }
+        }
+
+        private static void validatePrecision(int value)
+        {
+            if (value < 1 || value > 100)
+            {
+                throw new RangeError("Number precision must be between 1 and 100.");
+            }
+        }
+
+        private static string trimMantissaZeros(string value)
+        {
+            var exponentIndex = value.IndexOf('E');
+            if (exponentIndex < 0)
+            {
+                return value;
+            }
+
+            var mantissa = value.Substring(0, exponentIndex);
+            mantissa = mantissa.Contains('.')
+                ? mantissa.TrimEnd('0').TrimEnd('.')
+                : mantissa;
+            return mantissa + value.Substring(exponentIndex);
+        }
+
+        private static string normalizeExponent(string value)
+        {
+            var exponentIndex = value.IndexOf('E');
+            if (exponentIndex < 0)
+            {
+                return value;
+            }
+
+            var mantissa = value.Substring(0, exponentIndex);
+            var exponent = int.Parse(value.Substring(exponentIndex + 1), CultureInfo.InvariantCulture);
+            return $"{mantissa}e{(exponent >= 0 ? "+" : "")}{exponent.ToString(CultureInfo.InvariantCulture)}";
         }
     }
 }

@@ -80,6 +80,11 @@ namespace Tsonic.CSharp.Js
         public bool global => _flags.Contains('g');
 
         /// <summary>
+        /// Whether hasIndices flag is set
+        /// </summary>
+        public bool hasIndices => _flags.Contains('d');
+
+        /// <summary>
         /// Whether ignoreCase flag is set
         /// </summary>
         public bool ignoreCase => _flags.Contains('i');
@@ -98,6 +103,11 @@ namespace Tsonic.CSharp.Js
         /// Whether unicode flag is set
         /// </summary>
         public bool unicode => _flags.Contains('u');
+
+        /// <summary>
+        /// Whether unicodeSets flag is set
+        /// </summary>
+        public bool unicodeSets => _flags.Contains('v');
 
         /// <summary>
         /// Whether sticky flag is set
@@ -219,6 +229,8 @@ namespace Tsonic.CSharp.Js
         /// Convert to string representation
         /// </summary>
         public override string ToString() => $"/{_pattern}/{_flags}";
+
+        public string toString() => ToString();
 
         // ==================== Internal Access ====================
 
