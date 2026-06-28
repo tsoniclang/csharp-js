@@ -132,6 +132,15 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void profile_Methods_AreDeterministicNoOps()
+        {
+            console.profile();
+            console.profile("load");
+            console.profileEnd();
+            console.profileEnd("load");
+        }
+
+        [Fact]
         public void group_StartsGroup()
         {
             // Should not throw

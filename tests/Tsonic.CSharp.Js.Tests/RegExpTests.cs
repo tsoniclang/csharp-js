@@ -101,6 +101,12 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(0, regex.lastIndex);
         }
 
+        [Fact]
+        public void RegExp_toString_ReturnsJavaScriptLiteralShape()
+        {
+            Assert.Equal("/abc/gi", new RegExp("abc", "gi").toString());
+        }
+
         // ==================== test() Method Tests ====================
 
         [Fact]

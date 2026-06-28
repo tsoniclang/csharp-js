@@ -31,6 +31,21 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void is_UsesJavaScriptSameValueSemantics()
+        {
+            var objectValue = new JSObject();
+
+            Assert.True(JsObjectStatics.@is(double.NaN, double.NaN));
+            Assert.True(JsObjectStatics.@is(1, 1d));
+            Assert.True(JsObjectStatics.@is("x", "x"));
+            Assert.True(JsObjectStatics.@is(null, null));
+            Assert.True(JsObjectStatics.@is(objectValue, objectValue));
+            Assert.False(JsObjectStatics.@is(0d, -0d));
+            Assert.False(JsObjectStatics.@is(null, 0));
+            Assert.False(JsObjectStatics.@is(new JSObject(), new JSObject()));
+        }
+
+        [Fact]
         public void keys_values_entries_UseEnumerableOwnArrayIndexesOnly()
         {
             var value = new JSArray<int>();

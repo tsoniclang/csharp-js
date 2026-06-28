@@ -23,11 +23,36 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("42", 42d.toString());
             Assert.Equal("3.5", 3.5d.toString());
+            Assert.Equal("NaN", double.NaN.toString());
+            Assert.Equal("Infinity", double.PositiveInfinity.toString());
+            Assert.Equal("-Infinity", double.NegativeInfinity.toString());
             Assert.Equal("7", 7.toString());
             Assert.Equal("9", 9L.toString());
             Assert.Equal("11", ((int?)11).toString());
             Assert.Equal("13", ((long?)13).toString());
             Assert.Equal(string.Empty, ((int?)null).toString());
+        }
+
+        [Fact]
+        public void FormattingMethods_UseJavaScriptNumberShapes()
+        {
+            Assert.Equal("12.35", 12.345d.toFixed(2));
+            Assert.Equal("12", 12.345d.toFixed());
+            Assert.Equal("1.23e+4", 12345d.toExponential(2));
+            Assert.Equal("1e+4", 12345d.toPrecision(1));
+            Assert.Equal("12345", 12345d.toLocaleString());
+            Assert.Equal("NaN", double.NaN.toFixed(2));
+            Assert.Equal("Infinity", double.PositiveInfinity.toExponential(2));
+        }
+
+        [Fact]
+        public void FormattingMethods_RejectInvalidPrecision()
+        {
+            Assert.Throws<RangeError>(() => 1d.toFixed(-1));
+            Assert.Throws<RangeError>(() => 1d.toFixed(101));
+            Assert.Throws<RangeError>(() => 1d.toExponential(-1));
+            Assert.Throws<RangeError>(() => 1d.toPrecision(0));
+            Assert.Throws<RangeError>(() => 1d.toPrecision(101));
         }
 
         [Fact]

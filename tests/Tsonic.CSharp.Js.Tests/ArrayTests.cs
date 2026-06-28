@@ -58,8 +58,9 @@ namespace Tsonic.CSharp.Js.Tests
         public void length_SetToSmallerValue_TruncatesArray()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3, 4, 5 });
-            arr.setLength(3);
+            var result = arr.setLength(3);
 
+            Assert.Equal(3, result);
             Assert.Equal(3, arr.length);
         }
 
@@ -67,8 +68,9 @@ namespace Tsonic.CSharp.Js.Tests
         public void length_SetToLargerValue_ExtendsArray()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            arr.setLength(5);
+            var result = arr.setLength(5);
 
+            Assert.Equal(5, result);
             Assert.Equal(5, arr.length);
             Assert.Equal(0, arr[4]); // New hole reads as undefined/default
             Assert.False(arr.hasIndex(4));

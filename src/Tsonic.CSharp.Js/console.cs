@@ -159,6 +159,16 @@ namespace Tsonic.CSharp.Js
             _counters[label] = 0;
         }
 
+        public static void profile(string label = "default")
+        {
+            _ = label;
+        }
+
+        public static void profileEnd(string label = "default")
+        {
+            _ = label;
+        }
+
         // Grouping
         private static int _groupIndent = 0;
 

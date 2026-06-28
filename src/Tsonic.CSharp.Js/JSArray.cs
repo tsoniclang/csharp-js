@@ -202,7 +202,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Set array length (truncate or extend with holes)
         /// </summary>
-        public void setLength(int newLength)
+        public int setLength(int newLength)
         {
             if (newLength < 0)
             {
@@ -217,6 +217,8 @@ namespace Tsonic.CSharp.Js
             {
                 AddHoles(newLength - _slots.Count);
             }
+
+            return newLength;
         }
 
         // ==================== Basic Mutation Methods ====================

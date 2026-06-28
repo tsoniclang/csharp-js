@@ -230,6 +230,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public override string ToString() => $"/{_pattern}/{_flags}";
 
+        public string toString() => ToString();
+
         // ==================== Internal Access ====================
 
         /// <summary>
