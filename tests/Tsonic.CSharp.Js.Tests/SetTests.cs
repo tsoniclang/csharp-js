@@ -234,6 +234,34 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void SameValueZero_NumberValues_CanonicalizeNegativeZeroForIteration()
+        {
+            var set = new Set<double>();
+            set.add(-0.0).add(0.0);
+
+            var value = Assert.Single(set.values());
+
+            Assert.Equal(1, set.size);
+            Assert.Equal(double.PositiveInfinity, 1.0 / value);
+            Assert.True(set.has(-0.0));
+            Assert.True(set.has(0.0));
+        }
+
+        [Fact]
+        public void SameValueZero_ObjectCarrier_CanonicalizesBoxedNegativeZero()
+        {
+            var set = new Set<object?>();
+            set.add((object)(-0.0)).add((object)0.0);
+
+            var value = Assert.IsType<double>(Assert.Single(set.values()));
+
+            Assert.Equal(1, set.size);
+            Assert.Equal(double.PositiveInfinity, 1.0 / value);
+            Assert.True(set.has((object)(-0.0)));
+            Assert.True(set.has((object)0.0));
+        }
+
+        [Fact]
         public void SameValueZero_ObjectValues_UseIdentityNotStructuralEquality()
         {
             var left = new StructurallyEqualValue(1);

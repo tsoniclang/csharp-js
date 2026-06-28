@@ -48,9 +48,10 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Set<T> add(T value)
         {
-            if (!has(value))
+            var canonicalValue = JSKeyEquality.canonicalizeKeyedCollectionKey(value);
+            if (indexOfValue(canonicalValue) < 0)
             {
-                _values.Add(value);
+                _values.Add(canonicalValue);
             }
             return this;
         }
@@ -60,7 +61,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool has(T value)
         {
-            return indexOfValue(value) >= 0;
+            return indexOfValue(JSKeyEquality.canonicalizeKeyedCollectionKey(value)) >= 0;
         }
 
         /// <summary>
@@ -68,7 +69,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(T value)
         {
-            var index = indexOfValue(value);
+            var index = indexOfValue(JSKeyEquality.canonicalizeKeyedCollectionKey(value));
             if (index < 0)
             {
                 return false;

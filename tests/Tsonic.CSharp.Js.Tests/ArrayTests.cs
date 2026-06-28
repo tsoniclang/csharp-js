@@ -257,6 +257,9 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, double.NaN));
             Assert.Equal(-1, Tsonic.CSharp.Js.Array.lastIndexOf(denseNumbers, double.NaN));
             Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, double.NaN));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, 0.0));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, -0.0));
+            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, 0.0));
             Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, -0.0));
 
             var sparseNumbers = new JSArray<double>();
@@ -266,6 +269,31 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(-1, sparseNumbers.indexOf(double.NaN));
             Assert.Equal(-1, sparseNumbers.lastIndexOf(double.NaN));
             Assert.True(sparseNumbers.includes(double.NaN));
+            Assert.True(sparseNumbers.includes(double.NaN, -2));
+
+            sparseNumbers[2] = -0.0;
+
+            Assert.True(sparseNumbers.includes(0.0));
+            Assert.True(sparseNumbers.includes(-0.0));
+            Assert.Equal(2, sparseNumbers.indexOf(0.0));
+            Assert.Equal(2, sparseNumbers.indexOf(-0.0));
+        }
+
+        [Fact]
+        public void Includes_TreatsSparseHolesAsUndefinedButIndexOfSkipsThem()
+        {
+            var values = new JSArray<object?>();
+            values.setLength(2);
+            values[1] = null;
+
+            Assert.True(values.includes(JSUndefined.value));
+            Assert.True(values.includes(TsValue.undefined()));
+            Assert.Equal(-1, values.indexOf(JSUndefined.value));
+            Assert.True(values.includes(null));
+            Assert.Equal(1, values.indexOf(null));
+
+            Assert.True(Tsonic.CSharp.Js.Array.includes(values, JSUndefined.value));
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(values, JSUndefined.value));
         }
 
         [Fact]

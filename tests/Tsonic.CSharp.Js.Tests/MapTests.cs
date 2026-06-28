@@ -267,6 +267,37 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void SameValueZero_NumberKeys_CanonicalizeNegativeZeroForIteration()
+        {
+            var map = new Map<double, string>();
+            map.set(-0.0, "negative-zero");
+
+            var key = Assert.Single(map.keys());
+
+            Assert.Equal(double.PositiveInfinity, 1.0 / key);
+            Assert.Equal("negative-zero", map.get(0.0));
+
+            map.set(0.0, "positive-zero");
+
+            Assert.Equal(1, map.size);
+            Assert.Equal(double.PositiveInfinity, 1.0 / Assert.Single(map.keys()));
+            Assert.Equal("positive-zero", map.get(-0.0));
+        }
+
+        [Fact]
+        public void SameValueZero_ObjectCarrier_CanonicalizesBoxedNegativeZero()
+        {
+            var map = new Map<object?, string>();
+            map.set((object)(-0.0), "negative-zero");
+
+            var key = Assert.IsType<double>(Assert.Single(map.keys()));
+
+            Assert.Equal(double.PositiveInfinity, 1.0 / key);
+            Assert.True(map.has((object)0.0));
+            Assert.Equal("negative-zero", map.get((object)0.0));
+        }
+
+        [Fact]
         public void SameValueZero_ObjectKeys_UseIdentityNotStructuralEquality()
         {
             var left = new StructurallyEqualKey(1);

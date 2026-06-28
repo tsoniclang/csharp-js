@@ -72,7 +72,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public V? get(K key)
         {
-            var index = indexOfKey(key);
+            var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
             return index >= 0 ? _entries[index].Value : default;
         }
 
@@ -81,14 +81,15 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Map<K, V> set(K key, V value)
         {
-            var index = indexOfKey(key);
+            var canonicalKey = JSKeyEquality.canonicalizeKeyedCollectionKey(key);
+            var index = indexOfKey(canonicalKey);
             if (index >= 0)
             {
                 _entries[index] = new Entry(_entries[index].Key, value);
             }
             else
             {
-                _entries.Add(new Entry(key, value));
+                _entries.Add(new Entry(canonicalKey, value));
             }
             return this;
         }
@@ -98,7 +99,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool has(K key)
         {
-            return indexOfKey(key) >= 0;
+            return indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key)) >= 0;
         }
 
         /// <summary>
@@ -106,7 +107,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(K key)
         {
-            var index = indexOfKey(key);
+            var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
             if (index < 0)
             {
                 return false;

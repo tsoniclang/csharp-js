@@ -12,6 +12,23 @@ namespace Tsonic.CSharp.Js
             return strictEquals((object?)left, (object?)right);
         }
 
+        public static bool sameValueZeroUndefined<T>(T value)
+        {
+            return sameValueZero(JSUndefined.value, (object?)value);
+        }
+
+        public static T canonicalizeKeyedCollectionKey<T>(T value)
+        {
+            return value switch
+            {
+                double typed when typed == 0.0 => (T)(object)0.0,
+                float typed when typed == 0.0f => (T)(object)0.0f,
+                TsValue typed => (T)(object)TsValue.from(canonicalizeKeyedCollectionKey(typed.unwrap())),
+                object boxed => (T)canonicalizeBoxedKeyedCollectionKey(boxed),
+                _ => value
+            };
+        }
+
         private static bool strictEquals(object? left, object? right)
         {
             if (ReferenceEquals(left, right))
@@ -133,6 +150,16 @@ namespace Tsonic.CSharp.Js
                     number = 0;
                     return false;
             }
+        }
+
+        private static object canonicalizeBoxedKeyedCollectionKey(object value)
+        {
+            return value switch
+            {
+                double typed when typed == 0.0 => 0.0,
+                float typed when typed == 0.0f => 0.0f,
+                _ => value
+            };
         }
     }
 }

@@ -846,7 +846,9 @@ namespace Tsonic.CSharp.Js
             int start = NormalizeForwardSearchStart(fromIndex);
             for (int i = start; i < _slots.Count; i++)
             {
-                if (_slots[i].IsPresent && JSKeyEquality.sameValueZero(_slots[i].Value, searchElement))
+                if (_slots[i].IsPresent
+                    ? JSKeyEquality.sameValueZero(_slots[i].Value, searchElement)
+                    : JSKeyEquality.sameValueZeroUndefined(searchElement))
                 {
                     return true;
                 }
