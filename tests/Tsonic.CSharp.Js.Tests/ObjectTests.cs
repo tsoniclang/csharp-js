@@ -130,6 +130,18 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void hasOwn_SupportsClosedTypedDictionaryWithoutReflection()
+        {
+            var value = new Dictionary<string, int>
+            {
+                ["answer"] = 42
+            };
+
+            Assert.True(JsObjectStatics.hasOwn(value, "answer"));
+            Assert.False(JsObjectStatics.hasOwn(value, "missing"));
+        }
+
+        [Fact]
         public void keys_values_entries_SupportStringBoxingWithoutReflection()
         {
             Assert.Equal(new[] { "0", "1", "2" }, JsObjectStatics.keys("abc"));
@@ -202,6 +214,29 @@ namespace Tsonic.CSharp.Js.Tests
 
             Assert.Same(target, result);
             Assert.Equal(42, target["answer"]);
+        }
+
+        [Fact]
+        public void assign_CopiesTypedDictionarySourcesWithoutReflection()
+        {
+            var target = new Dictionary<string, int>
+            {
+                ["answer"] = 1
+            };
+            var first = new Dictionary<string, int>
+            {
+                ["answer"] = 42
+            };
+            var second = new Dictionary<string, int>
+            {
+                ["extra"] = 7
+            };
+
+            var result = JsObjectStatics.assign(target, first, second);
+
+            Assert.Same(target, result);
+            Assert.Equal(42, target["answer"]);
+            Assert.Equal(7, target["extra"]);
         }
 
         [Fact]
