@@ -7,6 +7,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace Tsonic.CSharp.Js
@@ -1024,7 +1025,7 @@ namespace Tsonic.CSharp.Js
             var parts = new List<string>();
             for (int i = 0; i < _slots.Count; i++)
             {
-                parts.Add(_slots[i].IsPresent ? _slots[i].Value?.ToString() ?? "" : "");
+                parts.Add(_slots[i].IsPresent ? toJoinPart(_slots[i].Value) : string.Empty);
             }
             return string.Join(separator, parts);
         }
@@ -1449,6 +1450,28 @@ namespace Tsonic.CSharp.Js
             }
 
             return (int)length;
+        }
+
+        private static string toJoinPart(object? value)
+        {
+            if (value is TsValue tsValue)
+            {
+                return toJoinPart(tsValue.unwrap());
+            }
+
+            if (value is null or JSUndefined)
+            {
+                return string.Empty;
+            }
+
+            if (value is bool boolValue)
+            {
+                return boolValue ? "true" : "false";
+            }
+
+            return value is IFormattable formattable
+                ? formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty
+                : value.ToString() ?? string.Empty;
         }
 
         private JSArray<T> CopySlots()

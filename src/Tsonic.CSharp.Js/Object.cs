@@ -216,6 +216,21 @@ public static class Object
         return TryParseArrayIndex(key, value.Length, out _);
     }
 
+    public static bool hasOwn<TValue>(Dictionary<string, TValue> value, string key)
+    {
+        return hasOwn((IReadOnlyDictionary<string, TValue>)value, key);
+    }
+
+    public static bool hasOwn<TValue>(IReadOnlyDictionary<string, TValue> value, string key)
+    {
+        if (value == null)
+        {
+            throw new TypeError("Object.hasOwn receiver cannot be null.");
+        }
+
+        return value.ContainsKey(key);
+    }
+
     public static JSObject assign(JSObject target, params object?[] sources)
     {
         if (target == null)
@@ -231,6 +246,32 @@ public static class Object
             }
 
             foreach (var pair in Enumerate(source))
+            {
+                target[pair.Key] = pair.Value;
+            }
+        }
+
+        return target;
+    }
+
+    public static Dictionary<string, TValue> assign<TValue>(
+        Dictionary<string, TValue> target,
+        params IReadOnlyDictionary<string, TValue>[] sources
+    )
+    {
+        if (target == null)
+        {
+            throw new TypeError("Object.assign target cannot be null.");
+        }
+
+        foreach (var source in sources)
+        {
+            if (source == null)
+            {
+                continue;
+            }
+
+            foreach (var pair in source)
             {
                 target[pair.Key] = pair.Value;
             }

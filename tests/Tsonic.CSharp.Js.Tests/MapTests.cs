@@ -95,14 +95,34 @@ namespace Tsonic.CSharp.Js.Tests
         public void get_NonExistingKey_ReturnsDefault()
         {
             var map = new Map<string, int>();
-            Assert.Equal(0, map.get("missing"));
+            Assert.Same(JSUndefined.value, map.get("missing"));
+            Assert.Null(Tsonic.CSharp.Js.Map.getValue(map, "missing"));
         }
 
         [Fact]
         public void get_NonExistingKey_ReferenceType_ReturnsNull()
         {
             var map = new Map<string, string>();
-            Assert.Null(map.get("missing"));
+            Assert.Same(JSUndefined.value, map.get("missing"));
+            Assert.Null(Tsonic.CSharp.Js.Map.getReference(map, "missing"));
+        }
+
+        [Fact]
+        public void getValue_PreservesZeroAndDistinguishesMissing()
+        {
+            var map = new Map<string, int>();
+            map.set("zero", 0);
+            Assert.Equal(0, Tsonic.CSharp.Js.Map.getValue(map, "zero"));
+            Assert.Null(Tsonic.CSharp.Js.Map.getValue(map, "missing"));
+        }
+
+        [Fact]
+        public void getReference_ReturnsStoredReferenceOrNullForMissing()
+        {
+            var map = new Map<string, string>();
+            map.set("value", "found");
+            Assert.Equal("found", Tsonic.CSharp.Js.Map.getReference(map, "value"));
+            Assert.Null(Tsonic.CSharp.Js.Map.getReference(map, "missing"));
         }
 
         // ==================== has Tests ====================

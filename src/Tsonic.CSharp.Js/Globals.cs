@@ -368,6 +368,11 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Convert value to string
         /// </summary>
+        public static string String()
+        {
+            return "";
+        }
+
         public static string String(object? value)
         {
             if (value == null) return "undefined";
