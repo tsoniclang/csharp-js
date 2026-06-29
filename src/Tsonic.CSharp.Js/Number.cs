@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 
 /**
@@ -182,9 +183,19 @@ namespace Tsonic.CSharp.Js
             return value.ToString(CultureInfo.InvariantCulture);
         }
 
+        public static string toString(this int value, int radix)
+        {
+            return formatSignedIntegralRadix(value, radix);
+        }
+
         public static string toString(this int? value)
         {
             return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+
+        public static string toString(this int? value, int radix)
+        {
+            return value.HasValue ? formatSignedIntegralRadix(value.Value, radix) : string.Empty;
         }
 
         public static string toString(this long value)
@@ -192,9 +203,19 @@ namespace Tsonic.CSharp.Js
             return value.ToString(CultureInfo.InvariantCulture);
         }
 
+        public static string toString(this long value, int radix)
+        {
+            return formatSignedIntegralRadix(value, radix);
+        }
+
         public static string toString(this long? value)
         {
             return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+
+        public static string toString(this long? value, int radix)
+        {
+            return value.HasValue ? formatSignedIntegralRadix(value.Value, radix) : string.Empty;
         }
 
         public static string toExponential(this double value, int? fractionDigits = null)
@@ -313,6 +334,44 @@ namespace Tsonic.CSharp.Js
             }
 
             return double.IsNegativeInfinity(value) ? "-Infinity" : null;
+        }
+
+        private static string formatSignedIntegralRadix(long value, int radix)
+        {
+            validateRadix(radix);
+            if (value == 0)
+            {
+                return "0";
+            }
+            var negative = value < 0;
+            var magnitude = negative
+                ? (ulong)(-(value + 1)) + 1
+                : (ulong)value;
+            var digits = formatUnsignedIntegralRadix(magnitude, radix);
+            return negative ? "-" + digits : digits;
+        }
+
+        private static string formatUnsignedIntegralRadix(ulong value, int radix)
+        {
+            const string alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
+            Span<char> buffer = stackalloc char[64];
+            var index = buffer.Length;
+            var divisor = (ulong)radix;
+            while (value > 0)
+            {
+                var digit = (int)(value % divisor);
+                buffer[--index] = alphabet[digit];
+                value /= divisor;
+            }
+            return new string(buffer[index..]);
+        }
+
+        private static void validateRadix(int value)
+        {
+            if (value < 2 || value > 36)
+            {
+                throw new RangeError("Number radix must be between 2 and 36.");
+            }
         }
 
         private static void validateFractionDigits(int value)

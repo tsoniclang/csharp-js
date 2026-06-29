@@ -23,6 +23,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("42", 42d.toString());
             Assert.Equal("3.5", 3.5d.toString());
+            Assert.Equal("0", (-0.0d).toString());
             Assert.Equal("NaN", double.NaN.toString());
             Assert.Equal("Infinity", double.PositiveInfinity.toString());
             Assert.Equal("-Infinity", double.NegativeInfinity.toString());
@@ -31,6 +32,26 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("11", ((int?)11).toString());
             Assert.Equal("13", ((long?)13).toString());
             Assert.Equal(string.Empty, ((int?)null).toString());
+        }
+
+        [Fact]
+        public void toString_WithRadix_FormatsIntegralValues()
+        {
+            Assert.Equal("101010", 42.toString(2));
+            Assert.Equal("52", 42.toString(8));
+            Assert.Equal("2a", 42.toString(16));
+            Assert.Equal("21i3v9", 123456789L.toString(36));
+            Assert.Equal("-2a", (-42).toString(16));
+            Assert.Equal("0", 0.toString(2));
+            Assert.Equal("ff", ((int?)255).toString(16));
+            Assert.Equal(string.Empty, ((int?)null).toString(16));
+        }
+
+        [Fact]
+        public void toString_WithRadix_RejectsInvalidRadix()
+        {
+            Assert.Throws<RangeError>(() => 1.toString(1));
+            Assert.Throws<RangeError>(() => 1.toString(37));
         }
 
         [Fact]
