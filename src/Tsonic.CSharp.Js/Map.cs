@@ -68,12 +68,24 @@ namespace Tsonic.CSharp.Js
         // ==================== Core Methods ====================
 
         /// <summary>
-        /// Get value for key, or default if not found
+        /// Get value for key, or JavaScript undefined if not found
         /// </summary>
-        public V? get(K key)
+        public object? get(K key)
         {
             var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
-            return index >= 0 ? _entries[index].Value : default;
+            return index >= 0 ? _entries[index].Value : JSUndefined.value;
+        }
+
+        public bool tryGet(K key, out V value)
+        {
+            var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
+            if (index < 0)
+            {
+                value = default!;
+                return false;
+            }
+            value = _entries[index].Value;
+            return true;
         }
 
         /// <summary>
@@ -222,6 +234,19 @@ namespace Tsonic.CSharp.Js
             }
 
             return -1;
+        }
+    }
+
+    public static class Map
+    {
+        public static TValue? getValue<TKey, TValue>(Map<TKey, TValue> map, TKey key) where TValue : struct
+        {
+            return map.tryGet(key, out var value) ? value : null;
+        }
+
+        public static TReference? getReference<TKey, TReference>(Map<TKey, TReference> map, TKey key) where TReference : class
+        {
+            return map.tryGet(key, out var value) ? value : null;
         }
     }
 }
