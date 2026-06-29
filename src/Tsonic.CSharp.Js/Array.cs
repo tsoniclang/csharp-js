@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using SysMath = System.Math;
 
@@ -297,7 +298,13 @@ namespace Tsonic.CSharp.Js
 
         public static string join<T>(IReadOnlyList<T> array, string separator = ",")
         {
-            return string.Join(separator, array);
+            var parts = new string[array.Count];
+            for (var index = 0; index < array.Count; index++)
+            {
+                parts[index] = toJoinPart(array[index]);
+            }
+
+            return string.Join(separator, parts);
         }
 
         public static string join<T>(JSArray<T> array, string separator = ",")
@@ -1174,6 +1181,28 @@ namespace Tsonic.CSharp.Js
         {
             var actualIndex = index < 0 ? length + index : index;
             return actualIndex < 0 || actualIndex >= length ? -1 : actualIndex;
+        }
+
+        private static string toJoinPart(object? value)
+        {
+            if (value is TsValue tsValue)
+            {
+                return toJoinPart(tsValue.unwrap());
+            }
+
+            if (value is null or JSUndefined)
+            {
+                return string.Empty;
+            }
+
+            if (value is bool boolValue)
+            {
+                return boolValue ? "true" : "false";
+            }
+
+            return value is IFormattable formattable
+                ? formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty
+                : value.ToString() ?? string.Empty;
         }
     }
 }

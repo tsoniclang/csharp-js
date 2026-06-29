@@ -294,6 +294,24 @@ namespace Tsonic.CSharp.Js.Tests
 
             Assert.True(Tsonic.CSharp.Js.Array.includes(values, JSUndefined.value));
             Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(values, JSUndefined.value));
+
+            var explicitUndefined = new JSArray<object?>();
+            explicitUndefined.setLength(2);
+            explicitUndefined[1] = JSUndefined.value;
+
+            Assert.Same(JSUndefined.value, explicitUndefined.at(0));
+            Assert.Same(JSUndefined.value, explicitUndefined.at(1));
+            Assert.False(explicitUndefined.hasIndex(0));
+            Assert.True(explicitUndefined.hasIndex(1));
+            Assert.True(explicitUndefined.includes(JSUndefined.value));
+            Assert.True(explicitUndefined.includes(TsValue.undefined()));
+            Assert.Equal(1, explicitUndefined.indexOf(JSUndefined.value));
+            Assert.Equal(1, explicitUndefined.indexOf(TsValue.undefined()));
+
+            explicitUndefined.deleteAt(1);
+
+            Assert.True(explicitUndefined.includes(JSUndefined.value));
+            Assert.Equal(-1, explicitUndefined.indexOf(JSUndefined.value));
         }
 
         [Fact]
@@ -627,6 +645,25 @@ namespace Tsonic.CSharp.Js.Tests
             arr[2] = "c";
 
             Assert.Equal("a,,c", arr.join(","));
+        }
+
+        [Fact]
+        public void join_TreatsHolesUndefinedAndNullAsEmptyStrings()
+        {
+            var values = new JSArray<object?>();
+            values.setLength(4);
+            values[1] = JSUndefined.value;
+            values[2] = null;
+            values[3] = "x";
+
+            Assert.Equal(",,,x", values.join());
+            Assert.Equal("|||x", values.join("|"));
+
+            var denseValues = new List<object?> { JSUndefined.value, null, "x", true, 3.5 };
+            Assert.Equal(",,x,true,3.5", Tsonic.CSharp.Js.Array.join(denseValues));
+
+            var broadValues = new JSArray<TsValue>(new[] { TsValue.undefined(), TsValue.from("x"), TsValue.from(false) });
+            Assert.Equal(",x,false", broadValues.join());
         }
 
         [Fact]
