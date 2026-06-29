@@ -232,6 +232,12 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void String_WithoutArgument_ReturnsEmptyString()
+        {
+            Assert.Equal("", Globals.String());
+        }
+
+        [Fact]
         public void String_NaN_ReturnsNaNString()
         {
             Assert.Equal("NaN", Globals.String(double.NaN));
