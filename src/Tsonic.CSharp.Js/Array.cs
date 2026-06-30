@@ -184,52 +184,70 @@ namespace Tsonic.CSharp.Js
             return array.unshift(item);
         }
 
-        public static object? at<T>(IReadOnlyList<T> array, int index)
+        public static object? at<T>(IReadOnlyList<T> array, double index)
         {
-            var actualIndex = index < 0 ? array.Count + index : index;
-            if (actualIndex < 0 || actualIndex >= array.Count)
-            {
-                return JSUndefined.value;
-            }
-            return array[actualIndex];
+            var actualIndex = normalizeAtIndex(index, array.Count);
+            return actualIndex >= 0 ? array[actualIndex] : JSUndefined.value;
         }
 
-        public static object? at<T>(JSArray<T> array, int index)
+        public static object? at<T>(IReadOnlyList<T> array, int index)
+        {
+            return at(array, (double)index);
+        }
+
+        public static object? at<T>(JSArray<T> array, double index)
         {
             var actualIndex = normalizeAtIndex(index, array.length);
             return actualIndex >= 0 && array.tryGetAtObject(actualIndex, out var value) ? value : JSUndefined.value;
         }
 
+        public static object? at<T>(JSArray<T> array, int index)
+        {
+            return at(array, (double)index);
+        }
+
+        public static T? atValue<T>(IReadOnlyList<T> array, double index) where T : struct
+        {
+            var actualIndex = normalizeAtIndex(index, array.Count);
+            return actualIndex >= 0 ? array[actualIndex] : null;
+        }
+
         public static T? atValue<T>(IReadOnlyList<T> array, int index) where T : struct
         {
-            var actualIndex = index < 0 ? array.Count + index : index;
-            if (actualIndex < 0 || actualIndex >= array.Count)
-            {
-                return null;
-            }
-            return array[actualIndex];
+            return atValue(array, (double)index);
+        }
+
+        public static T? atValue<T>(JSArray<T> array, double index) where T : struct
+        {
+            var actualIndex = normalizeAtIndex(index, array.length);
+            return actualIndex >= 0 && array.tryGetAt(actualIndex, out var value) ? value : null;
         }
 
         public static T? atValue<T>(JSArray<T> array, int index) where T : struct
         {
-            var actualIndex = normalizeAtIndex(index, array.length);
-            return actualIndex >= 0 && array.tryGetAt(actualIndex, out var value) ? value : null;
+            return atValue(array, (double)index);
+        }
+
+        public static T? atReference<T>(IReadOnlyList<T> array, double index) where T : class
+        {
+            var actualIndex = normalizeAtIndex(index, array.Count);
+            return actualIndex >= 0 ? array[actualIndex] : null;
         }
 
         public static T? atReference<T>(IReadOnlyList<T> array, int index) where T : class
         {
-            var actualIndex = index < 0 ? array.Count + index : index;
-            if (actualIndex < 0 || actualIndex >= array.Count)
-            {
-                return null;
-            }
-            return array[actualIndex];
+            return atReference(array, (double)index);
+        }
+
+        public static T? atReference<T>(JSArray<T> array, double index) where T : class
+        {
+            var actualIndex = normalizeAtIndex(index, array.length);
+            return actualIndex >= 0 && array.tryGetAt(actualIndex, out var value) ? value : null;
         }
 
         public static T? atReference<T>(JSArray<T> array, int index) where T : class
         {
-            var actualIndex = normalizeAtIndex(index, array.length);
-            return actualIndex >= 0 && array.tryGetAt(actualIndex, out var value) ? value : null;
+            return atReference(array, (double)index);
         }
 
         public static bool includes<T>(IReadOnlyList<T> array, T searchElement, int fromIndex = 0)
@@ -1177,9 +1195,18 @@ namespace Tsonic.CSharp.Js
             return SysMath.Min(end.Value, length);
         }
 
-        private static int normalizeAtIndex(int index, int length)
+        private static int normalizeAtIndex(double index, int length)
         {
-            var actualIndex = index < 0 ? length + index : index;
+            if (double.IsNaN(index))
+            {
+                index = 0;
+            }
+            if (double.IsInfinity(index) || index > int.MaxValue || index < int.MinValue)
+            {
+                return -1;
+            }
+            var integerIndex = (int)SysMath.Truncate(index);
+            var actualIndex = integerIndex < 0 ? length + integerIndex : integerIndex;
             return actualIndex < 0 || actualIndex >= length ? -1 : actualIndex;
         }
 
