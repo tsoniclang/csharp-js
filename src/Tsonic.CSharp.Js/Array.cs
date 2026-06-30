@@ -190,10 +190,20 @@ namespace Tsonic.CSharp.Js
             return actualIndex >= 0 ? array[actualIndex] : JSUndefined.value;
         }
 
+        public static object? at<T>(IReadOnlyList<T> array, int index)
+        {
+            return at(array, (double)index);
+        }
+
         public static object? at<T>(JSArray<T> array, double index)
         {
             var actualIndex = normalizeAtIndex(index, array.length);
             return actualIndex >= 0 && array.tryGetAtObject(actualIndex, out var value) ? value : JSUndefined.value;
+        }
+
+        public static object? at<T>(JSArray<T> array, int index)
+        {
+            return at(array, (double)index);
         }
 
         public static T? atValue<T>(IReadOnlyList<T> array, double index) where T : struct
@@ -202,10 +212,20 @@ namespace Tsonic.CSharp.Js
             return actualIndex >= 0 ? array[actualIndex] : null;
         }
 
+        public static T? atValue<T>(IReadOnlyList<T> array, int index) where T : struct
+        {
+            return atValue(array, (double)index);
+        }
+
         public static T? atValue<T>(JSArray<T> array, double index) where T : struct
         {
             var actualIndex = normalizeAtIndex(index, array.length);
             return actualIndex >= 0 && array.tryGetAt(actualIndex, out var value) ? value : null;
+        }
+
+        public static T? atValue<T>(JSArray<T> array, int index) where T : struct
+        {
+            return atValue(array, (double)index);
         }
 
         public static T? atReference<T>(IReadOnlyList<T> array, double index) where T : class
@@ -214,10 +234,20 @@ namespace Tsonic.CSharp.Js
             return actualIndex >= 0 ? array[actualIndex] : null;
         }
 
+        public static T? atReference<T>(IReadOnlyList<T> array, int index) where T : class
+        {
+            return atReference(array, (double)index);
+        }
+
         public static T? atReference<T>(JSArray<T> array, double index) where T : class
         {
             var actualIndex = normalizeAtIndex(index, array.length);
             return actualIndex >= 0 && array.tryGetAt(actualIndex, out var value) ? value : null;
+        }
+
+        public static T? atReference<T>(JSArray<T> array, int index) where T : class
+        {
+            return atReference(array, (double)index);
         }
 
         public static bool includes<T>(IReadOnlyList<T> array, T searchElement, int fromIndex = 0)
