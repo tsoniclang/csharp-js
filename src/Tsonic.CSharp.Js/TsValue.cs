@@ -143,10 +143,10 @@ namespace Tsonic.CSharp.Js
                 "!=" => !looseEquals(left, right),
                 "===" => strictEquals(left, right),
                 "!==" => !strictEquals(left, right),
-                "<" => compare(left, right) < 0,
-                "<=" => compare(left, right) <= 0,
-                ">" => compare(left, right) > 0,
-                ">=" => compare(left, right) >= 0,
+                "<" => tryCompare(left, right, out var lessThanComparison) && lessThanComparison < 0,
+                "<=" => tryCompare(left, right, out var lessThanOrEqualComparison) && lessThanOrEqualComparison <= 0,
+                ">" => tryCompare(left, right, out var greaterThanComparison) && greaterThanComparison > 0,
+                ">=" => tryCompare(left, right, out var greaterThanOrEqualComparison) && greaterThanOrEqualComparison >= 0,
                 _ => throw unsupportedOperator(op)
             };
         }
@@ -250,21 +250,24 @@ namespace Tsonic.CSharp.Js
                 : from(toNumber(leftValue) + toNumber(rightValue));
         }
 
-        private static int compare(object? left, object? right)
+        private static bool tryCompare(object? left, object? right, out int comparison)
         {
             var leftValue = unwrap(left);
             var rightValue = unwrap(right);
             if (leftValue is string leftText && rightValue is string rightText)
             {
-                return string.CompareOrdinal(leftText, rightText);
+                comparison = string.CompareOrdinal(leftText, rightText);
+                return true;
             }
             var leftNumber = toNumber(leftValue);
             var rightNumber = toNumber(rightValue);
             if (double.IsNaN(leftNumber) || double.IsNaN(rightNumber))
             {
-                return 1;
+                comparison = 0;
+                return false;
             }
-            return leftNumber.CompareTo(rightNumber);
+            comparison = leftNumber.CompareTo(rightNumber);
+            return true;
         }
 
         private static bool looseEquals(object? left, object? right)
@@ -274,6 +277,10 @@ namespace Tsonic.CSharp.Js
             if (isNullish(leftValue) && isNullish(rightValue))
             {
                 return true;
+            }
+            if (isNullish(leftValue) || isNullish(rightValue))
+            {
+                return false;
             }
             if (leftValue is bool || rightValue is bool || isNumeric(leftValue) || isNumeric(rightValue))
             {

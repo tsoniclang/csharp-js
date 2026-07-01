@@ -28,6 +28,19 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void ReadCompatSlot_PreservesPresentNullUndefinedAndMissingUndefined()
+        {
+            var value = TsValue.from(new TsObject());
+
+            value.WriteCompatSlot("nullValue", null);
+            value.WriteCompatSlot("undefinedValue", TsValue.undefined());
+
+            Assert.Null(value.ReadCompatSlot("nullValue").unwrap());
+            Assert.Same(JSUndefined.value, value.ReadCompatSlot("undefinedValue").unwrap());
+            Assert.Same(JSUndefined.value, value.ReadCompatSlot("missing").unwrap());
+        }
+
+        [Fact]
         public void ElementAccess_UsesClosedPropertyKeyConversion()
         {
             var value = TsValue.from(new TsObject());
@@ -35,6 +48,18 @@ namespace Tsonic.CSharp.Js.Tests
             value.WriteCompatElement(42, "answer");
 
             Assert.Equal("answer", value.ReadCompatElement("42").unwrap());
+        }
+
+        [Fact]
+        public void ElementAccess_UsesDistinctNullAndUndefinedPropertyKeys()
+        {
+            var value = TsValue.from(new TsObject());
+
+            value.WriteCompatElement(null, "null-key");
+            value.WriteCompatElement(JSUndefined.value, "undefined-key");
+
+            Assert.Equal("null-key", value.ReadCompatSlot("null").unwrap());
+            Assert.Equal("undefined-key", value.ReadCompatSlot("undefined").unwrap());
         }
 
         [Fact]
@@ -150,6 +175,27 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.True(TsValue.ApplyCompatBinaryBoolean(2, "===", 2d));
             Assert.True(TsValue.ApplyCompatBinaryBoolean("a", "<", "b"));
             Assert.True(TsValue.ApplyCompatBinaryBoolean(4, ">=", "4"));
+        }
+
+        [Fact]
+        public void ApplyCompatBinaryBoolean_DistinguishesNullAndUndefinedEquality()
+        {
+            Assert.True(TsValue.ApplyCompatBinaryBoolean(null, "==", JSUndefined.value));
+            Assert.False(TsValue.ApplyCompatBinaryBoolean(null, "===", JSUndefined.value));
+            Assert.False(TsValue.ApplyCompatBinaryBoolean(null, "==", false));
+            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, "==", false));
+            Assert.False(TsValue.ApplyCompatBinaryBoolean(null, "==", 0));
+            Assert.True(TsValue.ApplyCompatBinaryBoolean(false, "==", 0));
+        }
+
+        [Fact]
+        public void ApplyCompatBinaryBoolean_UndefinedRelationalComparisonsAreFalse()
+        {
+            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, "<", 0));
+            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, "<=", 0));
+            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, ">", 0));
+            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, ">=", 0));
+            Assert.True(TsValue.ApplyCompatBinaryBoolean(null, "<=", 0));
         }
 
         [Fact]
