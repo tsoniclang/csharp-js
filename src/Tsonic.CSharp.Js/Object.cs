@@ -12,9 +12,17 @@ public static class Object
 {
     public static bool @is(object? value, object? other)
     {
+        value = UnwrapClosedValue(value);
+        other = UnwrapClosedValue(other);
+
         if (value == null || other == null)
         {
             return value == null && other == null;
+        }
+
+        if (value is JSUndefined || other is JSUndefined)
+        {
+            return ReferenceEquals(value, other);
         }
 
         if (tryGetNumericValue(value, out var left) && tryGetNumericValue(other, out var right))
@@ -37,14 +45,30 @@ public static class Object
 
     private static IEnumerable<KeyValuePair<string, object?>> Enumerate(object? value)
     {
+        value = UnwrapClosedValue(value);
         if (value == null)
         {
             throw new TypeError("Object helper receiver cannot be null.");
         }
 
+        if (value is JSUndefined)
+        {
+            throw new TypeError("Object helper receiver cannot be undefined.");
+        }
+
         if (value is JSObject jsObject)
         {
             return jsObject.entries().Select(entry => new KeyValuePair<string, object?>(entry.key, entry.value));
+        }
+
+        if (value is TsObject tsObject)
+        {
+            return tsObject.entries();
+        }
+
+        if (value is TsArray tsArray)
+        {
+            return tsArray.entries();
         }
 
         if (value is IJSArray jsArray)
@@ -240,7 +264,7 @@ public static class Object
 
         foreach (var source in sources)
         {
-            if (source == null)
+            if (IsNullishAssignSource(source))
             {
                 continue;
             }
@@ -266,7 +290,7 @@ public static class Object
 
         foreach (var source in sources)
         {
-            if (source == null)
+            if (IsNullishAssignSource(source))
             {
                 continue;
             }
@@ -313,6 +337,17 @@ public static class Object
         }
 
         return dictionary;
+    }
+
+    private static bool IsNullishAssignSource(object? source)
+    {
+        var value = UnwrapClosedValue(source);
+        return value is null or JSUndefined;
+    }
+
+    private static object? UnwrapClosedValue(object? value)
+    {
+        return value is TsValue tsValue ? tsValue.unwrap() : value;
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> EnumerateJsArray(IJSArray array)

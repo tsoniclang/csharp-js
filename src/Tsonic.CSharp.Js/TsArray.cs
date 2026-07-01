@@ -1,11 +1,34 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace Tsonic.CSharp.Js
 {
     public sealed class TsArray
     {
-        private readonly List<TsValue> _values = new();
+        private readonly List<Slot> _values = new();
+
+        private readonly struct Slot
+        {
+            private readonly TsValue _value;
+
+            private Slot(bool isPresent, TsValue value)
+            {
+                IsPresent = isPresent;
+                _value = value;
+            }
+
+            public bool IsPresent { get; }
+
+            public TsValue Value => IsPresent ? _value : TsValue.undefined();
+
+            public static Slot Hole => default;
+
+            public static Slot Present(TsValue value)
+            {
+                return new Slot(true, value);
+            }
+        }
 
         public TsArray()
         {
@@ -15,7 +38,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var value in source)
             {
-                _values.Add(TsValue.from(value));
+                _values.Add(Slot.Present(TsValue.from(value)));
             }
         }
 
@@ -39,7 +62,7 @@ namespace Tsonic.CSharp.Js
         public TsValue ReadCompatElement(object? key)
         {
             var index = toArrayIndex(key);
-            return index >= 0 && index < _values.Count ? _values[index] : TsValue.undefined();
+            return index >= 0 && index < _values.Count ? _values[index].Value : TsValue.undefined();
         }
 
         public TsValue WriteCompatElement(object? key, object? value)
@@ -51,11 +74,24 @@ namespace Tsonic.CSharp.Js
             }
             while (_values.Count <= index)
             {
-                _values.Add(TsValue.undefined());
+                _values.Add(Slot.Hole);
             }
             var stored = TsValue.from(value);
-            _values[index] = stored;
+            _values[index] = Slot.Present(stored);
             return stored;
+        }
+
+        public IEnumerable<KeyValuePair<string, object?>> entries()
+        {
+            for (var index = 0; index < _values.Count; index++)
+            {
+                var slot = _values[index];
+                if (!slot.IsPresent)
+                {
+                    continue;
+                }
+                yield return new KeyValuePair<string, object?>(index.ToString(CultureInfo.InvariantCulture), slot.Value.unwrap());
+            }
         }
 
         private void Resize(int length)
@@ -71,7 +107,7 @@ namespace Tsonic.CSharp.Js
             }
             while (_values.Count < length)
             {
-                _values.Add(TsValue.undefined());
+                _values.Add(Slot.Hole);
             }
         }
 

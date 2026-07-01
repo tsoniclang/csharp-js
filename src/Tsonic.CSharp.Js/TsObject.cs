@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Tsonic.CSharp.Js
 {
@@ -38,6 +39,13 @@ namespace Tsonic.CSharp.Js
         public TsValue WriteCompatElement(object? key, object? value)
         {
             return WriteCompatSlot(TsValue.propertyKey(key), value);
+        }
+
+        public IReadOnlyList<KeyValuePair<string, object?>> entries()
+        {
+            return _properties
+                .Select(pair => new KeyValuePair<string, object?>(pair.Key, pair.Value.unwrap()))
+                .ToArray();
         }
     }
 }
