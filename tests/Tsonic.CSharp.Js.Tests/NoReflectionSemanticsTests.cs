@@ -11,10 +11,15 @@ namespace Tsonic.CSharp.Js.Tests
         public void JsRuntimeSources_DoNotUseReflectionOrDynamicSemantics()
         {
             var repositoryRoot = FindRepositoryRoot();
+            var csharpRuntimeRoot = FindSiblingRepositoryRoot(
+                repositoryRoot,
+                "csharp-runtime",
+                Path.Combine("src", "Tsonic.CSharp.Runtime")
+            );
             var sourceRoots = new[]
             {
                 Path.Combine(repositoryRoot, "src", "Tsonic.CSharp.Js"),
-                Path.GetFullPath(Path.Combine(repositoryRoot, "..", "csharp-runtime", "src")),
+                Path.Combine(csharpRuntimeRoot, "src"),
             };
             var bannedPatterns = new[]
             {
@@ -56,6 +61,25 @@ namespace Tsonic.CSharp.Js.Tests
                 directory = directory.Parent;
             }
             throw new InvalidOperationException("Could not locate csharp-js repository root.");
+        }
+
+        private static string FindSiblingRepositoryRoot(
+            string startDirectory,
+            string repositoryName,
+            string requiredRelativePath
+        )
+        {
+            var directory = new DirectoryInfo(startDirectory);
+            while (directory != null)
+            {
+                var candidate = Path.Combine(directory.FullName, repositoryName);
+                if (Directory.Exists(Path.Combine(candidate, requiredRelativePath)))
+                {
+                    return candidate;
+                }
+                directory = directory.Parent;
+            }
+            throw new InvalidOperationException($"Could not locate {repositoryName} repository root.");
         }
     }
 }

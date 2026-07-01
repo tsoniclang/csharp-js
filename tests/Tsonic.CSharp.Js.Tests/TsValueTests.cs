@@ -50,6 +50,34 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void JsArrayElementAccess_UsesClosedSparseArrayCarrier()
+        {
+            var array = new JSArray<object?>();
+            array.setLength(3);
+            array[1] = "middle";
+            var value = TsValue.from(array);
+
+            Assert.Equal(3, value.ReadCompatSlot("length").unwrap());
+            Assert.Same(JSUndefined.value, value.ReadCompatElement(0).unwrap());
+            Assert.Equal("middle", value.ReadCompatElement(1).unwrap());
+
+            value.WriteCompatElement(2, "last");
+            Assert.Equal("last", array[2]);
+
+            value.WriteCompatSlot("length", 1);
+            Assert.Equal(1, array.length);
+            Assert.Same(JSUndefined.value, value.ReadCompatElement(2).unwrap());
+        }
+
+        [Fact]
+        public void JsArrayElementWrite_RejectsIncompatibleClosedElementCarrier()
+        {
+            var value = TsValue.from(new JSArray<int>());
+
+            Assert.Throws<TypeError>(() => value.WriteCompatElement(0, "not-an-int"));
+        }
+
+        [Fact]
         public void InvokeCompat_UsesClosedFunctionCarrier()
         {
             var function = TsValue.from(new TsFunction(args => TsValue.from((int)args[0].unwrap()! + 1)));

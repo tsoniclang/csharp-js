@@ -55,6 +55,7 @@ namespace Tsonic.CSharp.Js
                 IReadOnlyDictionary<string, object?> target => target.TryGetValue(key, out var value) ? from(value) : undefined(),
                 string target when key == "length" => from(target.Length),
                 IJSArray target when key == "length" => from(target.length),
+                IJSArray target when tryReadArrayIndexKey(key, out var index) => target.tryGetAtObject(index, out var value) ? from(value) : undefined(),
                 _ => undefined()
             };
         }
@@ -74,6 +75,15 @@ namespace Tsonic.CSharp.Js
                     return target.WriteCompatSlot(key, stored);
                 case TsFunction target:
                     return target.WriteCompatSlot(key, stored);
+                case IJSArray target when key == "length":
+                    target.setLength(toArrayIndex(stored.unwrap()));
+                    return from(target.length);
+                case IJSArray target when tryReadArrayIndexKey(key, out var index):
+                    if (!target.trySetAtObject(index, stored.unwrap()))
+                    {
+                        throw new TypeError($"Cannot store value in closed JavaScript array index '{key}' because the element carrier is incompatible.");
+                    }
+                    return stored;
                 case JSObject target:
                     target[key] = stored.unwrap();
                     return stored;
@@ -434,6 +444,24 @@ namespace Tsonic.CSharp.Js
                 decimal value => value.ToString(CultureInfo.InvariantCulture),
                 _ => throw new TypeError("Only closed primitive property keys are supported by TsValue.")
             };
+        }
+
+        private static bool tryReadArrayIndexKey(string key, out int index)
+        {
+            if (!int.TryParse(key, NumberStyles.None, CultureInfo.InvariantCulture, out index))
+            {
+                return false;
+            }
+
+            return index >= 0 && key == index.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static int toArrayIndex(object? value)
+        {
+            var key = propertyKey(value);
+            return tryReadArrayIndexKey(key, out var index)
+                ? index
+                : throw new RangeError("Invalid array length.");
         }
 
         private static TypeError nullishReadError(string key)
