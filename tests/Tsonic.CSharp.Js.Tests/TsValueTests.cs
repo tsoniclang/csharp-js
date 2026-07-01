@@ -135,6 +135,14 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void ApplyCompatVoid_EvaluatesOperandAndReturnsUndefined()
+        {
+            var value = TsValue.ApplyCompatVoid(TsValue.from(42));
+
+            Assert.Same(JSUndefined.value, value.unwrap());
+        }
+
+        [Fact]
         public void ApplyCompatTypeof_UsesClosedCarrierRuntimeKinds()
         {
             Assert.Equal("undefined", TsValue.ApplyCompatTypeof(TsValue.undefined()));

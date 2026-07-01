@@ -161,6 +161,12 @@ namespace Tsonic.CSharp.Js
             };
         }
 
+        public static TsValue ApplyCompatVoid(object? operand)
+        {
+            _ = operand;
+            return undefined();
+        }
+
         public static string ApplyCompatTypeof(object? operand)
         {
             var unwrapped = unwrap(operand);
