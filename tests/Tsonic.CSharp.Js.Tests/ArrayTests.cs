@@ -42,6 +42,21 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void FromSparse_CreatesArrayWithExplicitHoles()
+        {
+            var arr = JSArray<int>.fromSparse(3, (0, 1), (2, 3));
+
+            Assert.Equal(3, arr.length);
+            Assert.True(arr.hasIndex(0));
+            Assert.False(arr.hasIndex(1));
+            Assert.True(arr.hasIndex(2));
+            Assert.Equal(1, arr[0]);
+            Assert.Equal(0, arr[1]);
+            Assert.Equal(3, arr[2]);
+            Assert.Equal("1,,3", arr.join());
+        }
+
+        [Fact]
         public void Indexer_SparseArray_SupportsHoles()
         {
             var arr = new JSArray<int>();

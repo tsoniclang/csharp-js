@@ -91,6 +91,22 @@ namespace Tsonic.CSharp.Js
             return new JSArray<T>(capacity, false);
         }
 
+        public static JSArray<T> fromSparse(int length, params (int index, T value)[] elements)
+        {
+            var result = new JSArray<T>(length);
+            foreach (var element in elements)
+            {
+                if (element.index < 0 || element.index >= length)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(elements), "Sparse array literal element index is outside the declared array length.");
+                }
+
+                result[element.index] = element.value;
+            }
+
+            return result;
+        }
+
         private JSArray(int capacity, bool _)
         {
             _slots = new List<Slot>(capacity);
