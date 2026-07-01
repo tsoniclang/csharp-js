@@ -160,6 +160,21 @@ namespace Tsonic.CSharp.Js
             };
         }
 
+        public static string ApplyCompatTypeof(object? operand)
+        {
+            var unwrapped = unwrap(operand);
+            return unwrapped switch
+            {
+                JSUndefined => "undefined",
+                null => "object",
+                bool => "boolean",
+                string => "string",
+                double or float or decimal or int or long or uint or ulong or byte or sbyte or short or ushort => "number",
+                TsFunction => "function",
+                _ => "object"
+            };
+        }
+
         public static T CastCompat<T>(object? value)
         {
             var unwrapped = unwrap(value);

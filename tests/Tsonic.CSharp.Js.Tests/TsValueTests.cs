@@ -135,6 +135,19 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void ApplyCompatTypeof_UsesClosedCarrierRuntimeKinds()
+        {
+            Assert.Equal("undefined", TsValue.ApplyCompatTypeof(TsValue.undefined()));
+            Assert.Equal("object", TsValue.ApplyCompatTypeof(null));
+            Assert.Equal("boolean", TsValue.ApplyCompatTypeof(true));
+            Assert.Equal("number", TsValue.ApplyCompatTypeof(1));
+            Assert.Equal("string", TsValue.ApplyCompatTypeof("value"));
+            Assert.Equal("function", TsValue.ApplyCompatTypeof(new TsFunction(_ => TsValue.undefined())));
+            Assert.Equal("object", TsValue.ApplyCompatTypeof(new TsObject()));
+            Assert.Equal("object", TsValue.ApplyCompatTypeof(new TsArray()));
+        }
+
+        [Fact]
         public void ApplyCompatOperator_RejectsUnsupportedOperatorsDeterministically()
         {
             Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyCompatBinary(1, "<<", 2));
