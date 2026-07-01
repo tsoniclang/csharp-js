@@ -140,5 +140,25 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyCompatBinary(1, "<<", 2));
             Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyCompatUnary(1, "delete"));
         }
+
+        [Fact]
+        public void CastCompat_ReturnsClosedTypedCarrierValue()
+        {
+            Assert.Equal(42, TsValue.CastCompat<int>(TsValue.from(42)));
+            Assert.Equal("Ada", TsValue.CastCompat<string>(TsValue.from("Ada")));
+        }
+
+        [Fact]
+        public void CastCompat_AllowsNullishOnlyForNullableOrReferenceTargets()
+        {
+            Assert.Null(TsValue.CastCompat<string>(TsValue.undefined()));
+            Assert.Throws<TypeError>(() => TsValue.CastCompat<int>(TsValue.undefined()));
+        }
+
+        [Fact]
+        public void CastCompat_RejectsMismatchedClosedCarrierDeterministically()
+        {
+            Assert.Throws<TypeError>(() => TsValue.CastCompat<int>(TsValue.from("42")));
+        }
     }
 }

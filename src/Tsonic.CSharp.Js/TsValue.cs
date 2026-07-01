@@ -160,6 +160,24 @@ namespace Tsonic.CSharp.Js
             };
         }
 
+        public static T CastCompat<T>(object? value)
+        {
+            var unwrapped = unwrap(value);
+            if (unwrapped is T typed)
+            {
+                return typed;
+            }
+            if (unwrapped is null or JSUndefined)
+            {
+                if (default(T) is null)
+                {
+                    return default!;
+                }
+                throw new TypeError("Cannot cast null or undefined to the requested closed value carrier.");
+            }
+            throw new TypeError("TsValue cannot cross the requested typed boundary because the closed carrier value is not assignable.");
+        }
+
         private static bool isSupported(object? value)
         {
             return value switch
