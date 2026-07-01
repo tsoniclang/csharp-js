@@ -108,6 +108,58 @@ namespace Tsonic.CSharp.Js
                 : throw new TypeError("Value is not a constructor.");
         }
 
+        public static TsValue ApplyCompatBinary(object? left, string op, object? right)
+        {
+            return op switch
+            {
+                "+" => plus(left, right),
+                "-" => from(toNumber(left) - toNumber(right)),
+                "*" => from(toNumber(left) * toNumber(right)),
+                "/" => from(toNumber(left) / toNumber(right)),
+                "%" => from(toNumber(left) % toNumber(right)),
+                "??" => isNullish(left) ? from(right) : from(left),
+                "&&" => truthy(left) ? from(right) : from(left),
+                "||" => truthy(left) ? from(left) : from(right),
+                _ => throw unsupportedOperator(op)
+            };
+        }
+
+        public static bool ApplyCompatBinaryBoolean(object? left, string op, object? right)
+        {
+            return op switch
+            {
+                "==" => looseEquals(left, right),
+                "!=" => !looseEquals(left, right),
+                "===" => strictEquals(left, right),
+                "!==" => !strictEquals(left, right),
+                "<" => compare(left, right) < 0,
+                "<=" => compare(left, right) <= 0,
+                ">" => compare(left, right) > 0,
+                ">=" => compare(left, right) >= 0,
+                _ => throw unsupportedOperator(op)
+            };
+        }
+
+        public static TsValue ApplyCompatUnary(object? operand, string op)
+        {
+            return op switch
+            {
+                "+" => from(toNumber(operand)),
+                "-" => from(-toNumber(operand)),
+                "~" => from(~(int)toNumber(operand)),
+                _ => throw unsupportedOperator(op)
+            };
+        }
+
+        public static bool ApplyCompatUnaryBoolean(object? operand, string op)
+        {
+            return op switch
+            {
+                "!" => !truthy(operand),
+                _ => throw unsupportedOperator(op)
+            };
+        }
+
         private static bool isSupported(object? value)
         {
             return value switch
@@ -136,6 +188,176 @@ namespace Tsonic.CSharp.Js
                 IReadOnlyDictionary<string, object?> => true,
                 _ => false
             };
+        }
+
+        private static TsValue plus(object? left, object? right)
+        {
+            var leftValue = unwrap(left);
+            var rightValue = unwrap(right);
+            return leftValue is string || rightValue is string
+                ? from(toJsString(leftValue) + toJsString(rightValue))
+                : from(toNumber(leftValue) + toNumber(rightValue));
+        }
+
+        private static int compare(object? left, object? right)
+        {
+            var leftValue = unwrap(left);
+            var rightValue = unwrap(right);
+            if (leftValue is string leftText && rightValue is string rightText)
+            {
+                return string.CompareOrdinal(leftText, rightText);
+            }
+            var leftNumber = toNumber(leftValue);
+            var rightNumber = toNumber(rightValue);
+            if (double.IsNaN(leftNumber) || double.IsNaN(rightNumber))
+            {
+                return 1;
+            }
+            return leftNumber.CompareTo(rightNumber);
+        }
+
+        private static bool looseEquals(object? left, object? right)
+        {
+            var leftValue = unwrap(left);
+            var rightValue = unwrap(right);
+            if (isNullish(leftValue) && isNullish(rightValue))
+            {
+                return true;
+            }
+            if (leftValue is bool || rightValue is bool || isNumeric(leftValue) || isNumeric(rightValue))
+            {
+                var leftNumber = toNumber(leftValue);
+                var rightNumber = toNumber(rightValue);
+                return !double.IsNaN(leftNumber) && !double.IsNaN(rightNumber) && leftNumber == rightNumber;
+            }
+            return strictEquals(leftValue, rightValue);
+        }
+
+        private static bool strictEquals(object? left, object? right)
+        {
+            var leftValue = unwrap(left);
+            var rightValue = unwrap(right);
+            if (ReferenceEquals(leftValue, rightValue))
+            {
+                return true;
+            }
+            if (isNullish(leftValue) || isNullish(rightValue))
+            {
+                return false;
+            }
+            if (isNumeric(leftValue) && isNumeric(rightValue))
+            {
+                var leftNumber = toNumber(leftValue);
+                var rightNumber = toNumber(rightValue);
+                return !double.IsNaN(leftNumber) && !double.IsNaN(rightNumber) && leftNumber == rightNumber;
+            }
+            return leftValue!.GetType() == rightValue!.GetType() && Equals(leftValue, rightValue);
+        }
+
+        private static bool truthy(object? value)
+        {
+            var unwrapped = unwrap(value);
+            return unwrapped switch
+            {
+                null => false,
+                JSUndefined => false,
+                bool boolean => boolean,
+                string text => text.Length > 0,
+                double number => number != 0 && !double.IsNaN(number),
+                float number => number != 0 && !float.IsNaN(number),
+                decimal number => number != 0,
+                int number => number != 0,
+                long number => number != 0,
+                uint number => number != 0,
+                ulong number => number != 0,
+                byte number => number != 0,
+                sbyte number => number != 0,
+                short number => number != 0,
+                ushort number => number != 0,
+                _ => true
+            };
+        }
+
+        private static double toNumber(object? value)
+        {
+            var unwrapped = unwrap(value);
+            return unwrapped switch
+            {
+                null => 0,
+                JSUndefined => double.NaN,
+                bool boolean => boolean ? 1 : 0,
+                string text => parseNumber(text),
+                double number => number,
+                float number => number,
+                decimal number => (double)number,
+                int number => number,
+                long number => number,
+                uint number => number,
+                ulong number => number,
+                byte number => number,
+                sbyte number => number,
+                short number => number,
+                ushort number => number,
+                _ => double.NaN
+            };
+        }
+
+        private static double parseNumber(string text)
+        {
+            var trimmed = text.Trim();
+            if (trimmed.Length == 0)
+            {
+                return 0;
+            }
+            return double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
+                ? number
+                : double.NaN;
+        }
+
+        private static string toJsString(object? value)
+        {
+            var unwrapped = unwrap(value);
+            return unwrapped switch
+            {
+                null => "null",
+                JSUndefined => "undefined",
+                bool boolean => boolean ? "true" : "false",
+                string text => text,
+                double number => number.ToString(CultureInfo.InvariantCulture),
+                float number => number.ToString(CultureInfo.InvariantCulture),
+                decimal number => number.ToString(CultureInfo.InvariantCulture),
+                int number => number.ToString(CultureInfo.InvariantCulture),
+                long number => number.ToString(CultureInfo.InvariantCulture),
+                uint number => number.ToString(CultureInfo.InvariantCulture),
+                ulong number => number.ToString(CultureInfo.InvariantCulture),
+                byte number => number.ToString(CultureInfo.InvariantCulture),
+                sbyte number => number.ToString(CultureInfo.InvariantCulture),
+                short number => number.ToString(CultureInfo.InvariantCulture),
+                ushort number => number.ToString(CultureInfo.InvariantCulture),
+                _ => "[object Object]"
+            };
+        }
+
+        private static bool isNullish(object? value)
+        {
+            var unwrapped = unwrap(value);
+            return unwrapped is null or JSUndefined;
+        }
+
+        private static bool isNumeric(object? value)
+        {
+            var unwrapped = unwrap(value);
+            return unwrapped is double or float or decimal or int or long or uint or ulong or byte or sbyte or short or ushort;
+        }
+
+        private static object? unwrap(object? value)
+        {
+            return value is TsValue typed ? typed.unwrap() : value;
+        }
+
+        private static NotSupportedException unsupportedOperator(string op)
+        {
+            return new NotSupportedException($"TsValue does not support JavaScript operator '{op}' in the closed compatibility runtime.");
         }
 
         internal static string propertyKey(object? key)

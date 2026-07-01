@@ -102,5 +102,43 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Throws<System.NotSupportedException>(() => TsValue.from(new { name = "not-closed" }));
         }
+
+        [Fact]
+        public void ApplyCompatBinary_UsesClosedPrimitiveOperatorSemantics()
+        {
+            Assert.Equal(3d, TsValue.ApplyCompatBinary(1, "+", 2).unwrap());
+            Assert.Equal("hello2", TsValue.ApplyCompatBinary("hello", "+", 2).unwrap());
+            Assert.Equal(3d, TsValue.ApplyCompatBinary("5", "-", 2).unwrap());
+            Assert.Equal("fallback", TsValue.ApplyCompatBinary(JSUndefined.value, "??", "fallback").unwrap());
+            Assert.Equal("right", TsValue.ApplyCompatBinary(true, "&&", "right").unwrap());
+            Assert.Equal("left", TsValue.ApplyCompatBinary("left", "||", "right").unwrap());
+        }
+
+        [Fact]
+        public void ApplyCompatBinaryBoolean_UsesClosedPrimitiveComparisonSemantics()
+        {
+            Assert.True(TsValue.ApplyCompatBinaryBoolean("2", "==", 2));
+            Assert.False(TsValue.ApplyCompatBinaryBoolean("2", "===", 2));
+            Assert.True(TsValue.ApplyCompatBinaryBoolean(2, "===", 2d));
+            Assert.True(TsValue.ApplyCompatBinaryBoolean("a", "<", "b"));
+            Assert.True(TsValue.ApplyCompatBinaryBoolean(4, ">=", "4"));
+        }
+
+        [Fact]
+        public void ApplyCompatUnary_UsesClosedPrimitiveOperatorSemantics()
+        {
+            Assert.Equal(7d, TsValue.ApplyCompatUnary("7", "+").unwrap());
+            Assert.Equal(-7d, TsValue.ApplyCompatUnary("7", "-").unwrap());
+            Assert.Equal(~7, TsValue.ApplyCompatUnary(7, "~").unwrap());
+            Assert.True(TsValue.ApplyCompatUnaryBoolean(0, "!"));
+            Assert.False(TsValue.ApplyCompatUnaryBoolean("value", "!"));
+        }
+
+        [Fact]
+        public void ApplyCompatOperator_RejectsUnsupportedOperatorsDeterministically()
+        {
+            Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyCompatBinary(1, "<<", 2));
+            Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyCompatUnary(1, "delete"));
+        }
     }
 }
