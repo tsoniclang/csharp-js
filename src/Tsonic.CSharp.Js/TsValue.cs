@@ -49,6 +49,7 @@ namespace Tsonic.CSharp.Js
                 TsObject target => target.ReadCompatSlot(key),
                 TsArray target => target.ReadCompatSlot(key),
                 TsFunction target => target.ReadCompatSlot(key),
+                Error target => readErrorSlot(target, key),
                 JSObject target => target.hasOwnProperty(key) ? from(target[key]) : undefined(),
                 IDictionary<string, object?> target => target.TryGetValue(key, out var value) ? from(value) : undefined(),
                 IReadOnlyDictionary<string, object?> target => target.TryGetValue(key, out var value) ? from(value) : undefined(),
@@ -216,6 +217,7 @@ namespace Tsonic.CSharp.Js
                 TsObject => true,
                 TsArray => true,
                 TsFunction => true,
+                Error => true,
                 JSUndefined => true,
                 IDictionary<string, object?> => true,
                 IReadOnlyDictionary<string, object?> => true,
@@ -368,6 +370,17 @@ namespace Tsonic.CSharp.Js
                 short number => number.ToString(CultureInfo.InvariantCulture),
                 ushort number => number.ToString(CultureInfo.InvariantCulture),
                 _ => "[object Object]"
+            };
+        }
+
+        private static TsValue readErrorSlot(Error error, string key)
+        {
+            return key switch
+            {
+                "name" => from(error.name),
+                "message" => from(error.message),
+                "stack" => error.stack is null ? undefined() : from(error.stack),
+                _ => undefined()
             };
         }
 
