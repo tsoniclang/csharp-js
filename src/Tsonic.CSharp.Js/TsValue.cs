@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Js
 {
@@ -30,6 +31,41 @@ namespace Tsonic.CSharp.Js
             return new TsValue(value);
         }
 
+        public static TsValue from<T1, T2>(Union<T1, T2>? value)
+        {
+            return value is null ? from(null) : from(TsUnion.From(value));
+        }
+
+        public static TsValue from<T1, T2, T3>(Union<T1, T2, T3>? value)
+        {
+            return value is null ? from(null) : from(TsUnion.From(value));
+        }
+
+        public static TsValue from<T1, T2, T3, T4>(Union<T1, T2, T3, T4>? value)
+        {
+            return value is null ? from(null) : from(TsUnion.From(value));
+        }
+
+        public static TsValue from<T1, T2, T3, T4, T5>(Union<T1, T2, T3, T4, T5>? value)
+        {
+            return value is null ? from(null) : from(TsUnion.From(value));
+        }
+
+        public static TsValue from<T1, T2, T3, T4, T5, T6>(Union<T1, T2, T3, T4, T5, T6>? value)
+        {
+            return value is null ? from(null) : from(TsUnion.From(value));
+        }
+
+        public static TsValue from<T1, T2, T3, T4, T5, T6, T7>(Union<T1, T2, T3, T4, T5, T6, T7>? value)
+        {
+            return value is null ? from(null) : from(TsUnion.From(value));
+        }
+
+        public static TsValue from<T1, T2, T3, T4, T5, T6, T7, T8>(Union<T1, T2, T3, T4, T5, T6, T7, T8>? value)
+        {
+            return value is null ? from(null) : from(TsUnion.From(value));
+        }
+
         public static TsValue undefined()
         {
             return new TsValue(JSUndefined.value);
@@ -42,7 +78,7 @@ namespace Tsonic.CSharp.Js
 
         public TsValue ReadCompatSlot(string key)
         {
-            return _value switch
+            return unwrapForOperation(_value) switch
             {
                 JSUndefined => throw nullishReadError(key),
                 null => throw nullishReadError(key),
@@ -63,7 +99,7 @@ namespace Tsonic.CSharp.Js
         public TsValue WriteCompatSlot(string key, object? value)
         {
             var stored = from(value);
-            switch (_value)
+            switch (unwrapForOperation(_value))
             {
                 case JSUndefined:
                     throw nullishWriteError(key);
@@ -107,14 +143,14 @@ namespace Tsonic.CSharp.Js
 
         public TsValue InvokeCompat(params object?[] arguments)
         {
-            return _value is TsFunction target
+            return unwrapForOperation(_value) is TsFunction target
                 ? target.InvokeCompat(arguments)
                 : throw new TypeError("Value is not callable.");
         }
 
         public TsValue ConstructCompat(params object?[] arguments)
         {
-            return _value is TsFunction target
+            return unwrapForOperation(_value) is TsFunction target
                 ? target.ConstructCompat(arguments)
                 : throw new TypeError("Value is not a constructor.");
         }
@@ -179,7 +215,7 @@ namespace Tsonic.CSharp.Js
 
         public static string ApplyCompatTypeof(object? operand)
         {
-            var unwrapped = unwrap(operand);
+            var unwrapped = unwrapForOperation(operand);
             return unwrapped switch
             {
                 JSUndefined => "undefined",
@@ -194,20 +230,39 @@ namespace Tsonic.CSharp.Js
 
         public static T CastCompat<T>(object? value)
         {
-            var unwrapped = unwrap(value);
-            if (unwrapped is T typed)
+            if (TryCastCompat<T>(value, out var typed))
             {
                 return typed;
             }
+            var unwrapped = unwrapForOperation(value);
             if (unwrapped is null or JSUndefined)
             {
-                if (default(T) is null)
-                {
-                    return default!;
-                }
                 throw new TypeError("Cannot cast null or undefined to the requested closed value carrier.");
             }
             throw new TypeError("TsValue cannot cross the requested typed boundary because the closed carrier value is not assignable.");
+        }
+
+        internal static bool TryCastCompat<T>(object? value, out T result)
+        {
+            var carrier = UnwrapCompatCarrier(value);
+            if (carrier is T direct)
+            {
+                result = direct;
+                return true;
+            }
+            var unwrapped = unwrapForOperation(carrier);
+            if (unwrapped is T typed)
+            {
+                result = typed;
+                return true;
+            }
+            if ((unwrapped is null or JSUndefined) && default(T) is null)
+            {
+                result = default!;
+                return true;
+            }
+            result = default!;
+            return false;
         }
 
         private static bool isSupported(object? value)
@@ -232,6 +287,7 @@ namespace Tsonic.CSharp.Js
                 IJSArray => true,
                 TsObject => true,
                 TsArray => true,
+                TsUnion => true,
                 TsFunction => true,
                 Error => true,
                 JSUndefined => true,
@@ -243,8 +299,8 @@ namespace Tsonic.CSharp.Js
 
         private static TsValue plus(object? left, object? right)
         {
-            var leftValue = unwrap(left);
-            var rightValue = unwrap(right);
+            var leftValue = unwrapForOperation(left);
+            var rightValue = unwrapForOperation(right);
             return leftValue is string || rightValue is string
                 ? from(toJsString(leftValue) + toJsString(rightValue))
                 : from(toNumber(leftValue) + toNumber(rightValue));
@@ -252,8 +308,8 @@ namespace Tsonic.CSharp.Js
 
         private static bool tryCompare(object? left, object? right, out int comparison)
         {
-            var leftValue = unwrap(left);
-            var rightValue = unwrap(right);
+            var leftValue = unwrapForOperation(left);
+            var rightValue = unwrapForOperation(right);
             if (leftValue is string leftText && rightValue is string rightText)
             {
                 comparison = string.CompareOrdinal(leftText, rightText);
@@ -272,8 +328,8 @@ namespace Tsonic.CSharp.Js
 
         private static bool looseEquals(object? left, object? right)
         {
-            var leftValue = unwrap(left);
-            var rightValue = unwrap(right);
+            var leftValue = unwrapForOperation(left);
+            var rightValue = unwrapForOperation(right);
             if (isNullish(leftValue) && isNullish(rightValue))
             {
                 return true;
@@ -293,8 +349,8 @@ namespace Tsonic.CSharp.Js
 
         private static bool strictEquals(object? left, object? right)
         {
-            var leftValue = unwrap(left);
-            var rightValue = unwrap(right);
+            var leftValue = unwrapForOperation(left);
+            var rightValue = unwrapForOperation(right);
             if (ReferenceEquals(leftValue, rightValue))
             {
                 return true;
@@ -314,7 +370,7 @@ namespace Tsonic.CSharp.Js
 
         private static bool truthy(object? value)
         {
-            var unwrapped = unwrap(value);
+            var unwrapped = unwrapForOperation(value);
             return unwrapped switch
             {
                 null => false,
@@ -338,7 +394,7 @@ namespace Tsonic.CSharp.Js
 
         private static double toNumber(object? value)
         {
-            var unwrapped = unwrap(value);
+            var unwrapped = unwrapForOperation(value);
             return unwrapped switch
             {
                 null => 0,
@@ -374,7 +430,7 @@ namespace Tsonic.CSharp.Js
 
         private static string toJsString(object? value)
         {
-            var unwrapped = unwrap(value);
+            var unwrapped = unwrapForOperation(value);
             return unwrapped switch
             {
                 null => "null",
@@ -409,19 +465,30 @@ namespace Tsonic.CSharp.Js
 
         private static bool isNullish(object? value)
         {
-            var unwrapped = unwrap(value);
+            var unwrapped = unwrapForOperation(value);
             return unwrapped is null or JSUndefined;
         }
 
         private static bool isNumeric(object? value)
         {
-            var unwrapped = unwrap(value);
+            var unwrapped = unwrapForOperation(value);
             return unwrapped is double or float or decimal or int or long or uint or ulong or byte or sbyte or short or ushort;
         }
 
-        private static object? unwrap(object? value)
+        internal static object? UnwrapCompatCarrier(object? value)
         {
-            return value is TsValue typed ? typed.unwrap() : value;
+            var unwrapped = value is TsValue typed ? typed._value : value;
+            if (!isSupported(unwrapped))
+            {
+                throw closedCarrierError();
+            }
+            return unwrapped;
+        }
+
+        private static object? unwrapForOperation(object? value)
+        {
+            var carrier = UnwrapCompatCarrier(value);
+            return carrier is TsUnion union ? unwrapForOperation(union.value()) : carrier;
         }
 
         private static NotSupportedException unsupportedOperator(string op)
@@ -431,9 +498,9 @@ namespace Tsonic.CSharp.Js
 
         internal static string propertyKey(object? key)
         {
+            key = unwrapForOperation(key);
             return key switch
             {
-                TsValue value => propertyKey(value.unwrap()),
                 JSUndefined => "undefined",
                 null => "null",
                 string value => value,
@@ -451,6 +518,11 @@ namespace Tsonic.CSharp.Js
                 decimal value => value.ToString(CultureInfo.InvariantCulture),
                 _ => throw new TypeError("Only closed primitive property keys are supported by TsValue.")
             };
+        }
+
+        private static NotSupportedException closedCarrierError()
+        {
+            return new NotSupportedException("TsValue requires a closed JavaScript runtime carrier.");
         }
 
         private static bool tryReadArrayIndexKey(string key, out int index)
