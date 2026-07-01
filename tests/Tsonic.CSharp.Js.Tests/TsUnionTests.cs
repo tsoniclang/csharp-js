@@ -53,12 +53,47 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void CastCompat_PreservesClosedHigherArityUnionArm()
+        {
+            var value = TsValue.from(TsUnion.From(8, 8, "last"));
+
+            var union = TsUnion.CastCompat<int, bool, double, string, byte, short, long, string>(value);
+
+            Assert.True(union.Is8());
+            Assert.Equal("last", union.As8());
+        }
+
+        [Fact]
         public void CastCompat_ConvertsRawClosedArmValueToRuntimeUnion()
         {
             var union = TsUnion.CastCompat<int, string>(42);
 
             Assert.True(union.Is1());
             Assert.Equal(42, union.As1());
+        }
+
+        [Fact]
+        public void CastCompat_RejectsMismatchedClosedUnionArmCount()
+        {
+            var value = TsValue.from(TsUnion.From(3, 3, "extra"));
+
+            Assert.Throws<TypeError>(() => TsUnion.CastCompat<int, string>(value));
+        }
+
+        [Fact]
+        public void CastCompat_RejectsMismatchedClosedUnionArmCarrier()
+        {
+            var value = TsValue.from(TsUnion.From(2, 2, 42));
+
+            Assert.Throws<TypeError>(() => TsUnion.CastCompat<bool, string>(value));
+        }
+
+        [Fact]
+        public void AsArm_RejectsInactiveArmProjection()
+        {
+            var value = TsUnion.From(1, 2, 42);
+
+            Assert.Throws<TypeError>(() => value.asArm(2));
         }
 
         [Fact]
