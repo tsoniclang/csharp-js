@@ -166,9 +166,10 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void undefined_IsNull()
+        public void undefined_IsClosedCarrierDistinctFromNull()
         {
-            Assert.Null(Globals.undefined);
+            Assert.Same(JSUndefined.value, Globals.undefined);
+            Assert.NotNull(Globals.undefined);
         }
 
         [Theory]
@@ -191,12 +192,20 @@ namespace Tsonic.CSharp.Js.Tests
         public void Number_Null_ReturnsZero()
         {
             Assert.Equal(0, Globals.Number(null));
+            Assert.Equal(0, Globals.Number(TsValue.from(null)));
         }
 
         [Fact]
         public void Number_NoArgument_ReturnsZero()
         {
             Assert.Equal(0, Globals.Number());
+        }
+
+        [Fact]
+        public void Number_Undefined_ReturnsNaN()
+        {
+            Assert.True(double.IsNaN(Globals.Number(Globals.undefined)));
+            Assert.True(double.IsNaN(Globals.Number(TsValue.undefined())));
         }
 
         [Theory]
@@ -221,7 +230,7 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Theory]
-        [InlineData(null, "undefined")]
+        [InlineData(null, "null")]
         [InlineData("hello", "hello")]
         [InlineData(123, "123")]
         [InlineData(true, "true")]
@@ -235,6 +244,19 @@ namespace Tsonic.CSharp.Js.Tests
         public void String_WithoutArgument_ReturnsEmptyString()
         {
             Assert.Equal("", Globals.String());
+        }
+
+        [Fact]
+        public void String_Undefined_ReturnsUndefined()
+        {
+            Assert.Equal("undefined", Globals.String(Globals.undefined));
+            Assert.Equal("undefined", Globals.String(TsValue.undefined()));
+        }
+
+        [Fact]
+        public void String_TsValueNull_ReturnsNullString()
+        {
+            Assert.Equal("null", Globals.String(TsValue.from(null)));
         }
 
         [Fact]
@@ -268,6 +290,14 @@ namespace Tsonic.CSharp.Js.Tests
         public void Boolean_NaN_ReturnsFalse()
         {
             Assert.False(Globals.Boolean(double.NaN));
+        }
+
+        [Fact]
+        public void Boolean_UndefinedAndNullTsValue_ReturnFalse()
+        {
+            Assert.False(Globals.Boolean(Globals.undefined));
+            Assert.False(Globals.Boolean(TsValue.undefined()));
+            Assert.False(Globals.Boolean(TsValue.from(null)));
         }
 
         [Fact]

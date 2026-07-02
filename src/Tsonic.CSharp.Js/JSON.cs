@@ -146,6 +146,9 @@ namespace Tsonic.CSharp.Js
                 case IJSArray array:
                     WriteJsArray(writer, array);
                     break;
+                case TsUnion union:
+                    WriteValue(writer, union.unwrap());
+                    break;
                 case IDictionary<string, object?> dict:
                     WriteObject(writer, dict);
                     break;

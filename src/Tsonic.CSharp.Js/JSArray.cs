@@ -23,6 +23,12 @@ namespace Tsonic.CSharp.Js
         bool hasIndex(int index);
 
         bool tryGetAtObject(int index, out object? value);
+
+        bool trySetAtObject(int index, object? value);
+
+        int setLength(int newLength);
+
+        bool deleteAt(int index);
     }
 
     public class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IJSArray
@@ -83,6 +89,22 @@ namespace Tsonic.CSharp.Js
         internal static JSArray<T> createWithCapacity(int capacity)
         {
             return new JSArray<T>(capacity, false);
+        }
+
+        public static JSArray<T> fromSparse(int length, params (int index, T value)[] elements)
+        {
+            var result = new JSArray<T>(length);
+            foreach (var element in elements)
+            {
+                if (element.index < 0 || element.index >= length)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(elements), "Sparse array literal element index is outside the declared array length.");
+                }
+
+                result[element.index] = element.value;
+            }
+
+            return result;
         }
 
         private JSArray(int capacity, bool _)
@@ -182,6 +204,33 @@ namespace Tsonic.CSharp.Js
             }
 
             value = null;
+            return false;
+        }
+
+        public bool trySetAtObject(int index, object? value)
+        {
+            if (index < 0)
+            {
+                throw new ArgumentException("Array index cannot be negative", nameof(index));
+            }
+
+            if (value is TsValue tsValue)
+            {
+                return trySetAtObject(index, tsValue.unwrap());
+            }
+
+            if (value is T typed)
+            {
+                this[index] = typed;
+                return true;
+            }
+
+            if (value is null && default(T) is null)
+            {
+                this[index] = default!;
+                return true;
+            }
+
             return false;
         }
 
