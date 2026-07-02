@@ -359,20 +359,20 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string[]? match(this string str, string pattern)
         {
-            var regex = new System.Text.RegularExpressions.Regex(pattern);
-            var match = regex.Match(str);
+            var regex = new RegExp(pattern);
+            var match = regex.exec(str);
 
-            if (!match.Success)
+            if (match is null)
             {
                 return null;
             }
 
             var result = new List<string>();
-            result.Add(match.Value);
+            result.Add(match.value);
 
-            for (int i = 1; i < match.Groups.Count; i++)
+            for (int i = 1; i < match.length; i++)
             {
-                result.Add(match.Groups[i].Value);
+                result.Add(match[i] ?? "");
             }
 
             return result.ToArray();
@@ -384,20 +384,29 @@ namespace Tsonic.CSharp.Js
         public static string[][] matchAll(this string str, string pattern)
         {
             var result = new List<string[]>();
-            var regex = new System.Text.RegularExpressions.Regex(pattern);
-            var matches = regex.Matches(str);
+            var regex = new RegExp(pattern, "g");
 
-            foreach (System.Text.RegularExpressions.Match match in matches)
+            while (true)
             {
-                var matchArray = new List<string>();
-                matchArray.Add(match.Value);
-
-                for (int i = 1; i < match.Groups.Count; i++)
+                var match = regex.exec(str);
+                if (match is null)
                 {
-                    matchArray.Add(match.Groups[i].Value);
+                    break;
+                }
+
+                var matchArray = new List<string>();
+                matchArray.Add(match.value);
+
+                for (int i = 1; i < match.length; i++)
+                {
+                    matchArray.Add(match[i] ?? "");
                 }
 
                 result.Add(matchArray.ToArray());
+                if (match.value.Length == 0)
+                {
+                    regex.lastIndex = regex.lastIndex < str.Length ? regex.lastIndex + 1 : str.Length + 1;
+                }
             }
 
             return result.ToArray();
@@ -408,9 +417,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static int search(this string str, string pattern)
         {
-            var regex = new System.Text.RegularExpressions.Regex(pattern);
-            var match = regex.Match(str);
-            return match.Success ? match.Index : -1;
+            var regex = new RegExp(pattern);
+            var match = regex.exec(str);
+            return match is null ? -1 : match.index;
         }
 
         /// <summary>
