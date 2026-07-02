@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Tsonic.CSharp.Runtime;
 using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests
@@ -182,6 +183,16 @@ namespace Tsonic.CSharp.Js.Tests
             });
 
             Assert.Equal("{\"name\":\"carrier\"}", JSON.stringify(value));
+        }
+
+        [Fact]
+        public void stringify_SerializesClosedRuntimeUnionActiveArm()
+        {
+            var text = TsValue.from(Union<int, string>.From2("ready"));
+            var number = TsValue.from(Union<int, string>.From1(42));
+
+            Assert.Equal("\"ready\"", JSON.stringify(text));
+            Assert.Equal("42", JSON.stringify(number));
         }
     }
 }
