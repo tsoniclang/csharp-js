@@ -1,0 +1,16 @@
+{
+  "name": "@tsonic/csharp-js",
+  "version": "0.0.1",
+  "description": "C# JavaScript surface runtime artifacts for Tsonic",
+  "type": "module",
+  "files": ["runtimes", "README.md", "LICENSE"],
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@tsonic/csharp-runtime": "0.0.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
