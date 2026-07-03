@@ -1,436 +1,230 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
 using Xunit;
 
-namespace Tsonic.CSharp.Js.Tests
+namespace Tsonic.CSharp.Js.Tests;
+
+public sealed class RegExpTests
 {
-    public class RegExpTests
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    [Fact]
+    public void RegExp_Constructor_ExposesCanonicalFlagsAndSource()
     {
-        // ==================== Constructor Tests ====================
+        var regexp = new RegExp("/", "migsy");
 
-        [Fact]
-        public void RegExp_Constructor_WithPatternOnly()
+        Assert.Equal("\\/", regexp.source);
+        Assert.Equal("gimsy", regexp.flags);
+        Assert.True(regexp.global);
+        Assert.True(regexp.ignoreCase);
+        Assert.True(regexp.multiline);
+        Assert.True(regexp.dotAll);
+        Assert.True(regexp.sticky);
+        Assert.False(regexp.hasIndices);
+        Assert.False(regexp.unicode);
+        Assert.False(regexp.unicodeSets);
+        Assert.Equal("/\\//gimsy", regexp.toString());
+        Assert.Equal("(?:)", new RegExp("").source);
+    }
+
+    [Fact]
+    public void RegExp_InvalidAndUnsupportedFlags_FailDeterministically()
+    {
+        Assert.Throws<JsRegExpSyntaxException>(() => new RegExp("x", "gg"));
+        Assert.Throws<JsRegExpSyntaxException>(() => new RegExp("x", "q"));
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("x", "d"));
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("x", "u"));
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("x", "v"));
+    }
+
+    [Fact]
+    public void RegExp_UnsupportedSyntax_FailsBeforeDotNetRegexExecution()
+    {
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("(?<name>a)"));
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("(?<=a)b"));
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("\\p{Letter}"));
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("(a)\\1"));
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("(?>a)"));
+        Assert.Throws<JsRegExpUnsupportedException>(() => new RegExp("(?i:a)"));
+    }
+
+    [Fact]
+    public void RegExp_InvalidPatterns_ThrowSyntaxErrors()
+    {
+        Assert.Throws<JsRegExpSyntaxException>(() => new RegExp("["));
+        Assert.Throws<JsRegExpSyntaxException>(() => new RegExp("\\"));
+        Assert.Throws<JsRegExpSyntaxException>(() => new RegExp("("));
+    }
+
+    [Fact]
+    public void RegExp_SupportedCases_MatchNodeOracle()
+    {
+        var cases = new[]
         {
-            var regex = new RegExp("abc");
-            Assert.Equal("abc", regex.source);
-            Assert.Equal("", regex.flags);
-        }
+            OracleCase("literal-ignore-case", "abc", "i", Test("ABC")),
+            OracleCase("global-test-last-index", "a", "g", Test("a"), Test("a")),
+            OracleCase("global-exec-sequence-reset", "a", "g", Exec("aba"), Exec("aba"), Exec("aba")),
+            OracleCase("sticky-exec", "abc", "y", Exec("xyzabcdef", 3)),
+            OracleCase("sticky-fail-reset", "a", "y", Exec("ba", 1), Exec("ba", 1)),
+            OracleCase("dot-all", "a.b", "s", Test("a\nb")),
+            OracleCase("dot-without-dot-all", "a.b", "", Test("a\nb")),
+            OracleCase("multiline", "^abc", "m", Test("xyz\nabc")),
+            OracleCase("captures", "([a-z]+)-(\\d+)", "", Exec("id abc-123 done")),
+            OracleCase("optional-capture", "(a)(b)?", "", Exec("a")),
+            OracleCase("noncapturing-group", "(?:ab)+", "", Exec("xxabab")),
+            OracleCase("class-and-alternation", "[A-Z]+|\\d+", "", Exec("abc 123")),
+            OracleCase("lookahead", "a(?=b)", "", Exec("ab")),
+            OracleCase("escaped-slash-source", "\\/", "g", Test("/")),
+            OracleCase("empty-source", "", "", Test("abc")),
+        };
 
-        [Fact]
-        public void RegExp_Constructor_WithFlags()
+        foreach (var testCase in cases)
         {
-            var regex = new RegExp("abc", "gi");
-            Assert.Equal("abc", regex.source);
-            Assert.Equal("gi", regex.flags);
-        }
-
-        [Fact]
-        public void RegExp_Constructor_NullFlags_TreatedAsEmpty()
-        {
-            var regex = new RegExp("abc", null!);
-            Assert.Equal("", regex.flags);
-        }
-
-        // ==================== Property Tests ====================
-
-        [Fact]
-        public void RegExp_global_ReturnsCorrectValue()
-        {
-            Assert.True(new RegExp("abc", "g").global);
-            Assert.True(new RegExp("abc", "gi").global);
-            Assert.False(new RegExp("abc", "i").global);
-            Assert.False(new RegExp("abc").global);
-        }
-
-        [Fact]
-        public void RegExp_ignoreCase_ReturnsCorrectValue()
-        {
-            Assert.True(new RegExp("abc", "i").ignoreCase);
-            Assert.True(new RegExp("abc", "gi").ignoreCase);
-            Assert.False(new RegExp("abc", "g").ignoreCase);
-            Assert.False(new RegExp("abc").ignoreCase);
-        }
-
-        [Fact]
-        public void RegExp_multiline_ReturnsCorrectValue()
-        {
-            Assert.True(new RegExp("abc", "m").multiline);
-            Assert.True(new RegExp("abc", "gim").multiline);
-            Assert.False(new RegExp("abc", "gi").multiline);
-        }
-
-        [Fact]
-        public void RegExp_dotAll_ReturnsCorrectValue()
-        {
-            Assert.True(new RegExp("abc", "s").dotAll);
-            Assert.False(new RegExp("abc", "gi").dotAll);
-        }
-
-        [Fact]
-        public void RegExp_unicode_ReturnsCorrectValue()
-        {
-            Assert.True(new RegExp("abc", "u").unicode);
-            Assert.False(new RegExp("abc", "gi").unicode);
-        }
-
-        [Fact]
-        public void RegExp_sticky_ReturnsCorrectValue()
-        {
-            Assert.True(new RegExp("abc", "y").sticky);
-            Assert.False(new RegExp("abc", "gi").sticky);
-        }
-
-        [Fact]
-        public void RegExp_lastIndex_DefaultsToZero()
-        {
-            var regex = new RegExp("abc", "g");
-            Assert.Equal(0, regex.lastIndex);
-        }
-
-        [Fact]
-        public void RegExp_lastIndex_CanBeSet()
-        {
-            var regex = new RegExp("abc", "g");
-            regex.lastIndex = 5;
-            Assert.Equal(5, regex.lastIndex);
-        }
-
-        [Fact]
-        public void RegExp_lastIndex_NegativeBecomesZero()
-        {
-            var regex = new RegExp("abc", "g");
-            regex.lastIndex = -10;
-            Assert.Equal(0, regex.lastIndex);
-        }
-
-        [Fact]
-        public void RegExp_toString_ReturnsJavaScriptLiteralShape()
-        {
-            Assert.Equal("/abc/gi", new RegExp("abc", "gi").toString());
-        }
-
-        // ==================== test() Method Tests ====================
-
-        [Fact]
-        public void RegExp_test_ReturnsTrue_WhenMatches()
-        {
-            var regex = new RegExp("abc");
-            Assert.True(regex.test("abc"));
-            Assert.True(regex.test("xyzabc123"));
-        }
-
-        [Fact]
-        public void RegExp_test_ReturnsFalse_WhenNoMatch()
-        {
-            var regex = new RegExp("abc");
-            Assert.False(regex.test("def"));
-            Assert.False(regex.test("ABC")); // Case sensitive
-        }
-
-        [Fact]
-        public void RegExp_test_IgnoreCase_Works()
-        {
-            var regex = new RegExp("abc", "i");
-            Assert.True(regex.test("ABC"));
-            Assert.True(regex.test("AbC"));
-        }
-
-        [Fact]
-        public void RegExp_test_Global_UpdatesLastIndex()
-        {
-            var regex = new RegExp("a", "g");
-            var str = "aaa";
-
-            Assert.True(regex.test(str));
-            Assert.Equal(1, regex.lastIndex);
-
-            Assert.True(regex.test(str));
-            Assert.Equal(2, regex.lastIndex);
-
-            Assert.True(regex.test(str));
-            Assert.Equal(3, regex.lastIndex);
-
-            Assert.False(regex.test(str));
-            Assert.Equal(0, regex.lastIndex);
-        }
-
-        [Fact]
-        public void RegExp_test_NonGlobal_DoesNotUpdateLastIndex()
-        {
-            var regex = new RegExp("a");
-            var str = "aaa";
-
-            Assert.True(regex.test(str));
-            Assert.Equal(0, regex.lastIndex);
-
-            Assert.True(regex.test(str));
-            Assert.Equal(0, regex.lastIndex);
-        }
-
-        [Fact]
-        public void RegExp_test_NullString_ReturnsFalse()
-        {
-            var regex = new RegExp("abc");
-            Assert.False(regex.test(null!));
-        }
-
-        // ==================== exec() Method Tests ====================
-
-        [Fact]
-        public void RegExp_exec_ReturnsMatch_WhenFound()
-        {
-            var regex = new RegExp("abc");
-            var result = regex.exec("xyzabc123");
-
-            Assert.NotNull(result);
-            Assert.Equal("abc", result.value);
-            Assert.Equal(3, result.index);
-            Assert.Equal("xyzabc123", result.input);
-        }
-
-        [Fact]
-        public void RegExp_exec_ReturnsNull_WhenNoMatch()
-        {
-            var regex = new RegExp("abc");
-            var result = regex.exec("def");
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public void RegExp_exec_CapturesGroups()
-        {
-            var regex = new RegExp(@"(\d+)-(\d+)");
-            var result = regex.exec("Phone: 123-4567");
-
-            Assert.NotNull(result);
-            Assert.Equal("123-4567", result[0]); // Full match
-            Assert.Equal("123", result[1]);      // Group 1
-            Assert.Equal("4567", result[2]);     // Group 2
-        }
-
-        [Fact]
-        public void RegExp_exec_Global_IteratesThroughMatches()
-        {
-            var regex = new RegExp(@"\d+", "g");
-            var str = "a1b22c333";
-
-            var result1 = regex.exec(str);
-            Assert.NotNull(result1);
-            Assert.Equal("1", result1.value);
-            Assert.Equal(1, result1.index);
-
-            var result2 = regex.exec(str);
-            Assert.NotNull(result2);
-            Assert.Equal("22", result2.value);
-            Assert.Equal(3, result2.index);
-
-            var result3 = regex.exec(str);
-            Assert.NotNull(result3);
-            Assert.Equal("333", result3.value);
-            Assert.Equal(6, result3.index);
-
-            var result4 = regex.exec(str);
-            Assert.Null(result4);
-            Assert.Equal(0, regex.lastIndex);
-        }
-
-        [Fact]
-        public void RegExp_exec_Global_ResetsOnNoMatch()
-        {
-            var regex = new RegExp("abc", "g");
-            regex.lastIndex = 100;
-
-            var result = regex.exec("abc");
-            Assert.Null(result);
-            Assert.Equal(0, regex.lastIndex);
-        }
-
-        [Fact]
-        public void RegExp_exec_NonGlobal_DoesNotUpdateLastIndex()
-        {
-            var regex = new RegExp(@"\d+");
-            var str = "a1b22c333";
-
-            var result1 = regex.exec(str);
-            Assert.NotNull(result1);
-            Assert.Equal("1", result1.value);
-            Assert.Equal(0, regex.lastIndex);
-
-            // Without global flag, always starts from beginning
-            var result2 = regex.exec(str);
-            Assert.NotNull(result2);
-            Assert.Equal("1", result2.value);
-        }
-
-        [Fact]
-        public void RegExp_exec_NullString_ReturnsNull()
-        {
-            var regex = new RegExp("abc");
-            Assert.Null(regex.exec(null!));
-        }
-
-        // ==================== Sticky Flag Tests ====================
-
-        [Fact]
-        public void RegExp_Sticky_MustMatchAtLastIndex()
-        {
-            var regex = new RegExp("abc", "y");
-
-            // Match at position 0
-            Assert.NotNull(regex.exec("abcdef"));
-            Assert.Equal(3, regex.lastIndex);
-
-            // Must match at position 3, but "abc" is not there
-            Assert.Null(regex.exec("abcdef"));
-            Assert.Equal(0, regex.lastIndex);
-        }
-
-        [Fact]
-        public void RegExp_Sticky_MatchesAtCorrectPosition()
-        {
-            var regex = new RegExp("abc", "y");
-            regex.lastIndex = 3;
-
-            var result = regex.exec("xyzabcdef");
-            Assert.NotNull(result);
-            Assert.Equal("abc", result.value);
-            Assert.Equal(3, result.index);
-        }
-
-        // ==================== Multiline Flag Tests ====================
-
-        [Fact]
-        public void RegExp_Multiline_AnchorMatchesLineStart()
-        {
-            var regexMultiline = new RegExp("^abc", "m");
-            var regexNormal = new RegExp("^abc");
-
-            var str = "xyz\nabc";
-
-            Assert.True(regexMultiline.test(str));
-            Assert.False(regexNormal.test(str));
-        }
-
-        // ==================== DotAll Flag Tests ====================
-
-        [Fact]
-        public void RegExp_DotAll_DotMatchesNewline()
-        {
-            var regexDotAll = new RegExp("a.b", "s");
-            var regexNormal = new RegExp("a.b");
-
-            var str = "a\nb";
-
-            Assert.True(regexDotAll.test(str));
-            Assert.False(regexNormal.test(str));
-        }
-
-        // ==================== ToString Tests ====================
-
-        [Fact]
-        public void RegExp_ToString_ReturnsLiteralFormat()
-        {
-            var regex = new RegExp("abc", "gi");
-            Assert.Equal("/abc/gi", regex.ToString());
-        }
-
-        [Fact]
-        public void RegExp_ToString_EmptyFlags()
-        {
-            var regex = new RegExp("abc");
-            Assert.Equal("/abc/", regex.ToString());
-        }
-
-        // ==================== MatchResult Tests ====================
-
-        [Fact]
-        public void RegExpMatchResult_length_ReturnsGroupCount()
-        {
-            var regex = new RegExp(@"(\d+)-(\d+)");
-            var result = regex.exec("123-456");
-
-            Assert.NotNull(result);
-            Assert.Equal(3, result.length); // Full match + 2 groups
-        }
-
-        [Fact]
-        public void RegExpMatchResult_groups_ReturnsAllGroups()
-        {
-            var regex = new RegExp(@"(\d+)-(\d+)");
-            var result = regex.exec("123-456");
-
-            Assert.NotNull(result);
-            var groups = result.groups;
-            Assert.Equal("123-456", groups[0]);
-            Assert.Equal("123", groups[1]);
-            Assert.Equal("456", groups[2]);
-        }
-
-        [Fact]
-        public void RegExpMatchResult_OutOfBoundsIndex_ReturnsNull()
-        {
-            var regex = new RegExp("abc");
-            var result = regex.exec("abc");
-
-            Assert.NotNull(result);
-            Assert.Null(result[-1]);
-            Assert.Null(result[100]);
-        }
-
-        // ==================== Complex Pattern Tests ====================
-
-        [Fact]
-        public void RegExp_ComplexPattern_EmailLike()
-        {
-            var regex = new RegExp(@"[\w.]+@[\w.]+\.\w+");
-            Assert.True(regex.test("test@example.com"));
-            Assert.True(regex.test("user.name@domain.org"));
-            Assert.False(regex.test("invalid-email"));
-        }
-
-        [Fact]
-        public void RegExp_ComplexPattern_PhoneNumber()
-        {
-            var regex = new RegExp(@"\(\d{3}\)\s*\d{3}-\d{4}");
-            Assert.True(regex.test("(123) 456-7890"));
-            Assert.True(regex.test("(123)456-7890"));
-            Assert.False(regex.test("123-456-7890"));
-        }
-
-        // ==================== Edge Cases ====================
-
-        [Fact]
-        public void RegExp_EmptyPattern_MatchesAnything()
-        {
-            var regex = new RegExp("");
-            Assert.True(regex.test("anything"));
-            Assert.True(regex.test(""));
-        }
-
-        [Fact]
-        public void RegExp_SpecialCharacters_Escaped()
-        {
-            var regex = new RegExp(@"\.");
-            Assert.True(regex.test("a.b"));
-            Assert.False(regex.test("axb"));
-        }
-
-        [Fact]
-        public void RegExp_InvalidPattern_HandledGracefully()
-        {
-            // Invalid regex should not throw
-            var regex = new RegExp("[invalid");
-            Assert.False(regex.test("anything"));
-        }
-
-        [Fact]
-        public void RegExp_OptionalGroup_NullWhenNotMatched()
-        {
-            var regex = new RegExp(@"(a)(b)?");
-            var result = regex.exec("a");
-
-            Assert.NotNull(result);
-            Assert.Equal("a", result[0]);
-            Assert.Equal("a", result[1]);
-            Assert.Null(result[2]); // Group 2 didn't match
+            var oracle = RunNodeOracle(testCase);
+            Assert.Equal("ok", oracle.GetProperty("kind").GetString());
+
+            var regexp = new RegExp(testCase.Pattern, testCase.Flags);
+            Assert.Equal(oracle.GetProperty("source").GetString(), regexp.source);
+            Assert.Equal(oracle.GetProperty("flags").GetString(), regexp.flags);
+            Assert.Equal(oracle.GetProperty("global").GetBoolean(), regexp.global);
+            Assert.Equal(oracle.GetProperty("ignoreCase").GetBoolean(), regexp.ignoreCase);
+            Assert.Equal(oracle.GetProperty("multiline").GetBoolean(), regexp.multiline);
+            Assert.Equal(oracle.GetProperty("dotAll").GetBoolean(), regexp.dotAll);
+            Assert.Equal(oracle.GetProperty("sticky").GetBoolean(), regexp.sticky);
+
+            var observations = oracle.GetProperty("observations").EnumerateArray();
+            var index = 0;
+            foreach (var observation in observations)
+            {
+                var operation = testCase.Operations[index];
+                if (operation.LastIndex is not null)
+                {
+                    regexp.lastIndex = operation.LastIndex.Value;
+                }
+
+                if (operation.Kind == "test")
+                {
+                    Assert.Equal(observation.GetProperty("result").GetBoolean(), regexp.test(operation.Input));
+                    Assert.Equal(observation.GetProperty("lastIndex").GetInt32(), regexp.lastIndex);
+                }
+                else
+                {
+                    AssertMatchEqual(observation.GetProperty("result"), regexp.exec(operation.Input));
+                    Assert.Equal(observation.GetProperty("lastIndex").GetInt32(), regexp.lastIndex);
+                }
+                index += 1;
+            }
         }
     }
+
+    [Fact]
+    public void RegExp_NullInput_FailsDeterministically()
+    {
+        var regexp = new RegExp("abc");
+
+        Assert.Throws<ArgumentNullException>(() => regexp.test(null!));
+        Assert.Throws<ArgumentNullException>(() => regexp.exec(null!));
+    }
+
+    [Fact]
+    public void RegExpMatchResult_Groups_AreReadOnlyAndCopied()
+    {
+        var result = new RegExp("(a)(b)?").exec("a");
+
+        Assert.NotNull(result);
+        Assert.Equal(3, result!.length);
+        Assert.Equal("a", result[0]);
+        Assert.Equal("a", result[1]);
+        Assert.Null(result[2]);
+        var copy = result.ToArray();
+        copy[0] = "mutated";
+        Assert.Equal("a", result[0]);
+    }
+
+    private static OracleTestCase OracleCase(string id, string pattern, string flags, params OracleOperation[] operations) =>
+        new(id, pattern, flags, operations);
+
+    private static OracleOperation Test(string input, int? lastIndex = null) =>
+        new("test", input, lastIndex);
+
+    private static OracleOperation Exec(string input, int? lastIndex = null) =>
+        new("exec", input, lastIndex);
+
+    private static JsonElement RunNodeOracle(OracleTestCase testCase)
+    {
+        var root = FindRepositoryRoot();
+        var script = Path.Combine(root, "tools", "node-regexp-oracle.mjs");
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "node",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            },
+        };
+        process.StartInfo.ArgumentList.Add(script);
+        process.Start();
+        process.StandardInput.Write(JsonSerializer.Serialize(new
+        {
+            pattern = testCase.Pattern,
+            flags = testCase.Flags,
+            operations = testCase.Operations,
+        }, JsonOptions));
+        process.StandardInput.Close();
+        var stdout = process.StandardOutput.ReadToEnd();
+        var stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"Node oracle failed with exit code {process.ExitCode}: {stderr}");
+        }
+        using var document = JsonDocument.Parse(stdout);
+        return document.RootElement.Clone();
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "tools", "node-regexp-oracle.mjs")))
+            {
+                return directory.FullName;
+            }
+            directory = directory.Parent;
+        }
+        throw new DirectoryNotFoundException("Could not find repository root containing tools/node-regexp-oracle.mjs.");
+    }
+
+    private static void AssertMatchEqual(JsonElement expected, RegExpMatchResult? actual)
+    {
+        if (expected.ValueKind == JsonValueKind.Null)
+        {
+            Assert.Null(actual);
+            return;
+        }
+
+        Assert.NotNull(actual);
+        Assert.Equal(expected.GetProperty("value").GetString(), actual!.value);
+        Assert.Equal(expected.GetProperty("index").GetInt32(), actual.index);
+        Assert.Equal(expected.GetProperty("input").GetString(), actual.input);
+        Assert.Equal(expected.GetProperty("length").GetInt32(), actual.length);
+        var groupIndex = 0;
+        foreach (var expectedGroup in expected.GetProperty("groups").EnumerateArray())
+        {
+            var expectedValue = expectedGroup.ValueKind == JsonValueKind.Null ? null : expectedGroup.GetString();
+            Assert.Equal(expectedValue, actual[groupIndex]);
+            groupIndex += 1;
+        }
+    }
+
+    private sealed record OracleTestCase(string Id, string Pattern, string Flags, IReadOnlyList<OracleOperation> Operations);
+
+    private sealed record OracleOperation(string Kind, string Input, int? LastIndex);
 }
