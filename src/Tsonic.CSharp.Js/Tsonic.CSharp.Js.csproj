@@ -29,4 +29,12 @@
     <ProjectReference Include="../../../csharp-runtime/src/Tsonic.CSharp.Runtime/Tsonic.CSharp.Runtime.csproj" />
   </ItemGroup>
 
+  <Target Name="CopyInstalledRuntimeArtifact" AfterTargets="Build">
+    <PropertyGroup>
+      <TsonicRuntimeArtifactDirectory>$(MSBuildProjectDirectory)/../../runtimes/$(TargetFramework)</TsonicRuntimeArtifactDirectory>
+    </PropertyGroup>
+    <MakeDir Directories="$(TsonicRuntimeArtifactDirectory)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(TsonicRuntimeArtifactDirectory)" />
+  </Target>
+
 </Project>
