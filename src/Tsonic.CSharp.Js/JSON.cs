@@ -75,7 +75,7 @@ namespace Tsonic.CSharp.Js
         {
             using var stream = new MemoryStream();
             using var writer = new Utf8JsonWriter(stream);
-            WriteValue(writer, value);
+            writeValue(writer, value, new JsonWriteContext());
             writer.Flush();
             return Encoding.UTF8.GetString(stream.ToArray());
         }
@@ -89,7 +89,7 @@ namespace Tsonic.CSharp.Js
         {
             using var stream = new MemoryStream();
             using var writer = new Utf8JsonWriter(stream);
-            WriteObject(writer, value);
+            WriteObject(writer, value, new JsonWriteContext());
             writer.Flush();
             return Encoding.UTF8.GetString(stream.ToArray());
         }
@@ -98,7 +98,7 @@ namespace Tsonic.CSharp.Js
         {
             using var stream = new MemoryStream();
             using var writer = new Utf8JsonWriter(stream);
-            WriteObject(writer, value);
+            WriteObject(writer, value, new JsonWriteContext());
             writer.Flush();
             return Encoding.UTF8.GetString(stream.ToArray());
         }
@@ -106,7 +106,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Write value to Utf8JsonWriter
         /// </summary>
-        private static void WriteValue(Utf8JsonWriter writer, object? value)
+        public static void writeValue(Utf8JsonWriter writer, object? value, JsonWriteContext context)
         {
             switch (value)
             {
@@ -141,19 +141,25 @@ namespace Tsonic.CSharp.Js
                     writer.WriteNumberValue(sh);
                     break;
                 case JSObject obj:
-                    WriteJsObject(writer, obj);
+                    WriteJsObject(writer, obj, context);
                     break;
                 case IJSArray array:
-                    WriteJsArray(writer, array);
+                    WriteJsArray(writer, array, context);
+                    break;
+                case IJsonValue jsonValue:
+                    WriteJsonValue(writer, jsonValue, context);
+                    break;
+                case TsValue wrapped:
+                    writeValue(writer, wrapped.unwrap(), context);
                     break;
                 case TsUnion union:
-                    WriteValue(writer, union.unwrap());
+                    writeValue(writer, union.unwrap(), context);
                     break;
                 case IDictionary<string, object?> dict:
-                    WriteObject(writer, dict);
+                    WriteObject(writer, dict, context);
                     break;
                 case IReadOnlyDictionary<string, object?> dict:
-                    WriteObject(writer, dict);
+                    WriteObject(writer, dict, context);
                     break;
                 default:
                     throw new NotSupportedException("JSON.stringify requires a closed JS value carrier.");
@@ -163,43 +169,80 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Write JSObject as JSON object
         /// </summary>
-        private static void WriteJsObject(Utf8JsonWriter writer, JSObject obj)
+        private static void WriteJsonValue(Utf8JsonWriter writer, IJsonValue value, JsonWriteContext context)
         {
-            writer.WriteStartObject();
-            foreach (var (key, value) in obj.entries())
+            Enter(value, context);
+            try
             {
-                writer.WritePropertyName(key);
-                WriteValue(writer, value);
+                value.__tsonicWriteJson(writer, context);
             }
-            writer.WriteEndObject();
+            finally
+            {
+                context.exit(value);
+            }
+        }
+
+        private static void WriteJsObject(Utf8JsonWriter writer, JSObject obj, JsonWriteContext context)
+        {
+            Enter(obj, context);
+            try
+            {
+                writer.WriteStartObject();
+                foreach (var (key, value) in obj.entries())
+                {
+                    writer.WritePropertyName(key);
+                    writeValue(writer, value, context);
+                }
+                writer.WriteEndObject();
+            }
+            finally
+            {
+                context.exit(obj);
+            }
         }
 
         /// <summary>
         /// Write dictionary as JSON object
         /// </summary>
-        private static void WriteObject(Utf8JsonWriter writer, IDictionary<string, object?> dict)
+        private static void WriteObject(Utf8JsonWriter writer, IDictionary<string, object?> dict, JsonWriteContext context)
         {
-            writer.WriteStartObject();
-            foreach (var kvp in dict)
+            Enter(dict, context);
+            try
             {
-                writer.WritePropertyName(kvp.Key);
-                WriteValue(writer, kvp.Value);
+                writer.WriteStartObject();
+                foreach (var kvp in dict)
+                {
+                    writer.WritePropertyName(kvp.Key);
+                    writeValue(writer, kvp.Value, context);
+                }
+                writer.WriteEndObject();
             }
-            writer.WriteEndObject();
+            finally
+            {
+                context.exit(dict);
+            }
         }
 
-        private static void WriteObject(Utf8JsonWriter writer, IReadOnlyDictionary<string, object?> dict)
+        private static void WriteObject(Utf8JsonWriter writer, IReadOnlyDictionary<string, object?> dict, JsonWriteContext context)
         {
-            writer.WriteStartObject();
-            foreach (var kvp in dict)
+            Enter(dict, context);
+            try
             {
-                writer.WritePropertyName(kvp.Key);
-                WriteValue(writer, kvp.Value);
+                writer.WriteStartObject();
+                foreach (var kvp in dict)
+                {
+                    writer.WritePropertyName(kvp.Key);
+                    writeValue(writer, kvp.Value, context);
+                }
+                writer.WriteEndObject();
             }
-            writer.WriteEndObject();
+            finally
+            {
+                context.exit(dict);
+            }
         }
 
-        private static void WriteObject<TValue>(Utf8JsonWriter writer, IEnumerable<KeyValuePair<string, TValue>>? dict)
+        private static void WriteObject<TValue>(Utf8JsonWriter writer, IEnumerable<KeyValuePair<string, TValue>>? dict, JsonWriteContext context)
         {
             if (dict == null)
             {
@@ -207,30 +250,54 @@ namespace Tsonic.CSharp.Js
                 return;
             }
 
-            writer.WriteStartObject();
-            foreach (var kvp in dict)
+            Enter(dict, context);
+            try
             {
-                writer.WritePropertyName(kvp.Key);
-                WriteValue(writer, kvp.Value);
+                writer.WriteStartObject();
+                foreach (var kvp in dict)
+                {
+                    writer.WritePropertyName(kvp.Key);
+                    writeValue(writer, kvp.Value, context);
+                }
+                writer.WriteEndObject();
             }
-            writer.WriteEndObject();
+            finally
+            {
+                context.exit(dict);
+            }
         }
 
-        private static void WriteJsArray(Utf8JsonWriter writer, IJSArray array)
+        private static void WriteJsArray(Utf8JsonWriter writer, IJSArray array, JsonWriteContext context)
         {
-            writer.WriteStartArray();
-            for (var index = 0; index < array.length; index++)
+            Enter(array, context);
+            try
             {
-                if (array.tryGetAtObject(index, out var item))
+                writer.WriteStartArray();
+                for (var index = 0; index < array.length; index++)
                 {
-                    WriteValue(writer, item);
+                    if (array.tryGetAtObject(index, out var item))
+                    {
+                        writeValue(writer, item, context);
+                    }
+                    else
+                    {
+                        writer.WriteNullValue();
+                    }
                 }
-                else
-                {
-                    writer.WriteNullValue();
-                }
+                writer.WriteEndArray();
             }
-            writer.WriteEndArray();
+            finally
+            {
+                context.exit(array);
+            }
+        }
+
+        private static void Enter(object value, JsonWriteContext context)
+        {
+            if (!context.enter(value))
+            {
+                throw new InvalidOperationException("Converting circular structure to JSON.");
+            }
         }
     }
 }

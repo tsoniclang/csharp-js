@@ -96,6 +96,11 @@ namespace Tsonic.CSharp.Js
             };
         }
 
+        public T ReadCompatSlotAs<T>(string key)
+        {
+            return CastCompat<T>(ReadCompatSlot(key));
+        }
+
         public TsValue WriteCompatSlot(string key, object? value)
         {
             var stored = from(value);
