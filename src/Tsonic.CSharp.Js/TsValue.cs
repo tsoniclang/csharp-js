@@ -101,6 +101,11 @@ namespace Tsonic.CSharp.Js
             return CastCompat<T>(ReadCompatSlot(key));
         }
 
+        public TsValue ReadCompatSlotOptional(string key)
+        {
+            return isNullish(_value) ? undefined() : ReadCompatSlot(key);
+        }
+
         public TsValue WriteCompatSlot(string key, object? value)
         {
             var stored = from(value);
@@ -141,6 +146,11 @@ namespace Tsonic.CSharp.Js
             return ReadCompatSlot(propertyKey(key));
         }
 
+        public TsValue ReadCompatElementOptional(Func<object?> key)
+        {
+            return isNullish(_value) ? undefined() : ReadCompatElement(key());
+        }
+
         public TsValue WriteCompatElement(object? key, object? value)
         {
             return WriteCompatSlot(propertyKey(key), value);
@@ -148,8 +158,58 @@ namespace Tsonic.CSharp.Js
 
         public TsValue InvokeCompat(params object?[] arguments)
         {
+            return invokeCompatWithThis(undefined(), arguments);
+        }
+
+        public TsValue InvokeCompatOptional(Func<object?[]> arguments)
+        {
+            return isNullish(_value)
+                ? undefined()
+                : invokeCompatWithThis(undefined(), arguments());
+        }
+
+        public TsValue InvokeCompatSlot(
+            string key,
+            bool optionalReceiver,
+            bool optionalCall,
+            Func<object?[]> arguments)
+        {
+            if (optionalReceiver && isNullish(_value))
+            {
+                return undefined();
+            }
+            var callee = ReadCompatSlot(key);
+            if (optionalCall && isNullish(callee))
+            {
+                return undefined();
+            }
+            return callee.invokeCompatWithThis(this, arguments());
+        }
+
+        public TsValue InvokeCompatElement(
+            Func<object?> key,
+            bool optionalReceiver,
+            bool optionalCall,
+            Func<object?[]> arguments)
+        {
+            if (optionalReceiver && isNullish(_value))
+            {
+                return undefined();
+            }
+            var callee = ReadCompatElement(key());
+            if (optionalCall && isNullish(callee))
+            {
+                return undefined();
+            }
+            return callee.invokeCompatWithThis(this, arguments());
+        }
+
+        private TsValue invokeCompatWithThis(
+            TsValue receiver,
+            object?[] arguments)
+        {
             return unwrapForOperation(_value) is TsFunction target
-                ? target.InvokeCompat(arguments)
+                ? target.InvokeCompatWithThis(receiver, arguments)
                 : throw new TypeError("Value is not callable.");
         }
 
@@ -169,9 +229,17 @@ namespace Tsonic.CSharp.Js
                 "*" => from(toNumber(left) * toNumber(right)),
                 "/" => from(toNumber(left) / toNumber(right)),
                 "%" => from(toNumber(left) % toNumber(right)),
-                "??" => isNullish(left) ? from(right) : from(left),
-                "&&" => truthy(left) ? from(right) : from(left),
-                "||" => truthy(left) ? from(left) : from(right),
+                _ => throw unsupportedOperator(op)
+            };
+        }
+
+        public static TsValue ApplyCompatLogical(object? left, string op, Func<object?> right)
+        {
+            return op switch
+            {
+                "??" => isNullish(left) ? from(right()) : from(left),
+                "&&" => truthy(left) ? from(right()) : from(left),
+                "||" => truthy(left) ? from(left) : from(right()),
                 _ => throw unsupportedOperator(op)
             };
         }
@@ -231,6 +299,11 @@ namespace Tsonic.CSharp.Js
                 TsFunction => "function",
                 _ => "object"
             };
+        }
+
+        public static bool ToCompatBoolean(object? value)
+        {
+            return truthy(value);
         }
 
         public static T CastCompat<T>(object? value)

@@ -29,7 +29,9 @@ namespace Tsonic.CSharp.Js.Tests
             var union = Assert.IsType<TsUnion>(value.unwrap());
 
             Assert.Same(JSUndefined.value, union.value().unwrap());
-            Assert.Equal("fallback", TsValue.ApplyCompatBinary(value, "??", "fallback").unwrap());
+            Assert.Equal(
+                "fallback",
+                TsValue.ApplyCompatLogical(value, "??", () => "fallback").unwrap());
             Assert.Equal("undefined", TsValue.ApplyCompatTypeof(value));
         }
 
