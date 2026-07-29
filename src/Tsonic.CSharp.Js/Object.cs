@@ -95,115 +95,115 @@ public static class Object
         throw new NotSupportedException("Object helpers require a closed JS object carrier.");
     }
 
-    public static List<string> keys(object? value)
+    public static JSArray<string> keys(object? value)
     {
-        var result = new List<string>();
+        var result = new JSArray<string>();
         foreach (var pair in Enumerate(value))
         {
-            result.Add(pair.Key);
+            result.push(pair.Key);
         }
 
         return result;
     }
 
-    public static List<string> keys<TValue>(Dictionary<string, TValue> value)
+    public static JSArray<string> keys<TValue>(Dictionary<string, TValue> value)
     {
         return keys((IReadOnlyDictionary<string, TValue>)value);
     }
 
-    public static List<string> keys<TValue>(IDictionary<string, TValue> value)
+    public static JSArray<string> keys<TValue>(IDictionary<string, TValue> value)
     {
-        var result = new List<string>();
+        var result = new JSArray<string>();
         foreach (var pair in EnumerateDictionary(value))
         {
-            result.Add(pair.Key);
+            result.push(pair.Key);
         }
 
         return result;
     }
 
-    public static List<string> keys<TValue>(IReadOnlyDictionary<string, TValue> value)
+    public static JSArray<string> keys<TValue>(IReadOnlyDictionary<string, TValue> value)
     {
-        var result = new List<string>();
+        var result = new JSArray<string>();
         foreach (var pair in EnumerateDictionary(value))
         {
-            result.Add(pair.Key);
+            result.push(pair.Key);
         }
 
         return result;
     }
 
-    public static List<object?> values(object? value)
+    public static JSArray<object?> values(object? value)
     {
-        var result = new List<object?>();
+        var result = new JSArray<object?>();
         foreach (var pair in Enumerate(value))
         {
-            result.Add(pair.Value);
+            result.push(pair.Value);
         }
 
         return result;
     }
 
-    public static List<TValue> values<TValue>(Dictionary<string, TValue> value)
+    public static JSArray<TValue> values<TValue>(Dictionary<string, TValue> value)
     {
         return values((IReadOnlyDictionary<string, TValue>)value);
     }
 
-    public static List<TValue> values<TValue>(IDictionary<string, TValue> value)
+    public static JSArray<TValue> values<TValue>(IDictionary<string, TValue> value)
     {
-        var result = new List<TValue>();
+        var result = new JSArray<TValue>();
         foreach (var pair in EnumerateDictionary(value))
         {
-            result.Add(pair.Value);
+            result.push(pair.Value);
         }
 
         return result;
     }
 
-    public static List<TValue> values<TValue>(IReadOnlyDictionary<string, TValue> value)
+    public static JSArray<TValue> values<TValue>(IReadOnlyDictionary<string, TValue> value)
     {
-        var result = new List<TValue>();
+        var result = new JSArray<TValue>();
         foreach (var pair in EnumerateDictionary(value))
         {
-            result.Add(pair.Value);
+            result.push(pair.Value);
         }
 
         return result;
     }
 
-    public static List<(string key, object? value)> entries(object? value)
+    public static JSArray<(string key, object? value)> entries(object? value)
     {
-        var result = new List<(string key, object? value)>();
+        var result = new JSArray<(string key, object? value)>();
         foreach (var pair in Enumerate(value))
         {
-            result.Add((pair.Key, pair.Value));
+            result.push((pair.Key, pair.Value));
         }
 
         return result;
     }
 
-    public static List<(string key, TValue value)> entries<TValue>(Dictionary<string, TValue> value)
+    public static JSArray<(string key, TValue value)> entries<TValue>(Dictionary<string, TValue> value)
     {
         return entries((IReadOnlyDictionary<string, TValue>)value);
     }
 
-    public static List<(string key, TValue value)> entries<TValue>(IDictionary<string, TValue> value)
+    public static JSArray<(string key, TValue value)> entries<TValue>(IDictionary<string, TValue> value)
     {
-        var result = new List<(string key, TValue value)>();
+        var result = new JSArray<(string key, TValue value)>();
         foreach (var pair in EnumerateDictionary(value))
         {
-            result.Add((pair.Key, pair.Value));
+            result.push((pair.Key, pair.Value));
         }
 
         return result;
     }
 
-    public static List<(string key, TValue value)> entries<TValue>(IReadOnlyDictionary<string, TValue> value)
+    public static JSArray<(string key, TValue value)> entries<TValue>(IReadOnlyDictionary<string, TValue> value)
     {
-        var result = new List<(string key, TValue value)>();
+        var result = new JSArray<(string key, TValue value)>();
         foreach (var pair in EnumerateDictionary(value))
         {
-            result.Add((pair.Key, pair.Value));
+            result.push((pair.Key, pair.Value));
         }
 
         return result;
@@ -217,6 +217,33 @@ public static class Object
         }
 
         return value.hasOwnProperty(key);
+    }
+
+    public static string toString(object? value)
+    {
+        value = UnwrapClosedValue(value);
+        return value switch
+        {
+            null => "[object Null]",
+            JSUndefined => "[object Undefined]",
+            string text => text,
+            bool boolean => BooleanOps.toString(boolean),
+            byte number => Number.toString(number),
+            sbyte number => Number.toString(number),
+            short number => Number.toString(number),
+            ushort number => Number.toString(number),
+            int number => Number.toString(number),
+            uint number => Number.toString(number),
+            long number => Number.toString(number),
+            ulong number => Number.toString(number),
+            float number => Number.toString(number),
+            double number => Number.toString(number),
+            decimal number => Number.toString((double)number),
+            Date date => date.ToString(),
+            RegExp regexp => regexp.ToString(),
+            IJSArray => "[object Array]",
+            _ => "[object Object]",
+        };
     }
 
     public static bool hasOwn(IJSArray value, string key)

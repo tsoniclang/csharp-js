@@ -86,7 +86,8 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var first = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             var second = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var combined = PromiseRuntime<int>.All([first.Task, second.Task]);
+            var combined = PromiseRuntime<int>.All(
+                new JSArray<Task<int>>(new[] { first.Task, second.Task }));
 
             second.SetResult(2);
             first.SetResult(1);
@@ -100,7 +101,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public async Task All_ResolvesEmptyInput()
         {
-            Assert.Empty(await PromiseRuntime<int>.All([]));
+            Assert.Empty(await PromiseRuntime<int>.All(new JSArray<Task<int>>()));
         }
 
         [Fact]
@@ -109,7 +110,8 @@ namespace Tsonic.CSharp.Js.Tests
             var pending = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             var expected = new InvalidOperationException("first rejection");
             var rejected = Task.FromException<int>(expected);
-            var combined = PromiseRuntime<int>.All([pending.Task, rejected]);
+            var combined = PromiseRuntime<int>.All(
+                new JSArray<Task<int>>(new[] { pending.Task, rejected }));
 
             var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await combined.WaitAsync(TimeSpan.FromSeconds(1)));
@@ -121,7 +123,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public async Task All_RejectsNullTaskCarrier()
         {
-            var combined = PromiseRuntime<int>.All([null!]);
+            var combined = PromiseRuntime<int>.All(
+                new JSArray<Task<int>>(new Task<int>[] { null! }));
 
             await Assert.ThrowsAsync<TypeError>(async () => await combined);
         }
@@ -130,7 +133,8 @@ namespace Tsonic.CSharp.Js.Tests
         public async Task All_MapsCancellationToRejection()
         {
             var canceled = Task.FromCanceled<int>(new System.Threading.CancellationToken(true));
-            var combined = PromiseRuntime<int>.All([canceled]);
+            var combined = PromiseRuntime<int>.All(
+                new JSArray<Task<int>>(new[] { canceled }));
 
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await combined);
         }

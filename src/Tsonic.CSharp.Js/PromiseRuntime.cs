@@ -79,20 +79,24 @@ namespace Tsonic.CSharp.Js
             return completion.Task;
         }
 
-        public static Task<T[]> All(Task<T>[] values)
+        public static Task<JSArray<T>> All(JSArray<Task<T>> values)
         {
             ArgumentNullException.ThrowIfNull(values);
 
-            var tasks = (Task<T>[])values.Clone();
-            var completion = new TaskCompletionSource<T[]>(
+            var tasks = new Task<T>[values.length];
+            for (var index = 0; index < values.length; index++)
+            {
+                tasks[index] = values[index];
+            }
+            var completion = new TaskCompletionSource<JSArray<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
             if (tasks.Length == 0)
             {
-                completion.TrySetResult(System.Array.Empty<T>());
+                completion.TrySetResult(new JSArray<T>());
                 return completion.Task;
             }
 
-            var results = new T[tasks.Length];
+            var results = new JSArray<T>(tasks.Length);
             var remaining = tasks.Length;
             for (var index = 0; index < tasks.Length; index++)
             {

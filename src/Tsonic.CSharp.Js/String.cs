@@ -277,7 +277,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Split string into array
         /// </summary>
-        public static List<string> split(this string str, string separator, int? limit = null)
+        public static JSArray<string> split(this string str, string separator, int? limit = null)
         {
             // Handle empty separator - split into individual characters (JS behavior)
             if (separator == "")
@@ -290,14 +290,14 @@ namespace Tsonic.CSharp.Js
             return applySplitLimit(parts, limit);
         }
 
-        private static List<string> applySplitLimit(IEnumerable<string> parts, int? limit)
+        private static JSArray<string> applySplitLimit(IEnumerable<string> parts, int? limit)
         {
             if (!limit.HasValue || limit.Value < 0)
             {
-                return parts.ToList();
+                return JSArray<string>.from(parts);
             }
 
-            return parts.Take(limit.Value).ToList();
+            return JSArray<string>.from(parts.Take(limit.Value));
         }
 
         /// <summary>

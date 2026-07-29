@@ -6,23 +6,47 @@ namespace Tsonic.CSharp.Js;
 
 public sealed class RegExp
 {
+    public static RegExp create(object pattern, string? flags = null)
+    {
+        return new RegExp(pattern, flags);
+    }
+
     private readonly Regex _regex;
+    private readonly string _pattern;
     private readonly string _source;
     private readonly RegExpFlags _flags;
     private int _lastIndex;
 
     public RegExp(string pattern)
-        : this(pattern, string.Empty)
+        : this((object)pattern, null)
     {
     }
 
     public RegExp(string pattern, string? flags)
+        : this((object)pattern, flags)
+    {
+    }
+
+    public RegExp(object pattern, string? flags = null)
     {
         ArgumentNullException.ThrowIfNull(pattern);
 
-        _flags = RegExpFlags.Parse(flags);
-        var runtimePattern = RegExpPatternValidator.TransformSupportedSubset(pattern, _flags.DotAll);
-        _source = EscapeSource(pattern);
+        var sourcePattern = pattern switch
+        {
+            string text => text,
+            RegExp regexp => regexp._pattern,
+            _ => throw new TypeError("RegExp pattern must be a string or RegExp carrier."),
+        };
+        var sourceFlags = pattern is RegExp existing && flags is null
+            ? existing.flags
+            : flags;
+
+        _flags = RegExpFlags.Parse(sourceFlags);
+        _pattern = sourcePattern;
+        var runtimePattern = RegExpPatternValidator.TransformSupportedSubset(
+            sourcePattern,
+            _flags.DotAll);
+        _source = EscapeSource(sourcePattern);
         _lastIndex = 0;
 
         try
