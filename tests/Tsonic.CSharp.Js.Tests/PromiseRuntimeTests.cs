@@ -25,6 +25,35 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public async Task Create_AssimilatesTypedTask()
+        {
+            var nested = new TaskCompletionSource<int>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var task = PromiseRuntime<int>.Create(
+                (resolve, _) => resolve(nested.Task));
+
+            Assert.False(task.IsCompleted);
+            nested.SetResult(42);
+
+            Assert.Equal(42, await task);
+        }
+
+        [Fact]
+        public async Task Create_AssimilatesVoidTask()
+        {
+            var nested = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var task = PromiseRuntime.Create(
+                (resolve, _) => resolve(nested.Task));
+
+            Assert.False(task.IsCompleted);
+            nested.SetResult();
+            await task;
+
+            Assert.True(task.IsCompletedSuccessfully);
+        }
+
+        [Fact]
         public async Task Create_UsesFirstSettlement()
         {
             var task = PromiseRuntime<int>.Create((resolve, reject) =>

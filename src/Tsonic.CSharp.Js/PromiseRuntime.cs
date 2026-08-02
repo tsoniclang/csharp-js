@@ -1,12 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Js
 {
     public delegate void PromiseResolve(object? value = null);
 
-    public delegate void PromiseResolve<T>(T value);
+    public delegate void PromiseResolve<T>(Union<T, Task<T>> value);
 
     public delegate void PromiseReject(object? reason = null);
 
@@ -34,7 +35,27 @@ namespace Tsonic.CSharp.Js
             var completion = new TaskCompletionSource(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void Resolve(object? _ = null) => completion.TrySetResult();
+            void Resolve(object? value = null)
+            {
+                if (value is Task task)
+                {
+                    _ = CompleteFromTask(task);
+                    return;
+                }
+                completion.TrySetResult();
+            }
+            async Task CompleteFromTask(Task task)
+            {
+                try
+                {
+                    await task.ConfigureAwait(false);
+                    completion.TrySetResult();
+                }
+                catch (Exception exception)
+                {
+                    completion.TrySetException(exception);
+                }
+            }
             void Reject(object? reason = null) => completion.TrySetException(ToException(reason));
 
             try
@@ -64,7 +85,35 @@ namespace Tsonic.CSharp.Js
             var completion = new TaskCompletionSource<T>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void Resolve(T value) => completion.TrySetResult(value);
+            void Resolve(Union<T, Task<T>> value)
+            {
+                ArgumentNullException.ThrowIfNull(value);
+                if (value.Is1())
+                {
+                    completion.TrySetResult(value.As1());
+                    return;
+                }
+                var task = value.As2();
+                if (task is null)
+                {
+                    completion.TrySetException(
+                        new TypeError("Promise resolve received a null Task carrier."));
+                    return;
+                }
+                _ = CompleteFromTask(task);
+            }
+            async Task CompleteFromTask(Task<T> task)
+            {
+                try
+                {
+                    completion.TrySetResult(
+                        await task.ConfigureAwait(false));
+                }
+                catch (Exception exception)
+                {
+                    completion.TrySetException(exception);
+                }
+            }
             void Reject(object? reason = null) => completion.TrySetException(PromiseRuntime.ToException(reason));
 
             try
