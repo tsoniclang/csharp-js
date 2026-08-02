@@ -71,6 +71,25 @@ namespace Tsonic.CSharp.Js
             return new TsValue(JSUndefined.value);
         }
 
+        public static TsValue CreateCompatObject(params object?[] keyValues)
+        {
+            if (keyValues.Length % 2 != 0)
+            {
+                throw new ArgumentException("Compatibility object construction requires exact key/value pairs.", nameof(keyValues));
+            }
+
+            var target = new TsObject();
+            for (var index = 0; index < keyValues.Length; index += 2)
+            {
+                if (keyValues[index] is not string key)
+                {
+                    throw new ArgumentException("Compatibility object construction requires string property keys.", nameof(keyValues));
+                }
+                target.WriteCompatSlot(key, keyValues[index + 1]);
+            }
+            return from(target);
+        }
+
         public object? unwrap()
         {
             return _value;

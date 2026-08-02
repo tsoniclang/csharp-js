@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -5,6 +6,30 @@ namespace Tsonic.CSharp.Js.Tests
 {
     public class TsValueTests
     {
+        [Fact]
+        public void CreateCompatObject_BuildsOneClosedMutableCarrier()
+        {
+            var value = TsValue.CreateCompatObject(
+                "title", "first",
+                "completed", false,
+                "title", "last");
+
+            Assert.Equal("last", value.ReadCompatSlot("title").unwrap());
+            Assert.Equal(false, value.ReadCompatSlot("completed").unwrap());
+
+            value.WriteCompatSlot("title", "updated");
+            Assert.Equal("updated", value.ReadCompatSlot("title").unwrap());
+        }
+
+        [Fact]
+        public void CreateCompatObject_RejectsMalformedCompilerInput()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                TsValue.CreateCompatObject("title"));
+            Assert.Throws<ArgumentException>(() =>
+                TsValue.CreateCompatObject(1, "value"));
+        }
+
         [Fact]
         public void ReadCompatSlot_ReturnsUndefinedForMissingClosedObjectProperty()
         {
