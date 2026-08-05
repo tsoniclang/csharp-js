@@ -330,7 +330,7 @@ namespace Tsonic.CSharp.Js
             return array.join(separator);
         }
 
-        public static List<T> slice<T>(IReadOnlyList<T> array, int start = 0, int? end = null)
+        public static JSArray<T> slice<T>(IReadOnlyList<T> array, int start = 0, int? end = null)
         {
             var actualStart = normalizeStart(start, array.Count);
             var actualEnd = end ?? array.Count;
@@ -340,12 +340,12 @@ namespace Tsonic.CSharp.Js
             }
             actualEnd = SysMath.Min(actualEnd, array.Count);
             var count = SysMath.Max(0, actualEnd - actualStart);
-            var result = new List<T>(count);
+            var result = new T[count];
             for (var index = 0; index < count; index++)
             {
-                result.Add(array[actualStart + index]);
+                result[index] = array[actualStart + index];
             }
-            return result;
+            return new JSArray<T>(result);
         }
 
         public static JSArray<T> slice<T>(JSArray<T> array, int start = 0, int? end = null)
