@@ -7,11 +7,21 @@ namespace Tsonic.CSharp.Js.Tests
     public class ConsoleTests
     {
         [Fact]
-        public void log_WritesToStdout()
+        public void log_UsesJavaScriptPrimitiveFormatting()
         {
-            // Just verify it doesn't throw
-            console.log("test");
-            console.log("test", 123, true);
+            var original = Console.Out;
+            using var output = new StringWriter();
+            try
+            {
+                Console.SetOut(output);
+                console.log("test", 123, true, false, null!, Globals.undefined);
+            }
+            finally
+            {
+                Console.SetOut(original);
+            }
+
+            Assert.Equal($"test 123 true false null undefined{Environment.NewLine}", output.ToString());
         }
 
         [Fact]

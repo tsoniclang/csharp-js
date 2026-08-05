@@ -17,7 +17,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static void log(params object[] data)
         {
-            Console.WriteLine(string.Join(" ", data));
+            Console.WriteLine(formatArguments(data));
         }
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static void error(params object[] data)
         {
-            Console.Error.WriteLine(string.Join(" ", data));
+            Console.Error.WriteLine(formatArguments(data));
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static void warn(params object[] data)
         {
-            Console.WriteLine("WARN: " + string.Join(" ", data));
+            Console.WriteLine("WARN: " + formatArguments(data));
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static void info(params object[] data)
         {
-            Console.WriteLine(string.Join(" ", data));
+            Console.WriteLine(formatArguments(data));
         }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static void debug(params object[] data)
         {
-            Console.WriteLine("DEBUG: " + string.Join(" ", data));
+            Console.WriteLine("DEBUG: " + formatArguments(data));
         }
 
         /// <summary>
@@ -57,8 +57,18 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static void trace(params object[] data)
         {
-            Console.WriteLine(string.Join(" ", data));
+            Console.WriteLine(formatArguments(data));
             Console.WriteLine(new System.Diagnostics.StackTrace(true).ToString());
+        }
+
+        private static string formatArguments(object[] data)
+        {
+            var formatted = new string[data.Length];
+            for (int index = 0; index < data.Length; index++)
+            {
+                formatted[index] = Globals.String(data[index]);
+            }
+            return string.Join(" ", formatted);
         }
 
         /// <summary>
