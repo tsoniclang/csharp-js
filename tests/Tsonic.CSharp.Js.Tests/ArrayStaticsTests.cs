@@ -79,5 +79,18 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.False(JSArrayStatics.isArray("abc"));
             Assert.False(JSArrayStatics.isArray(null));
         }
+
+        [Fact]
+        public void slice_FromReadOnlyList_ReturnsJavaScriptArray()
+        {
+            IReadOnlyList<int> source = new[] { 1, 2, 3, 4 };
+
+            var result = Tsonic.CSharp.Js.Array.slice(source, 1, 3);
+
+            Assert.IsType<JSArray<int>>(result);
+            Assert.Equal(2, result.length);
+            Assert.Equal(2, result[0]);
+            Assert.Equal(3, result[1]);
+        }
     }
 }
