@@ -7,62 +7,62 @@ namespace Tsonic.CSharp.Js.Tests
     public class TsValueTests
     {
         [Fact]
-        public void CreateCompatObject_BuildsOneClosedMutableCarrier()
+        public void CreateDynamicObject_BuildsOneClosedMutableCarrier()
         {
-            var value = TsValue.CreateCompatObject(
+            var value = TsValue.CreateDynamicObject(
                 "title", "first",
                 "completed", false,
                 "title", "last");
 
-            Assert.Equal("last", value.ReadCompatSlot("title").unwrap());
-            Assert.Equal(false, value.ReadCompatSlot("completed").unwrap());
+            Assert.Equal("last", value.ReadDynamicSlot("title").unwrap());
+            Assert.Equal(false, value.ReadDynamicSlot("completed").unwrap());
 
-            value.WriteCompatSlot("title", "updated");
-            Assert.Equal("updated", value.ReadCompatSlot("title").unwrap());
+            value.WriteDynamicSlot("title", "updated");
+            Assert.Equal("updated", value.ReadDynamicSlot("title").unwrap());
         }
 
         [Fact]
-        public void CreateCompatObject_RejectsMalformedCompilerInput()
+        public void CreateDynamicObject_RejectsMalformedCompilerInput()
         {
             Assert.Throws<ArgumentException>(() =>
-                TsValue.CreateCompatObject("title"));
+                TsValue.CreateDynamicObject("title"));
             Assert.Throws<ArgumentException>(() =>
-                TsValue.CreateCompatObject(1, "value"));
+                TsValue.CreateDynamicObject(1, "value"));
         }
 
         [Fact]
-        public void ReadCompatSlot_ReturnsUndefinedForMissingClosedObjectProperty()
+        public void ReadDynamicSlot_ReturnsUndefinedForMissingClosedObjectProperty()
         {
             var value = TsValue.from(new TsObject());
 
-            var missing = value.ReadCompatSlot("missing");
+            var missing = value.ReadDynamicSlot("missing");
 
             Assert.Same(JSUndefined.value, missing.unwrap());
         }
 
         [Fact]
-        public void ReadCompatSlot_AndWriteCompatSlot_UseClosedObjectProperties()
+        public void ReadDynamicSlot_AndWriteDynamicSlot_UseClosedObjectProperties()
         {
             var value = TsValue.from(new TsObject());
 
-            var written = value.WriteCompatSlot("name", "tsonic");
-            var read = value.ReadCompatSlot("name");
+            var written = value.WriteDynamicSlot("name", "tsonic");
+            var read = value.ReadDynamicSlot("name");
 
             Assert.Equal("tsonic", written.unwrap());
             Assert.Equal("tsonic", read.unwrap());
         }
 
         [Fact]
-        public void ReadCompatSlot_PreservesPresentNullUndefinedAndMissingUndefined()
+        public void ReadDynamicSlot_PreservesPresentNullUndefinedAndMissingUndefined()
         {
             var value = TsValue.from(new TsObject());
 
-            value.WriteCompatSlot("nullValue", null);
-            value.WriteCompatSlot("undefinedValue", TsValue.undefined());
+            value.WriteDynamicSlot("nullValue", null);
+            value.WriteDynamicSlot("undefinedValue", TsValue.undefined());
 
-            Assert.Null(value.ReadCompatSlot("nullValue").unwrap());
-            Assert.Same(JSUndefined.value, value.ReadCompatSlot("undefinedValue").unwrap());
-            Assert.Same(JSUndefined.value, value.ReadCompatSlot("missing").unwrap());
+            Assert.Null(value.ReadDynamicSlot("nullValue").unwrap());
+            Assert.Same(JSUndefined.value, value.ReadDynamicSlot("undefinedValue").unwrap());
+            Assert.Same(JSUndefined.value, value.ReadDynamicSlot("missing").unwrap());
         }
 
         [Fact]
@@ -70,13 +70,13 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Same(
                 JSUndefined.value,
-                TsValue.undefined().ReadCompatSlotOptional("name").unwrap());
+                TsValue.undefined().ReadDynamicSlotOptional("name").unwrap());
             Assert.Equal(
                 "Ada",
                 TsValue.from(new TsObject(new Dictionary<string, object?>
                 {
                     ["name"] = "Ada"
-                })).ReadCompatSlotOptional("name").unwrap());
+                })).ReadDynamicSlotOptional("name").unwrap());
         }
 
         [Fact]
@@ -84,9 +84,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var value = TsValue.from(new TsObject());
 
-            value.WriteCompatElement(42, "answer");
+            value.WriteDynamicElement(42, "answer");
 
-            Assert.Equal("answer", value.ReadCompatElement("42").unwrap());
+            Assert.Equal("answer", value.ReadDynamicElement("42").unwrap());
         }
 
         [Fact]
@@ -94,11 +94,11 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var value = TsValue.from(new TsObject());
 
-            value.WriteCompatElement(null, "null-key");
-            value.WriteCompatElement(JSUndefined.value, "undefined-key");
+            value.WriteDynamicElement(null, "null-key");
+            value.WriteDynamicElement(JSUndefined.value, "undefined-key");
 
-            Assert.Equal("null-key", value.ReadCompatSlot("null").unwrap());
-            Assert.Equal("undefined-key", value.ReadCompatSlot("undefined").unwrap());
+            Assert.Equal("null-key", value.ReadDynamicSlot("null").unwrap());
+            Assert.Equal("undefined-key", value.ReadDynamicSlot("undefined").unwrap());
         }
 
         [Fact]
@@ -106,7 +106,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var evaluated = false;
 
-            var result = TsValue.undefined().ReadCompatElementOptional(() =>
+            var result = TsValue.undefined().ReadDynamicElementOptional(() =>
             {
                 evaluated = true;
                 return "name";
@@ -121,11 +121,11 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var value = TsValue.from(new TsArray());
 
-            value.WriteCompatElement(2, "third");
+            value.WriteDynamicElement(2, "third");
 
-            Assert.Equal(3, value.ReadCompatSlot("length").unwrap());
-            Assert.Same(JSUndefined.value, value.ReadCompatElement(0).unwrap());
-            Assert.Equal("third", value.ReadCompatElement(2).unwrap());
+            Assert.Equal(3, value.ReadDynamicSlot("length").unwrap());
+            Assert.Same(JSUndefined.value, value.ReadDynamicElement(0).unwrap());
+            Assert.Equal("third", value.ReadDynamicElement(2).unwrap());
         }
 
         [Fact]
@@ -136,16 +136,16 @@ namespace Tsonic.CSharp.Js.Tests
             array[1] = "middle";
             var value = TsValue.from(array);
 
-            Assert.Equal(3, value.ReadCompatSlot("length").unwrap());
-            Assert.Same(JSUndefined.value, value.ReadCompatElement(0).unwrap());
-            Assert.Equal("middle", value.ReadCompatElement(1).unwrap());
+            Assert.Equal(3, value.ReadDynamicSlot("length").unwrap());
+            Assert.Same(JSUndefined.value, value.ReadDynamicElement(0).unwrap());
+            Assert.Equal("middle", value.ReadDynamicElement(1).unwrap());
 
-            value.WriteCompatElement(2, "last");
+            value.WriteDynamicElement(2, "last");
             Assert.Equal("last", array[2]);
 
-            value.WriteCompatSlot("length", 1);
+            value.WriteDynamicSlot("length", 1);
             Assert.Equal(1, array.length);
-            Assert.Same(JSUndefined.value, value.ReadCompatElement(2).unwrap());
+            Assert.Same(JSUndefined.value, value.ReadDynamicElement(2).unwrap());
         }
 
         [Fact]
@@ -153,28 +153,28 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var value = TsValue.from(new JSArray<int>());
 
-            Assert.Throws<TypeError>(() => value.WriteCompatElement(0, "not-an-int"));
+            Assert.Throws<TypeError>(() => value.WriteDynamicElement(0, "not-an-int"));
         }
 
         [Fact]
-        public void InvokeCompat_UsesClosedFunctionCarrier()
+        public void InvokeDynamic_UsesClosedFunctionCarrier()
         {
             var function = TsValue.from(new TsFunction(args => TsValue.from((int)args[0].unwrap()! + 1)));
 
-            var result = function.InvokeCompat(41);
+            var result = function.InvokeDynamic(41);
 
             Assert.Equal(42, result.unwrap());
         }
 
         [Fact]
-        public void ReadCompatSlot_ThenInvokeCompat_UsesClosedObjectFunctionProperty()
+        public void ReadDynamicSlot_ThenInvokeDynamic_UsesClosedObjectFunctionProperty()
         {
             var target = TsValue.from(new TsObject(new Dictionary<string, object?>
             {
                 ["create"] = new TsFunction(args => TsValue.from("created:" + (string)args[0].unwrap()!))
             }));
 
-            var result = target.ReadCompatSlot("create").InvokeCompat("Ada");
+            var result = target.ReadDynamicSlot("create").InvokeDynamic("Ada");
 
             Assert.Equal("created:Ada", result.unwrap());
         }
@@ -184,16 +184,16 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var events = new List<string>();
             var target = TsValue.from(new TsObject());
-            target.WriteCompatSlot("name", "Ada");
-            target.WriteCompatSlot("greet", new TsFunction((receiver, arguments) =>
+            target.WriteDynamicSlot("name", "Ada");
+            target.WriteDynamicSlot("greet", new TsFunction((receiver, arguments) =>
             {
                 events.Add("call");
                 return TsValue.from(
-                    (string)receiver.ReadCompatSlot("name").unwrap()! +
+                    (string)receiver.ReadDynamicSlot("name").unwrap()! +
                     (string)arguments[0].unwrap()!);
             }));
 
-            var result = target.InvokeCompatSlot(
+            var result = target.InvokeDynamicSlot(
                 "greet",
                 optionalReceiver: false,
                 optionalCall: false,
@@ -213,7 +213,7 @@ namespace Tsonic.CSharp.Js.Tests
             var keyEvaluated = false;
             var argumentsEvaluated = false;
 
-            var receiverResult = TsValue.undefined().InvokeCompatElement(
+            var receiverResult = TsValue.undefined().InvokeDynamicElement(
                 () =>
                 {
                     keyEvaluated = true;
@@ -232,7 +232,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.False(argumentsEvaluated);
 
             var target = TsValue.from(new TsObject());
-            var callResult = target.InvokeCompatSlot(
+            var callResult = target.InvokeDynamicSlot(
                 "missing",
                 optionalReceiver: false,
                 optionalCall: true,
@@ -251,7 +251,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var evaluated = false;
 
-            var result = TsValue.undefined().InvokeCompatOptional(() =>
+            var result = TsValue.undefined().InvokeDynamicOptional(() =>
             {
                 evaluated = true;
                 return System.Array.Empty<object?>();
@@ -262,7 +262,7 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void ConstructCompat_UsesClosedConstructorCarrier()
+        public void ConstructDynamic_UsesClosedConstructorCarrier()
         {
             var function = TsValue.from(new TsFunction(
                 args => TsValue.from(args.Count),
@@ -271,9 +271,9 @@ namespace Tsonic.CSharp.Js.Tests
                     ["count"] = args.Count
                 }))));
 
-            var result = Assert.IsType<TsObject>(function.ConstructCompat(1, 2).unwrap());
+            var result = Assert.IsType<TsObject>(function.ConstructDynamic(1, 2).unwrap());
 
-            Assert.Equal(2, result.ReadCompatSlot("count").unwrap());
+            Assert.Equal(2, result.ReadDynamicSlot("count").unwrap());
         }
 
         [Fact]
@@ -281,9 +281,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var target = TsValue.from(new TsObject());
 
-            var missing = target.ReadCompatSlot("missing");
+            var missing = target.ReadDynamicSlot("missing");
 
-            Assert.Throws<TypeError>(() => missing.InvokeCompat());
+            Assert.Throws<TypeError>(() => missing.InvokeDynamic());
         }
 
         [Fact]
@@ -293,15 +293,15 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void ApplyCompatBinary_UsesClosedPrimitiveOperatorSemantics()
+        public void ApplyDynamicBinary_UsesClosedPrimitiveOperatorSemantics()
         {
-            Assert.Equal(3d, TsValue.ApplyCompatBinary(1, "+", 2).unwrap());
-            Assert.Equal("hello2", TsValue.ApplyCompatBinary("hello", "+", 2).unwrap());
-            Assert.Equal(3d, TsValue.ApplyCompatBinary("5", "-", 2).unwrap());
+            Assert.Equal(3d, TsValue.ApplyDynamicBinary(1, "+", 2).unwrap());
+            Assert.Equal("hello2", TsValue.ApplyDynamicBinary("hello", "+", 2).unwrap());
+            Assert.Equal(3d, TsValue.ApplyDynamicBinary("5", "-", 2).unwrap());
         }
 
         [Fact]
-        public void ApplyCompatLogical_PreservesShortCircuitEvaluation()
+        public void ApplyDynamicLogical_PreservesShortCircuitEvaluation()
         {
             var evaluations = 0;
             object? right()
@@ -312,110 +312,132 @@ namespace Tsonic.CSharp.Js.Tests
 
             Assert.Equal(
                 "fallback",
-                TsValue.ApplyCompatLogical(JSUndefined.value, "??", () => "fallback").unwrap());
-            Assert.Equal("right", TsValue.ApplyCompatLogical(true, "&&", right).unwrap());
-            Assert.Equal("left", TsValue.ApplyCompatLogical("left", "||", right).unwrap());
+                TsValue.ApplyDynamicLogical(JSUndefined.value, "??", () => "fallback").unwrap());
+            Assert.Equal("right", TsValue.ApplyDynamicLogical(true, "&&", right).unwrap());
+            Assert.Equal("left", TsValue.ApplyDynamicLogical("left", "||", right).unwrap());
             Assert.Equal(1, evaluations);
         }
 
         [Fact]
-        public void ApplyCompatBinaryBoolean_UsesClosedPrimitiveComparisonSemantics()
+        public void ApplyDynamicBinaryBoolean_UsesClosedPrimitiveComparisonSemantics()
         {
-            Assert.True(TsValue.ApplyCompatBinaryBoolean("2", "==", 2));
-            Assert.False(TsValue.ApplyCompatBinaryBoolean("2", "===", 2));
-            Assert.True(TsValue.ApplyCompatBinaryBoolean(2, "===", 2d));
-            Assert.True(TsValue.ApplyCompatBinaryBoolean("a", "<", "b"));
-            Assert.True(TsValue.ApplyCompatBinaryBoolean(4, ">=", "4"));
+            Assert.True(TsValue.ApplyDynamicBinaryBoolean("2", "==", 2));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean("2", "===", 2));
+            Assert.True(TsValue.ApplyDynamicBinaryBoolean(2, "===", 2d));
+            Assert.True(TsValue.ApplyDynamicBinaryBoolean("a", "<", "b"));
+            Assert.True(TsValue.ApplyDynamicBinaryBoolean(4, ">=", "4"));
         }
 
         [Fact]
-        public void ApplyCompatBinaryBoolean_DistinguishesNullAndUndefinedEquality()
+        public void ApplyDynamicBinaryBoolean_DistinguishesNullAndUndefinedEquality()
         {
-            Assert.True(TsValue.ApplyCompatBinaryBoolean(null, "==", JSUndefined.value));
-            Assert.False(TsValue.ApplyCompatBinaryBoolean(null, "===", JSUndefined.value));
-            Assert.False(TsValue.ApplyCompatBinaryBoolean(null, "==", false));
-            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, "==", false));
-            Assert.False(TsValue.ApplyCompatBinaryBoolean(null, "==", 0));
-            Assert.True(TsValue.ApplyCompatBinaryBoolean(false, "==", 0));
+            Assert.True(TsValue.ApplyDynamicBinaryBoolean(null, "==", JSUndefined.value));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "===", JSUndefined.value));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "==", false));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, "==", false));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "==", 0));
+            Assert.True(TsValue.ApplyDynamicBinaryBoolean(false, "==", 0));
         }
 
         [Fact]
-        public void ApplyCompatBinaryBoolean_UndefinedRelationalComparisonsAreFalse()
+        public void ApplyDynamicBinaryBoolean_UndefinedRelationalComparisonsAreFalse()
         {
-            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, "<", 0));
-            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, "<=", 0));
-            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, ">", 0));
-            Assert.False(TsValue.ApplyCompatBinaryBoolean(JSUndefined.value, ">=", 0));
-            Assert.True(TsValue.ApplyCompatBinaryBoolean(null, "<=", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, "<", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, "<=", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, ">", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, ">=", 0));
+            Assert.True(TsValue.ApplyDynamicBinaryBoolean(null, "<=", 0));
         }
 
         [Fact]
-        public void ApplyCompatUnary_UsesClosedPrimitiveOperatorSemantics()
+        public void ApplyDynamicUnary_UsesClosedPrimitiveOperatorSemantics()
         {
-            Assert.Equal(7d, TsValue.ApplyCompatUnary("7", "+").unwrap());
-            Assert.Equal(-7d, TsValue.ApplyCompatUnary("7", "-").unwrap());
-            Assert.Equal(~7, TsValue.ApplyCompatUnary(7, "~").unwrap());
-            Assert.True(TsValue.ApplyCompatUnaryBoolean(0, "!"));
-            Assert.False(TsValue.ApplyCompatUnaryBoolean("value", "!"));
+            Assert.Equal(7d, TsValue.ApplyDynamicUnary("7", "+").unwrap());
+            Assert.Equal(-7d, TsValue.ApplyDynamicUnary("7", "-").unwrap());
+            Assert.Equal(~7, TsValue.ApplyDynamicUnary(7, "~").unwrap());
+            Assert.True(TsValue.ApplyDynamicUnaryBoolean(0, "!"));
+            Assert.False(TsValue.ApplyDynamicUnaryBoolean("value", "!"));
         }
 
         [Fact]
-        public void ApplyCompatVoid_EvaluatesOperandAndReturnsUndefined()
+        public void ApplyDynamicVoid_EvaluatesOperandAndReturnsUndefined()
         {
-            var value = TsValue.ApplyCompatVoid(TsValue.from(42));
+            var value = TsValue.ApplyDynamicVoid(TsValue.from(42));
 
             Assert.Same(JSUndefined.value, value.unwrap());
         }
 
         [Fact]
-        public void ApplyCompatTypeof_UsesClosedCarrierRuntimeKinds()
+        public void ApplyDynamicTypeof_UsesClosedCarrierRuntimeKinds()
         {
-            Assert.Equal("undefined", TsValue.ApplyCompatTypeof(TsValue.undefined()));
-            Assert.Equal("object", TsValue.ApplyCompatTypeof(null));
-            Assert.Equal("boolean", TsValue.ApplyCompatTypeof(true));
-            Assert.Equal("number", TsValue.ApplyCompatTypeof(1));
-            Assert.Equal("string", TsValue.ApplyCompatTypeof("value"));
-            Assert.Equal("function", TsValue.ApplyCompatTypeof(new TsFunction(_ => TsValue.undefined())));
-            Assert.Equal("object", TsValue.ApplyCompatTypeof(new TsObject()));
-            Assert.Equal("object", TsValue.ApplyCompatTypeof(new TsArray()));
+            Assert.Equal("undefined", TsValue.ApplyDynamicTypeof(TsValue.undefined()));
+            Assert.Equal("object", TsValue.ApplyDynamicTypeof(null));
+            Assert.Equal("boolean", TsValue.ApplyDynamicTypeof(true));
+            Assert.Equal("number", TsValue.ApplyDynamicTypeof(1));
+            Assert.Equal("string", TsValue.ApplyDynamicTypeof("value"));
+            Assert.Equal("function", TsValue.ApplyDynamicTypeof(new TsFunction(_ => TsValue.undefined())));
+            Assert.Equal("object", TsValue.ApplyDynamicTypeof(new TsObject()));
+            Assert.Equal("object", TsValue.ApplyDynamicTypeof(new TsArray()));
         }
 
         [Fact]
-        public void ToCompatBoolean_UsesClosedJavaScriptTruthiness()
+        public void ToDynamicBoolean_UsesClosedJavaScriptTruthiness()
         {
-            Assert.False(TsValue.ToCompatBoolean(TsValue.undefined()));
-            Assert.False(TsValue.ToCompatBoolean(null));
-            Assert.False(TsValue.ToCompatBoolean(""));
-            Assert.False(TsValue.ToCompatBoolean(0));
-            Assert.True(TsValue.ToCompatBoolean("value"));
-            Assert.True(TsValue.ToCompatBoolean(new TsObject()));
+            Assert.False(TsValue.ToDynamicBoolean(TsValue.undefined()));
+            Assert.False(TsValue.ToDynamicBoolean(null));
+            Assert.False(TsValue.ToDynamicBoolean(""));
+            Assert.False(TsValue.ToDynamicBoolean(0));
+            Assert.True(TsValue.ToDynamicBoolean("value"));
+            Assert.True(TsValue.ToDynamicBoolean(new TsObject()));
         }
 
         [Fact]
-        public void ApplyCompatOperator_RejectsUnsupportedOperatorsDeterministically()
+        public void IsDynamicInstanceOf_UsesTheClosedWrappedCarrier()
         {
-            Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyCompatBinary(1, "<<", 2));
-            Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyCompatUnary(1, "delete"));
+            var exception = new FormatException("invalid");
+            var value = TsValue.from(exception);
+
+            Assert.True(TsValue.IsDynamicInstanceOf<FormatException>(value));
+            Assert.True(TsValue.IsDynamicInstanceOf<Exception>(value));
+            Assert.False(TsValue.IsDynamicInstanceOf<ArgumentException>(value));
         }
 
         [Fact]
-        public void CastCompat_ReturnsClosedTypedCarrierValue()
+        public void ThrownValueConversion_PreservesNativeExceptionIdentity()
         {
-            Assert.Equal(42, TsValue.CastCompat<int>(TsValue.from(42)));
-            Assert.Equal("Ada", TsValue.CastCompat<string>(TsValue.from("Ada")));
+            var exception = new FormatException("invalid");
+            var value = TsThrownValueException.toValue(exception);
+
+            Assert.Same(exception, value.unwrap());
+            Assert.Same(exception, TsThrownValueException.from(value));
+            Assert.Equal("invalid", value.ReadDynamicSlot("message").unwrap());
         }
 
         [Fact]
-        public void CastCompat_AllowsNullishOnlyForNullableOrReferenceTargets()
+        public void ApplyDynamicOperator_RejectsUnsupportedOperatorsDeterministically()
         {
-            Assert.Null(TsValue.CastCompat<string>(TsValue.undefined()));
-            Assert.Throws<TypeError>(() => TsValue.CastCompat<int>(TsValue.undefined()));
+            Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyDynamicBinary(1, "<<", 2));
+            Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyDynamicUnary(1, "delete"));
         }
 
         [Fact]
-        public void CastCompat_RejectsMismatchedClosedCarrierDeterministically()
+        public void CastDynamic_ReturnsClosedTypedCarrierValue()
         {
-            Assert.Throws<TypeError>(() => TsValue.CastCompat<int>(TsValue.from("42")));
+            Assert.Equal(42, TsValue.CastDynamic<int>(TsValue.from(42)));
+            Assert.Equal("Ada", TsValue.CastDynamic<string>(TsValue.from("Ada")));
+        }
+
+        [Fact]
+        public void CastDynamic_AllowsNullishOnlyForNullableOrReferenceTargets()
+        {
+            Assert.Null(TsValue.CastDynamic<string>(TsValue.undefined()));
+            Assert.Throws<TypeError>(() => TsValue.CastDynamic<int>(TsValue.undefined()));
+        }
+
+        [Fact]
+        public void CastDynamic_RejectsMismatchedClosedCarrierDeterministically()
+        {
+            Assert.Throws<TypeError>(() => TsValue.CastDynamic<int>(TsValue.from("42")));
         }
     }
 }

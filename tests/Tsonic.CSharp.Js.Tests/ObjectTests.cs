@@ -207,8 +207,8 @@ namespace Tsonic.CSharp.Js.Tests
         public void keys_values_entries_UseClosedTsArrayPresentSlotsOnly()
         {
             var array = new TsArray();
-            array.WriteCompatElement(2, "third");
-            array.WriteCompatElement(1, JSUndefined.value);
+            array.WriteDynamicElement(2, "third");
+            array.WriteDynamicElement(1, JSUndefined.value);
 
             Assert.Equal(new[] { "1", "2" }, JsObjectStatics.keys(TsValue.from(array)));
             Assert.Equal(new object?[] { JSUndefined.value, "third" }, JsObjectStatics.values(TsValue.from(array)));
@@ -285,8 +285,8 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var target = new JSObject();
             var source = new TsArray();
-            source.WriteCompatElement(2, "third");
-            source.WriteCompatElement(1, JSUndefined.value);
+            source.WriteDynamicElement(2, "third");
+            source.WriteDynamicElement(1, JSUndefined.value);
 
             var result = JsObjectStatics.assign(target, source);
 

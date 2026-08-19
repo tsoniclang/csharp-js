@@ -21,31 +21,31 @@ namespace Tsonic.CSharp.Js
             _construct = construct;
         }
 
-        public TsValue InvokeCompat(params object?[] arguments)
+        public TsValue InvokeDynamic(params object?[] arguments)
         {
-            return InvokeCompatWithThis(TsValue.undefined(), arguments);
+            return InvokeDynamicWithThis(TsValue.undefined(), arguments);
         }
 
-        public TsValue InvokeCompatWithThis(TsValue receiver, params object?[] arguments)
+        public TsValue InvokeDynamicWithThis(TsValue receiver, params object?[] arguments)
         {
             return _call(receiver, arguments.Select(TsValue.from).ToArray());
         }
 
-        public TsValue ConstructCompat(params object?[] arguments)
+        public TsValue ConstructDynamic(params object?[] arguments)
         {
             return _construct is null
                 ? throw new TypeError("Function value is not a constructor.")
                 : _construct(arguments.Select(TsValue.from).ToArray());
         }
 
-        public TsValue ReadCompatSlot(string key)
+        public TsValue ReadDynamicSlot(string key)
         {
-            return _properties.ReadCompatSlot(key);
+            return _properties.ReadDynamicSlot(key);
         }
 
-        public TsValue WriteCompatSlot(string key, object? value)
+        public TsValue WriteDynamicSlot(string key, object? value)
         {
-            return _properties.WriteCompatSlot(key, value);
+            return _properties.WriteDynamicSlot(key, value);
         }
     }
 }

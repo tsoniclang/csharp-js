@@ -458,7 +458,7 @@ namespace Tsonic.CSharp.Js
         }
 
         /// <summary>
-        /// Get substring from start (deprecated but still used)
+        /// Get the substring beginning at the supplied index.
         /// </summary>
         public static string substr(this string str, int start, int? length = null)
         {

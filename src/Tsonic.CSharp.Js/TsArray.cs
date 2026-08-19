@@ -44,28 +44,28 @@ namespace Tsonic.CSharp.Js
 
         public int length => _values.Count;
 
-        public TsValue ReadCompatSlot(string key)
+        public TsValue ReadDynamicSlot(string key)
         {
-            return key == "length" ? TsValue.from(length) : ReadCompatElement(key);
+            return key == "length" ? TsValue.from(length) : ReadDynamicElement(key);
         }
 
-        public TsValue WriteCompatSlot(string key, object? value)
+        public TsValue WriteDynamicSlot(string key, object? value)
         {
             if (key == "length")
             {
                 Resize(toArrayIndex(value));
                 return TsValue.from(length);
             }
-            return WriteCompatElement(key, value);
+            return WriteDynamicElement(key, value);
         }
 
-        public TsValue ReadCompatElement(object? key)
+        public TsValue ReadDynamicElement(object? key)
         {
             var index = toArrayIndex(key);
             return index >= 0 && index < _values.Count ? _values[index].Value : TsValue.undefined();
         }
 
-        public TsValue WriteCompatElement(object? key, object? value)
+        public TsValue WriteDynamicElement(object? key, object? value)
         {
             var index = toArrayIndex(key);
             if (index < 0)

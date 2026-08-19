@@ -76,7 +76,7 @@ internal static class RegExpPatternValidator
             case '7':
             case '8':
             case '9':
-                throw new JsRegExpUnsupportedException("Numeric backreferences and legacy numeric escapes are not in the proven RegExp subset.");
+                throw new JsRegExpUnsupportedException("Numeric backreferences and Annex B numeric escapes are not in the proven RegExp subset.");
             default:
                 return slashIndex + 1;
         }
