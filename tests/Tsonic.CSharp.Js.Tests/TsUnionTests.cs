@@ -17,12 +17,12 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(2, union.ArmIndex);
             Assert.Equal(2, union.ArmCount);
             Assert.Equal("ready", union.value().unwrap());
-            Assert.Equal(5, value.ReadCompatSlot("length").unwrap());
-            Assert.Equal("string", TsValue.ApplyCompatTypeof(value));
+            Assert.Equal(5, value.ReadDynamicSlot("length").unwrap());
+            Assert.Equal("string", TsValue.ApplyDynamicTypeof(value));
         }
 
         [Fact]
-        public void RuntimeUnionBoxing_PreservesUndefinedArmThroughCompatOperators()
+        public void RuntimeUnionBoxing_PreservesUndefinedArmThroughDynamicOperators()
         {
             var value = TsValue.from(TsUnion.From(1, 2, JSUndefined.value));
 
@@ -31,8 +31,8 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Same(JSUndefined.value, union.value().unwrap());
             Assert.Equal(
                 "fallback",
-                TsValue.ApplyCompatLogical(value, "??", () => "fallback").unwrap());
-            Assert.Equal("undefined", TsValue.ApplyCompatTypeof(value));
+                TsValue.ApplyDynamicLogical(value, "??", () => "fallback").unwrap());
+            Assert.Equal("undefined", TsValue.ApplyDynamicTypeof(value));
         }
 
         [Fact]
@@ -44,50 +44,50 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void CastCompat_ConvertsClosedTsUnionCarrierToRuntimeUnion()
+        public void CastDynamic_ConvertsClosedTsUnionCarrierToRuntimeUnion()
         {
             var value = TsValue.from(TsUnion.From(2, 2, "ready"));
 
-            var union = TsUnion.CastCompat<int, string>(value);
+            var union = TsUnion.CastDynamic<int, string>(value);
 
             Assert.True(union.Is2());
             Assert.Equal("ready", union.As2());
         }
 
         [Fact]
-        public void CastCompat_PreservesClosedHigherArityUnionArm()
+        public void CastDynamic_PreservesClosedHigherArityUnionArm()
         {
             var value = TsValue.from(TsUnion.From(8, 8, "last"));
 
-            var union = TsUnion.CastCompat<int, bool, double, string, byte, short, long, string>(value);
+            var union = TsUnion.CastDynamic<int, bool, double, string, byte, short, long, string>(value);
 
             Assert.True(union.Is8());
             Assert.Equal("last", union.As8());
         }
 
         [Fact]
-        public void CastCompat_ConvertsRawClosedArmValueToRuntimeUnion()
+        public void CastDynamic_ConvertsRawClosedArmValueToRuntimeUnion()
         {
-            var union = TsUnion.CastCompat<int, string>(42);
+            var union = TsUnion.CastDynamic<int, string>(42);
 
             Assert.True(union.Is1());
             Assert.Equal(42, union.As1());
         }
 
         [Fact]
-        public void CastCompat_RejectsMismatchedClosedUnionArmCount()
+        public void CastDynamic_RejectsMismatchedClosedUnionArmCount()
         {
             var value = TsValue.from(TsUnion.From(3, 3, "extra"));
 
-            Assert.Throws<TypeError>(() => TsUnion.CastCompat<int, string>(value));
+            Assert.Throws<TypeError>(() => TsUnion.CastDynamic<int, string>(value));
         }
 
         [Fact]
-        public void CastCompat_RejectsMismatchedClosedUnionArmCarrier()
+        public void CastDynamic_RejectsMismatchedClosedUnionArmCarrier()
         {
             var value = TsValue.from(TsUnion.From(2, 2, 42));
 
-            Assert.Throws<TypeError>(() => TsUnion.CastCompat<bool, string>(value));
+            Assert.Throws<TypeError>(() => TsUnion.CastDynamic<bool, string>(value));
         }
 
         [Fact]
@@ -99,14 +99,14 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void CompatOperators_RejectOpenClrObjectsBeforeFallback()
+        public void DynamicOperators_RejectOpenClrObjectsBeforeFallback()
         {
             var value = new OpenClrObject();
 
-            Assert.Throws<NotSupportedException>(() => TsValue.ApplyCompatTypeof(value));
-            Assert.Throws<NotSupportedException>(() => TsValue.ApplyCompatBinary(value, "+", 1));
-            Assert.Throws<NotSupportedException>(() => TsValue.ApplyCompatBinaryBoolean(value, "===", value));
-            Assert.Throws<NotSupportedException>(() => TsValue.ApplyCompatUnaryBoolean(value, "!"));
+            Assert.Throws<NotSupportedException>(() => TsValue.ApplyDynamicTypeof(value));
+            Assert.Throws<NotSupportedException>(() => TsValue.ApplyDynamicBinary(value, "+", 1));
+            Assert.Throws<NotSupportedException>(() => TsValue.ApplyDynamicBinaryBoolean(value, "===", value));
+            Assert.Throws<NotSupportedException>(() => TsValue.ApplyDynamicUnaryBoolean(value, "!"));
         }
 
         private sealed class OpenClrObject

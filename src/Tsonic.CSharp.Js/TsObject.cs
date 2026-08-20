@@ -19,26 +19,26 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        public TsValue ReadCompatSlot(string key)
+        public TsValue ReadDynamicSlot(string key)
         {
             return _properties.TryGetValue(key, out var value) ? value : TsValue.undefined();
         }
 
-        public TsValue WriteCompatSlot(string key, object? value)
+        public TsValue WriteDynamicSlot(string key, object? value)
         {
             var stored = TsValue.from(value);
             _properties[key] = stored;
             return stored;
         }
 
-        public TsValue ReadCompatElement(object? key)
+        public TsValue ReadDynamicElement(object? key)
         {
-            return ReadCompatSlot(TsValue.propertyKey(key));
+            return ReadDynamicSlot(TsValue.propertyKey(key));
         }
 
-        public TsValue WriteCompatElement(object? key, object? value)
+        public TsValue WriteDynamicElement(object? key, object? value)
         {
-            return WriteCompatSlot(TsValue.propertyKey(key), value);
+            return WriteDynamicSlot(TsValue.propertyKey(key), value);
         }
 
         public IReadOnlyList<KeyValuePair<string, object?>> entries()

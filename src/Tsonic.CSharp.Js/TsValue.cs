@@ -6,7 +6,7 @@ using Tsonic.CSharp.Runtime;
 namespace Tsonic.CSharp.Js
 {
     /// <summary>
-    /// Closed compatibility carrier for JavaScript values whose static TypeScript source type is broad.
+    /// Closed JS-value carrier for JavaScript values whose static TypeScript source type is broad.
     /// </summary>
     public readonly struct TsValue
     {
@@ -71,11 +71,11 @@ namespace Tsonic.CSharp.Js
             return new TsValue(JSUndefined.value);
         }
 
-        public static TsValue CreateCompatObject(params object?[] keyValues)
+        public static TsValue CreateDynamicObject(params object?[] keyValues)
         {
             if (keyValues.Length % 2 != 0)
             {
-                throw new ArgumentException("Compatibility object construction requires exact key/value pairs.", nameof(keyValues));
+                throw new ArgumentException("Dynamic object construction requires exact key/value pairs.", nameof(keyValues));
             }
 
             var target = new TsObject();
@@ -83,9 +83,9 @@ namespace Tsonic.CSharp.Js
             {
                 if (keyValues[index] is not string key)
                 {
-                    throw new ArgumentException("Compatibility object construction requires string property keys.", nameof(keyValues));
+                    throw new ArgumentException("Dynamic object construction requires string property keys.", nameof(keyValues));
                 }
-                target.WriteCompatSlot(key, keyValues[index + 1]);
+                target.WriteDynamicSlot(key, keyValues[index + 1]);
             }
             return from(target);
         }
@@ -95,16 +95,17 @@ namespace Tsonic.CSharp.Js
             return _value;
         }
 
-        public TsValue ReadCompatSlot(string key)
+        public TsValue ReadDynamicSlot(string key)
         {
             return unwrapForOperation(_value) switch
             {
                 JSUndefined => throw nullishReadError(key),
                 null => throw nullishReadError(key),
-                TsObject target => target.ReadCompatSlot(key),
-                TsArray target => target.ReadCompatSlot(key),
-                TsFunction target => target.ReadCompatSlot(key),
+                TsObject target => target.ReadDynamicSlot(key),
+                TsArray target => target.ReadDynamicSlot(key),
+                TsFunction target => target.ReadDynamicSlot(key),
                 Error target => readErrorSlot(target, key),
+                Exception target => readExceptionSlot(target, key),
                 JSObject target => target.hasOwnProperty(key) ? from(target[key]) : undefined(),
                 IDictionary<string, object?> target => target.TryGetValue(key, out var value) ? from(value) : undefined(),
                 IReadOnlyDictionary<string, object?> target => target.TryGetValue(key, out var value) ? from(value) : undefined(),
@@ -115,17 +116,17 @@ namespace Tsonic.CSharp.Js
             };
         }
 
-        public T ReadCompatSlotAs<T>(string key)
+        public T ReadDynamicSlotAs<T>(string key)
         {
-            return CastCompat<T>(ReadCompatSlot(key));
+            return CastDynamic<T>(ReadDynamicSlot(key));
         }
 
-        public TsValue ReadCompatSlotOptional(string key)
+        public TsValue ReadDynamicSlotOptional(string key)
         {
-            return isNullish(_value) ? undefined() : ReadCompatSlot(key);
+            return isNullish(_value) ? undefined() : ReadDynamicSlot(key);
         }
 
-        public TsValue WriteCompatSlot(string key, object? value)
+        public TsValue WriteDynamicSlot(string key, object? value)
         {
             var stored = from(value);
             switch (unwrapForOperation(_value))
@@ -135,11 +136,11 @@ namespace Tsonic.CSharp.Js
                 case null:
                     throw nullishWriteError(key);
                 case TsObject target:
-                    return target.WriteCompatSlot(key, stored);
+                    return target.WriteDynamicSlot(key, stored);
                 case TsArray target:
-                    return target.WriteCompatSlot(key, stored);
+                    return target.WriteDynamicSlot(key, stored);
                 case TsFunction target:
-                    return target.WriteCompatSlot(key, stored);
+                    return target.WriteDynamicSlot(key, stored);
                 case IJSArray target when key == "length":
                     target.setLength(toArrayIndex(stored.unwrap()));
                     return from(target.length);
@@ -160,34 +161,34 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        public TsValue ReadCompatElement(object? key)
+        public TsValue ReadDynamicElement(object? key)
         {
-            return ReadCompatSlot(propertyKey(key));
+            return ReadDynamicSlot(propertyKey(key));
         }
 
-        public TsValue ReadCompatElementOptional(Func<object?> key)
+        public TsValue ReadDynamicElementOptional(Func<object?> key)
         {
-            return isNullish(_value) ? undefined() : ReadCompatElement(key());
+            return isNullish(_value) ? undefined() : ReadDynamicElement(key());
         }
 
-        public TsValue WriteCompatElement(object? key, object? value)
+        public TsValue WriteDynamicElement(object? key, object? value)
         {
-            return WriteCompatSlot(propertyKey(key), value);
+            return WriteDynamicSlot(propertyKey(key), value);
         }
 
-        public TsValue InvokeCompat(params object?[] arguments)
+        public TsValue InvokeDynamic(params object?[] arguments)
         {
-            return invokeCompatWithThis(undefined(), arguments);
+            return invokeDynamicWithThis(undefined(), arguments);
         }
 
-        public TsValue InvokeCompatOptional(Func<object?[]> arguments)
+        public TsValue InvokeDynamicOptional(Func<object?[]> arguments)
         {
             return isNullish(_value)
                 ? undefined()
-                : invokeCompatWithThis(undefined(), arguments());
+                : invokeDynamicWithThis(undefined(), arguments());
         }
 
-        public TsValue InvokeCompatSlot(
+        public TsValue InvokeDynamicSlot(
             string key,
             bool optionalReceiver,
             bool optionalCall,
@@ -197,15 +198,15 @@ namespace Tsonic.CSharp.Js
             {
                 return undefined();
             }
-            var callee = ReadCompatSlot(key);
+            var callee = ReadDynamicSlot(key);
             if (optionalCall && isNullish(callee))
             {
                 return undefined();
             }
-            return callee.invokeCompatWithThis(this, arguments());
+            return callee.invokeDynamicWithThis(this, arguments());
         }
 
-        public TsValue InvokeCompatElement(
+        public TsValue InvokeDynamicElement(
             Func<object?> key,
             bool optionalReceiver,
             bool optionalCall,
@@ -215,31 +216,31 @@ namespace Tsonic.CSharp.Js
             {
                 return undefined();
             }
-            var callee = ReadCompatElement(key());
+            var callee = ReadDynamicElement(key());
             if (optionalCall && isNullish(callee))
             {
                 return undefined();
             }
-            return callee.invokeCompatWithThis(this, arguments());
+            return callee.invokeDynamicWithThis(this, arguments());
         }
 
-        private TsValue invokeCompatWithThis(
+        private TsValue invokeDynamicWithThis(
             TsValue receiver,
             object?[] arguments)
         {
             return unwrapForOperation(_value) is TsFunction target
-                ? target.InvokeCompatWithThis(receiver, arguments)
+                ? target.InvokeDynamicWithThis(receiver, arguments)
                 : throw new TypeError("Value is not callable.");
         }
 
-        public TsValue ConstructCompat(params object?[] arguments)
+        public TsValue ConstructDynamic(params object?[] arguments)
         {
             return unwrapForOperation(_value) is TsFunction target
-                ? target.ConstructCompat(arguments)
+                ? target.ConstructDynamic(arguments)
                 : throw new TypeError("Value is not a constructor.");
         }
 
-        public static TsValue ApplyCompatBinary(object? left, string op, object? right)
+        public static TsValue ApplyDynamicBinary(object? left, string op, object? right)
         {
             return op switch
             {
@@ -252,7 +253,7 @@ namespace Tsonic.CSharp.Js
             };
         }
 
-        public static TsValue ApplyCompatLogical(object? left, string op, Func<object?> right)
+        public static TsValue ApplyDynamicLogical(object? left, string op, Func<object?> right)
         {
             return op switch
             {
@@ -263,7 +264,7 @@ namespace Tsonic.CSharp.Js
             };
         }
 
-        public static bool ApplyCompatBinaryBoolean(object? left, string op, object? right)
+        public static bool ApplyDynamicBinaryBoolean(object? left, string op, object? right)
         {
             return op switch
             {
@@ -279,7 +280,7 @@ namespace Tsonic.CSharp.Js
             };
         }
 
-        public static TsValue ApplyCompatUnary(object? operand, string op)
+        public static TsValue ApplyDynamicUnary(object? operand, string op)
         {
             return op switch
             {
@@ -290,7 +291,7 @@ namespace Tsonic.CSharp.Js
             };
         }
 
-        public static bool ApplyCompatUnaryBoolean(object? operand, string op)
+        public static bool ApplyDynamicUnaryBoolean(object? operand, string op)
         {
             return op switch
             {
@@ -299,13 +300,13 @@ namespace Tsonic.CSharp.Js
             };
         }
 
-        public static TsValue ApplyCompatVoid(object? operand)
+        public static TsValue ApplyDynamicVoid(object? operand)
         {
             _ = operand;
             return undefined();
         }
 
-        public static string ApplyCompatTypeof(object? operand)
+        public static string ApplyDynamicTypeof(object? operand)
         {
             var unwrapped = unwrapForOperation(operand);
             return unwrapped switch
@@ -320,14 +321,19 @@ namespace Tsonic.CSharp.Js
             };
         }
 
-        public static bool ToCompatBoolean(object? value)
+        public static bool ToDynamicBoolean(object? value)
         {
             return truthy(value);
         }
 
-        public static T CastCompat<T>(object? value)
+        public static bool IsDynamicInstanceOf<T>(object? value)
         {
-            if (TryCastCompat<T>(value, out var typed))
+            return UnwrapDynamicCarrier(value) is T;
+        }
+
+        public static T CastDynamic<T>(object? value)
+        {
+            if (TryCastDynamic<T>(value, out var typed))
             {
                 return typed;
             }
@@ -339,9 +345,9 @@ namespace Tsonic.CSharp.Js
             throw new TypeError("TsValue cannot cross the requested typed boundary because the closed carrier value is not assignable.");
         }
 
-        internal static bool TryCastCompat<T>(object? value, out T result)
+        internal static bool TryCastDynamic<T>(object? value, out T result)
         {
-            var carrier = UnwrapCompatCarrier(value);
+            var carrier = UnwrapDynamicCarrier(value);
             if (carrier is T direct)
             {
                 result = direct;
@@ -387,6 +393,7 @@ namespace Tsonic.CSharp.Js
                 TsUnion => true,
                 TsFunction => true,
                 Error => true,
+                Exception => true,
                 JSUndefined => true,
                 IDictionary<string, object?> => true,
                 IReadOnlyDictionary<string, object?> => true,
@@ -560,6 +567,17 @@ namespace Tsonic.CSharp.Js
             };
         }
 
+        private static TsValue readExceptionSlot(Exception error, string key)
+        {
+            return key switch
+            {
+                "name" => from("Error"),
+                "message" => from(error.Message),
+                "stack" => error.StackTrace is null ? undefined() : from(error.StackTrace),
+                _ => undefined()
+            };
+        }
+
         private static bool isNullish(object? value)
         {
             var unwrapped = unwrapForOperation(value);
@@ -572,7 +590,7 @@ namespace Tsonic.CSharp.Js
             return unwrapped is double or float or decimal or int or long or uint or ulong or byte or sbyte or short or ushort;
         }
 
-        internal static object? UnwrapCompatCarrier(object? value)
+        internal static object? UnwrapDynamicCarrier(object? value)
         {
             var unwrapped = value is TsValue typed ? typed._value : value;
             if (!isSupported(unwrapped))
@@ -584,13 +602,13 @@ namespace Tsonic.CSharp.Js
 
         private static object? unwrapForOperation(object? value)
         {
-            var carrier = UnwrapCompatCarrier(value);
+            var carrier = UnwrapDynamicCarrier(value);
             return carrier is TsUnion union ? unwrapForOperation(union.value()) : carrier;
         }
 
         private static NotSupportedException unsupportedOperator(string op)
         {
-            return new NotSupportedException($"TsValue does not support JavaScript operator '{op}' in the closed compatibility runtime.");
+            return new NotSupportedException($"TsValue does not support JavaScript operator '{op}' in the closed JS-value runtime.");
         }
 
         internal static string propertyKey(object? key)

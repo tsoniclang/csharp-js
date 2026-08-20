@@ -14,7 +14,7 @@ namespace Tsonic.CSharp.Js
 
         public static Exception from(object? value)
         {
-            return value is Exception exception
+            return TsValue.UnwrapDynamicCarrier(value) is Exception exception
                 ? exception
                 : new TsThrownValueException(TsValue.from(value));
         }
@@ -25,7 +25,7 @@ namespace Tsonic.CSharp.Js
             {
                 TsThrownValueException thrown => thrown.value,
                 Error error => TsValue.from(error),
-                _ => TsValue.from(new Error(exception.Message))
+                _ => TsValue.from(exception)
             };
         }
     }

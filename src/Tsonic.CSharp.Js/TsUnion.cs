@@ -49,34 +49,34 @@ namespace Tsonic.CSharp.Js
             return _value;
         }
 
-        public TsValue ReadCompatSlot(string key)
+        public TsValue ReadDynamicSlot(string key)
         {
-            return _value.ReadCompatSlot(key);
+            return _value.ReadDynamicSlot(key);
         }
 
-        public TsValue WriteCompatSlot(string key, object? value)
+        public TsValue WriteDynamicSlot(string key, object? value)
         {
-            return _value.WriteCompatSlot(key, value);
+            return _value.WriteDynamicSlot(key, value);
         }
 
-        public TsValue ReadCompatElement(object? key)
+        public TsValue ReadDynamicElement(object? key)
         {
-            return _value.ReadCompatElement(key);
+            return _value.ReadDynamicElement(key);
         }
 
-        public TsValue WriteCompatElement(object? key, object? value)
+        public TsValue WriteDynamicElement(object? key, object? value)
         {
-            return _value.WriteCompatElement(key, value);
+            return _value.WriteDynamicElement(key, value);
         }
 
-        public TsValue InvokeCompat(params object?[] arguments)
+        public TsValue InvokeDynamic(params object?[] arguments)
         {
-            return _value.InvokeCompat(arguments);
+            return _value.InvokeDynamic(arguments);
         }
 
-        public TsValue ConstructCompat(params object?[] arguments)
+        public TsValue ConstructDynamic(params object?[] arguments)
         {
-            return _value.ConstructCompat(arguments);
+            return _value.ConstructDynamic(arguments);
         }
 
         public static TsUnion From(int armIndex, int armCount, object? value)
@@ -287,322 +287,322 @@ namespace Tsonic.CSharp.Js
             throw invalidRuntimeUnionState();
         }
 
-        public static Union<T1, T2> CastCompat<T1, T2>(object? value)
+        public static Union<T1, T2> CastDynamic<T1, T2>(object? value)
         {
             var union = tryGetUnion(value, 2);
             if (union is not null)
             {
                 if (union.isArm(1))
                 {
-                    return Union<T1, T2>.From1(TsValue.CastCompat<T1>(union.asArm(1)));
+                    return Union<T1, T2>.From1(TsValue.CastDynamic<T1>(union.asArm(1)));
                 }
-                return Union<T1, T2>.From2(TsValue.CastCompat<T2>(union.asArm(2)));
+                return Union<T1, T2>.From2(TsValue.CastDynamic<T2>(union.asArm(2)));
             }
-            if (TsValue.TryCastCompat<T1>(value, out var rawArm1))
+            if (TsValue.TryCastDynamic<T1>(value, out var rawArm1))
             {
                 return Union<T1, T2>.From1(rawArm1);
             }
-            if (TsValue.TryCastCompat<T2>(value, out var rawArm2))
+            if (TsValue.TryCastDynamic<T2>(value, out var rawArm2))
             {
                 return Union<T1, T2>.From2(rawArm2);
             }
             throw unionCastError();
         }
 
-        public static Union<T1, T2, T3> CastCompat<T1, T2, T3>(object? value)
+        public static Union<T1, T2, T3> CastDynamic<T1, T2, T3>(object? value)
         {
             var union = tryGetUnion(value, 3);
             if (union is not null)
             {
                 if (union.isArm(1))
                 {
-                    return Union<T1, T2, T3>.From1(TsValue.CastCompat<T1>(union.asArm(1)));
+                    return Union<T1, T2, T3>.From1(TsValue.CastDynamic<T1>(union.asArm(1)));
                 }
                 if (union.isArm(2))
                 {
-                    return Union<T1, T2, T3>.From2(TsValue.CastCompat<T2>(union.asArm(2)));
+                    return Union<T1, T2, T3>.From2(TsValue.CastDynamic<T2>(union.asArm(2)));
                 }
-                return Union<T1, T2, T3>.From3(TsValue.CastCompat<T3>(union.asArm(3)));
+                return Union<T1, T2, T3>.From3(TsValue.CastDynamic<T3>(union.asArm(3)));
             }
-            if (TsValue.TryCastCompat<T1>(value, out var rawArm1))
+            if (TsValue.TryCastDynamic<T1>(value, out var rawArm1))
             {
                 return Union<T1, T2, T3>.From1(rawArm1);
             }
-            if (TsValue.TryCastCompat<T2>(value, out var rawArm2))
+            if (TsValue.TryCastDynamic<T2>(value, out var rawArm2))
             {
                 return Union<T1, T2, T3>.From2(rawArm2);
             }
-            if (TsValue.TryCastCompat<T3>(value, out var rawArm3))
+            if (TsValue.TryCastDynamic<T3>(value, out var rawArm3))
             {
                 return Union<T1, T2, T3>.From3(rawArm3);
             }
             throw unionCastError();
         }
 
-        public static Union<T1, T2, T3, T4> CastCompat<T1, T2, T3, T4>(object? value)
+        public static Union<T1, T2, T3, T4> CastDynamic<T1, T2, T3, T4>(object? value)
         {
             var union = tryGetUnion(value, 4);
             if (union is not null)
             {
                 if (union.isArm(1))
                 {
-                    return Union<T1, T2, T3, T4>.From1(TsValue.CastCompat<T1>(union.asArm(1)));
+                    return Union<T1, T2, T3, T4>.From1(TsValue.CastDynamic<T1>(union.asArm(1)));
                 }
                 if (union.isArm(2))
                 {
-                    return Union<T1, T2, T3, T4>.From2(TsValue.CastCompat<T2>(union.asArm(2)));
+                    return Union<T1, T2, T3, T4>.From2(TsValue.CastDynamic<T2>(union.asArm(2)));
                 }
                 if (union.isArm(3))
                 {
-                    return Union<T1, T2, T3, T4>.From3(TsValue.CastCompat<T3>(union.asArm(3)));
+                    return Union<T1, T2, T3, T4>.From3(TsValue.CastDynamic<T3>(union.asArm(3)));
                 }
-                return Union<T1, T2, T3, T4>.From4(TsValue.CastCompat<T4>(union.asArm(4)));
+                return Union<T1, T2, T3, T4>.From4(TsValue.CastDynamic<T4>(union.asArm(4)));
             }
-            if (TsValue.TryCastCompat<T1>(value, out var rawArm1))
+            if (TsValue.TryCastDynamic<T1>(value, out var rawArm1))
             {
                 return Union<T1, T2, T3, T4>.From1(rawArm1);
             }
-            if (TsValue.TryCastCompat<T2>(value, out var rawArm2))
+            if (TsValue.TryCastDynamic<T2>(value, out var rawArm2))
             {
                 return Union<T1, T2, T3, T4>.From2(rawArm2);
             }
-            if (TsValue.TryCastCompat<T3>(value, out var rawArm3))
+            if (TsValue.TryCastDynamic<T3>(value, out var rawArm3))
             {
                 return Union<T1, T2, T3, T4>.From3(rawArm3);
             }
-            if (TsValue.TryCastCompat<T4>(value, out var rawArm4))
+            if (TsValue.TryCastDynamic<T4>(value, out var rawArm4))
             {
                 return Union<T1, T2, T3, T4>.From4(rawArm4);
             }
             throw unionCastError();
         }
 
-        public static Union<T1, T2, T3, T4, T5> CastCompat<T1, T2, T3, T4, T5>(object? value)
+        public static Union<T1, T2, T3, T4, T5> CastDynamic<T1, T2, T3, T4, T5>(object? value)
         {
             var union = tryGetUnion(value, 5);
             if (union is not null)
             {
                 if (union.isArm(1))
                 {
-                    return Union<T1, T2, T3, T4, T5>.From1(TsValue.CastCompat<T1>(union.asArm(1)));
+                    return Union<T1, T2, T3, T4, T5>.From1(TsValue.CastDynamic<T1>(union.asArm(1)));
                 }
                 if (union.isArm(2))
                 {
-                    return Union<T1, T2, T3, T4, T5>.From2(TsValue.CastCompat<T2>(union.asArm(2)));
+                    return Union<T1, T2, T3, T4, T5>.From2(TsValue.CastDynamic<T2>(union.asArm(2)));
                 }
                 if (union.isArm(3))
                 {
-                    return Union<T1, T2, T3, T4, T5>.From3(TsValue.CastCompat<T3>(union.asArm(3)));
+                    return Union<T1, T2, T3, T4, T5>.From3(TsValue.CastDynamic<T3>(union.asArm(3)));
                 }
                 if (union.isArm(4))
                 {
-                    return Union<T1, T2, T3, T4, T5>.From4(TsValue.CastCompat<T4>(union.asArm(4)));
+                    return Union<T1, T2, T3, T4, T5>.From4(TsValue.CastDynamic<T4>(union.asArm(4)));
                 }
-                return Union<T1, T2, T3, T4, T5>.From5(TsValue.CastCompat<T5>(union.asArm(5)));
+                return Union<T1, T2, T3, T4, T5>.From5(TsValue.CastDynamic<T5>(union.asArm(5)));
             }
-            if (TsValue.TryCastCompat<T1>(value, out var rawArm1))
+            if (TsValue.TryCastDynamic<T1>(value, out var rawArm1))
             {
                 return Union<T1, T2, T3, T4, T5>.From1(rawArm1);
             }
-            if (TsValue.TryCastCompat<T2>(value, out var rawArm2))
+            if (TsValue.TryCastDynamic<T2>(value, out var rawArm2))
             {
                 return Union<T1, T2, T3, T4, T5>.From2(rawArm2);
             }
-            if (TsValue.TryCastCompat<T3>(value, out var rawArm3))
+            if (TsValue.TryCastDynamic<T3>(value, out var rawArm3))
             {
                 return Union<T1, T2, T3, T4, T5>.From3(rawArm3);
             }
-            if (TsValue.TryCastCompat<T4>(value, out var rawArm4))
+            if (TsValue.TryCastDynamic<T4>(value, out var rawArm4))
             {
                 return Union<T1, T2, T3, T4, T5>.From4(rawArm4);
             }
-            if (TsValue.TryCastCompat<T5>(value, out var rawArm5))
+            if (TsValue.TryCastDynamic<T5>(value, out var rawArm5))
             {
                 return Union<T1, T2, T3, T4, T5>.From5(rawArm5);
             }
             throw unionCastError();
         }
 
-        public static Union<T1, T2, T3, T4, T5, T6> CastCompat<T1, T2, T3, T4, T5, T6>(object? value)
+        public static Union<T1, T2, T3, T4, T5, T6> CastDynamic<T1, T2, T3, T4, T5, T6>(object? value)
         {
             var union = tryGetUnion(value, 6);
             if (union is not null)
             {
                 if (union.isArm(1))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6>.From1(TsValue.CastCompat<T1>(union.asArm(1)));
+                    return Union<T1, T2, T3, T4, T5, T6>.From1(TsValue.CastDynamic<T1>(union.asArm(1)));
                 }
                 if (union.isArm(2))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6>.From2(TsValue.CastCompat<T2>(union.asArm(2)));
+                    return Union<T1, T2, T3, T4, T5, T6>.From2(TsValue.CastDynamic<T2>(union.asArm(2)));
                 }
                 if (union.isArm(3))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6>.From3(TsValue.CastCompat<T3>(union.asArm(3)));
+                    return Union<T1, T2, T3, T4, T5, T6>.From3(TsValue.CastDynamic<T3>(union.asArm(3)));
                 }
                 if (union.isArm(4))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6>.From4(TsValue.CastCompat<T4>(union.asArm(4)));
+                    return Union<T1, T2, T3, T4, T5, T6>.From4(TsValue.CastDynamic<T4>(union.asArm(4)));
                 }
                 if (union.isArm(5))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6>.From5(TsValue.CastCompat<T5>(union.asArm(5)));
+                    return Union<T1, T2, T3, T4, T5, T6>.From5(TsValue.CastDynamic<T5>(union.asArm(5)));
                 }
-                return Union<T1, T2, T3, T4, T5, T6>.From6(TsValue.CastCompat<T6>(union.asArm(6)));
+                return Union<T1, T2, T3, T4, T5, T6>.From6(TsValue.CastDynamic<T6>(union.asArm(6)));
             }
-            if (TsValue.TryCastCompat<T1>(value, out var rawArm1))
+            if (TsValue.TryCastDynamic<T1>(value, out var rawArm1))
             {
                 return Union<T1, T2, T3, T4, T5, T6>.From1(rawArm1);
             }
-            if (TsValue.TryCastCompat<T2>(value, out var rawArm2))
+            if (TsValue.TryCastDynamic<T2>(value, out var rawArm2))
             {
                 return Union<T1, T2, T3, T4, T5, T6>.From2(rawArm2);
             }
-            if (TsValue.TryCastCompat<T3>(value, out var rawArm3))
+            if (TsValue.TryCastDynamic<T3>(value, out var rawArm3))
             {
                 return Union<T1, T2, T3, T4, T5, T6>.From3(rawArm3);
             }
-            if (TsValue.TryCastCompat<T4>(value, out var rawArm4))
+            if (TsValue.TryCastDynamic<T4>(value, out var rawArm4))
             {
                 return Union<T1, T2, T3, T4, T5, T6>.From4(rawArm4);
             }
-            if (TsValue.TryCastCompat<T5>(value, out var rawArm5))
+            if (TsValue.TryCastDynamic<T5>(value, out var rawArm5))
             {
                 return Union<T1, T2, T3, T4, T5, T6>.From5(rawArm5);
             }
-            if (TsValue.TryCastCompat<T6>(value, out var rawArm6))
+            if (TsValue.TryCastDynamic<T6>(value, out var rawArm6))
             {
                 return Union<T1, T2, T3, T4, T5, T6>.From6(rawArm6);
             }
             throw unionCastError();
         }
 
-        public static Union<T1, T2, T3, T4, T5, T6, T7> CastCompat<T1, T2, T3, T4, T5, T6, T7>(object? value)
+        public static Union<T1, T2, T3, T4, T5, T6, T7> CastDynamic<T1, T2, T3, T4, T5, T6, T7>(object? value)
         {
             var union = tryGetUnion(value, 7);
             if (union is not null)
             {
                 if (union.isArm(1))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7>.From1(TsValue.CastCompat<T1>(union.asArm(1)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7>.From1(TsValue.CastDynamic<T1>(union.asArm(1)));
                 }
                 if (union.isArm(2))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7>.From2(TsValue.CastCompat<T2>(union.asArm(2)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7>.From2(TsValue.CastDynamic<T2>(union.asArm(2)));
                 }
                 if (union.isArm(3))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7>.From3(TsValue.CastCompat<T3>(union.asArm(3)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7>.From3(TsValue.CastDynamic<T3>(union.asArm(3)));
                 }
                 if (union.isArm(4))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7>.From4(TsValue.CastCompat<T4>(union.asArm(4)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7>.From4(TsValue.CastDynamic<T4>(union.asArm(4)));
                 }
                 if (union.isArm(5))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7>.From5(TsValue.CastCompat<T5>(union.asArm(5)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7>.From5(TsValue.CastDynamic<T5>(union.asArm(5)));
                 }
                 if (union.isArm(6))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7>.From6(TsValue.CastCompat<T6>(union.asArm(6)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7>.From6(TsValue.CastDynamic<T6>(union.asArm(6)));
                 }
-                return Union<T1, T2, T3, T4, T5, T6, T7>.From7(TsValue.CastCompat<T7>(union.asArm(7)));
+                return Union<T1, T2, T3, T4, T5, T6, T7>.From7(TsValue.CastDynamic<T7>(union.asArm(7)));
             }
-            if (TsValue.TryCastCompat<T1>(value, out var rawArm1))
+            if (TsValue.TryCastDynamic<T1>(value, out var rawArm1))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7>.From1(rawArm1);
             }
-            if (TsValue.TryCastCompat<T2>(value, out var rawArm2))
+            if (TsValue.TryCastDynamic<T2>(value, out var rawArm2))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7>.From2(rawArm2);
             }
-            if (TsValue.TryCastCompat<T3>(value, out var rawArm3))
+            if (TsValue.TryCastDynamic<T3>(value, out var rawArm3))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7>.From3(rawArm3);
             }
-            if (TsValue.TryCastCompat<T4>(value, out var rawArm4))
+            if (TsValue.TryCastDynamic<T4>(value, out var rawArm4))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7>.From4(rawArm4);
             }
-            if (TsValue.TryCastCompat<T5>(value, out var rawArm5))
+            if (TsValue.TryCastDynamic<T5>(value, out var rawArm5))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7>.From5(rawArm5);
             }
-            if (TsValue.TryCastCompat<T6>(value, out var rawArm6))
+            if (TsValue.TryCastDynamic<T6>(value, out var rawArm6))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7>.From6(rawArm6);
             }
-            if (TsValue.TryCastCompat<T7>(value, out var rawArm7))
+            if (TsValue.TryCastDynamic<T7>(value, out var rawArm7))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7>.From7(rawArm7);
             }
             throw unionCastError();
         }
 
-        public static Union<T1, T2, T3, T4, T5, T6, T7, T8> CastCompat<T1, T2, T3, T4, T5, T6, T7, T8>(object? value)
+        public static Union<T1, T2, T3, T4, T5, T6, T7, T8> CastDynamic<T1, T2, T3, T4, T5, T6, T7, T8>(object? value)
         {
             var union = tryGetUnion(value, 8);
             if (union is not null)
             {
                 if (union.isArm(1))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From1(TsValue.CastCompat<T1>(union.asArm(1)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From1(TsValue.CastDynamic<T1>(union.asArm(1)));
                 }
                 if (union.isArm(2))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From2(TsValue.CastCompat<T2>(union.asArm(2)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From2(TsValue.CastDynamic<T2>(union.asArm(2)));
                 }
                 if (union.isArm(3))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From3(TsValue.CastCompat<T3>(union.asArm(3)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From3(TsValue.CastDynamic<T3>(union.asArm(3)));
                 }
                 if (union.isArm(4))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From4(TsValue.CastCompat<T4>(union.asArm(4)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From4(TsValue.CastDynamic<T4>(union.asArm(4)));
                 }
                 if (union.isArm(5))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From5(TsValue.CastCompat<T5>(union.asArm(5)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From5(TsValue.CastDynamic<T5>(union.asArm(5)));
                 }
                 if (union.isArm(6))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From6(TsValue.CastCompat<T6>(union.asArm(6)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From6(TsValue.CastDynamic<T6>(union.asArm(6)));
                 }
                 if (union.isArm(7))
                 {
-                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From7(TsValue.CastCompat<T7>(union.asArm(7)));
+                    return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From7(TsValue.CastDynamic<T7>(union.asArm(7)));
                 }
-                return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From8(TsValue.CastCompat<T8>(union.asArm(8)));
+                return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From8(TsValue.CastDynamic<T8>(union.asArm(8)));
             }
-            if (TsValue.TryCastCompat<T1>(value, out var rawArm1))
+            if (TsValue.TryCastDynamic<T1>(value, out var rawArm1))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From1(rawArm1);
             }
-            if (TsValue.TryCastCompat<T2>(value, out var rawArm2))
+            if (TsValue.TryCastDynamic<T2>(value, out var rawArm2))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From2(rawArm2);
             }
-            if (TsValue.TryCastCompat<T3>(value, out var rawArm3))
+            if (TsValue.TryCastDynamic<T3>(value, out var rawArm3))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From3(rawArm3);
             }
-            if (TsValue.TryCastCompat<T4>(value, out var rawArm4))
+            if (TsValue.TryCastDynamic<T4>(value, out var rawArm4))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From4(rawArm4);
             }
-            if (TsValue.TryCastCompat<T5>(value, out var rawArm5))
+            if (TsValue.TryCastDynamic<T5>(value, out var rawArm5))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From5(rawArm5);
             }
-            if (TsValue.TryCastCompat<T6>(value, out var rawArm6))
+            if (TsValue.TryCastDynamic<T6>(value, out var rawArm6))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From6(rawArm6);
             }
-            if (TsValue.TryCastCompat<T7>(value, out var rawArm7))
+            if (TsValue.TryCastDynamic<T7>(value, out var rawArm7))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From7(rawArm7);
             }
-            if (TsValue.TryCastCompat<T8>(value, out var rawArm8))
+            if (TsValue.TryCastDynamic<T8>(value, out var rawArm8))
             {
                 return Union<T1, T2, T3, T4, T5, T6, T7, T8>.From8(rawArm8);
             }
@@ -611,7 +611,7 @@ namespace Tsonic.CSharp.Js
 
         private static TsUnion? tryGetUnion(object? value, int armCount)
         {
-            value = TsValue.UnwrapCompatCarrier(value);
+            value = TsValue.UnwrapDynamicCarrier(value);
             if (value is TsUnion union)
             {
                 return union.ArmCount == armCount ? union : throw unionCastError();
