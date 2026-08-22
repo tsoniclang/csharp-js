@@ -16,22 +16,7 @@ namespace Tsonic.CSharp.Js
     /// JavaScript-style resizable array with full JS semantics.
     /// Backed by slots so empty array elements remain distinct from present default values.
     /// </summary>
-    public interface IJSArray
-    {
-        int length { get; }
-
-        bool hasIndex(int index);
-
-        bool tryGetAtObject(int index, out object? value);
-
-        bool trySetAtObject(int index, object? value);
-
-        int setLength(int newLength);
-
-        bool deleteAt(int index);
-    }
-
-    public class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IJSArray
+    public class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IDynamicArray
     {
         private readonly List<Slot> _slots;
 
@@ -246,6 +231,20 @@ namespace Tsonic.CSharp.Js
 
             return true;
         }
+
+        int IDynamicArray.Length => length;
+
+        bool IDynamicArray.HasIndex(int index) => hasIndex(index);
+
+        bool IDynamicArray.TryGetAt(int index, out object? value) =>
+            tryGetAtObject(index, out value);
+
+        bool IDynamicArray.TrySetAt(int index, object? value) =>
+            trySetAtObject(index, value);
+
+        int IDynamicArray.SetLength(int newLength) => setLength(newLength);
+
+        bool IDynamicArray.DeleteAt(int index) => deleteAt(index);
 
         // ==================== Length Manipulation ====================
 
@@ -1109,11 +1108,11 @@ namespace Tsonic.CSharp.Js
                 {
                     result._slots.AddRange(jsArr._slots);
                 }
-                else if (item is IJSArray genericJsArray)
+                else if (item is IDynamicArray genericJsArray)
                 {
-                    for (int i = 0; i < genericJsArray.length; i++)
+                    for (int i = 0; i < genericJsArray.Length; i++)
                     {
-                        result._slots.Add(genericJsArray.tryGetAtObject(i, out var value)
+                        result._slots.Add(genericJsArray.TryGetAt(i, out var value)
                             ? Slot.Present(CastArrayValue<T>(value))
                             : Slot.Hole);
                     }
@@ -1204,21 +1203,21 @@ namespace Tsonic.CSharp.Js
             int actualIndex = index < 0 ? _slots.Count + index : index;
             if (actualIndex < 0 || actualIndex >= _slots.Count)
             {
-                return JSUndefined.value;
+                return Undefined.value;
             }
-            return _slots[actualIndex].IsPresent ? _slots[actualIndex].Value : JSUndefined.value;
+            return _slots[actualIndex].IsPresent ? _slots[actualIndex].Value : Undefined.value;
         }
 
         public TValue? atValue<TValue>(int index) where TValue : struct
         {
             object? value = at(index);
-            return value is null or JSUndefined ? null : (TValue)value;
+            return value is null or Undefined ? null : (TValue)value;
         }
 
         public TReference? atReference<TReference>(int index) where TReference : class
         {
             object? value = at(index);
-            return value is JSUndefined ? null : value as TReference;
+            return value is Undefined ? null : value as TReference;
         }
 
         /// <summary>
@@ -1240,11 +1239,11 @@ namespace Tsonic.CSharp.Js
 
         private static void FlattenValue(object? item, JSArray<object> result, int depth)
         {
-            if (depth > 0 && item is IJSArray jsArray)
+            if (depth > 0 && item is IDynamicArray jsArray)
             {
-                for (int i = 0; i < jsArray.length; i++)
+                for (int i = 0; i < jsArray.Length; i++)
                 {
-                    if (jsArray.tryGetAtObject(i, out var nestedItem))
+                    if (jsArray.TryGetAt(i, out var nestedItem))
                     {
                         FlattenValue(nestedItem, result, depth - 1);
                     }
@@ -1271,11 +1270,11 @@ namespace Tsonic.CSharp.Js
 
                 var mapped = callback(_slots[i].Value, i, this);
 
-                if (mapped is IJSArray jsArr)
+                if (mapped is IDynamicArray jsArr)
                 {
-                    for (int j = 0; j < jsArr.length; j++)
+                    for (int j = 0; j < jsArr.Length; j++)
                     {
-                        if (jsArr.tryGetAtObject(j, out var val))
+                        if (jsArr.TryGetAt(j, out var val))
                         {
                             result.push(CastArrayValue<TResult>(val));
                         }
@@ -1396,7 +1395,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static bool isArray(object? value)
         {
-            return value is IJSArray;
+            return value is IDynamicArray;
         }
 
         /// <summary>
@@ -1508,7 +1507,7 @@ namespace Tsonic.CSharp.Js
                 return toJoinPart(tsValue.unwrap());
             }
 
-            if (value is null or JSUndefined)
+            if (value is null or Undefined)
             {
                 return string.Empty;
             }

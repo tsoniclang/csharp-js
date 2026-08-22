@@ -73,7 +73,7 @@ namespace Tsonic.CSharp.Js
         public object? get(K key)
         {
             var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
-            return index >= 0 ? _entries[index].Value : JSUndefined.value;
+            return index >= 0 ? _entries[index].Value : Undefined.value;
         }
 
         public bool tryGet(K key, out V value)

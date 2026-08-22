@@ -6,7 +6,7 @@ namespace Tsonic.CSharp.Js;
 /// <summary>
 /// Closed JavaScript object carrier used by JSON and Object helpers.
 /// </summary>
-public sealed class JSObject
+public sealed class JSObject : IDynamicObject
 {
     private readonly Dictionary<string, object?> _properties = new();
 
@@ -39,5 +39,15 @@ public sealed class JSObject
     public IReadOnlyDictionary<string, object?> asReadOnlyDictionary()
     {
         return _properties;
+    }
+
+    bool IDynamicObject.TryReadDynamicSlot(string key, out object? value)
+    {
+        return _properties.TryGetValue(key, out value);
+    }
+
+    void IDynamicObject.WriteDynamicSlot(string key, object? value)
+    {
+        _properties[key] = value;
     }
 }

@@ -279,11 +279,11 @@ namespace Tsonic.CSharp.Js.Tests
         public void SameValueZero_ObjectCarrier_SupportsNullUndefinedAndPrimitiveValues()
         {
             var set = new Set<object?>();
-            set.add(null).add(JSUndefined.value).add(TsValue.undefined()).add(1).add(1.0);
+            set.add(null).add(Undefined.value).add(TsValue.undefined()).add(1).add(1.0);
 
             Assert.Equal(3, set.size);
             Assert.True(set.has(null));
-            Assert.True(set.has(JSUndefined.value));
+            Assert.True(set.has(Undefined.value));
             Assert.True(set.has(TsValue.undefined()));
             Assert.True(set.has(1));
             Assert.True(set.has(1.0));

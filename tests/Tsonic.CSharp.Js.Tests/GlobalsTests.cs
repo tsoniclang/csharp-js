@@ -168,7 +168,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void undefined_IsClosedCarrierDistinctFromNull()
         {
-            Assert.Same(JSUndefined.value, Globals.undefined);
+            Assert.Same(Undefined.value, Globals.undefined);
             Assert.NotNull(Globals.undefined);
         }
 

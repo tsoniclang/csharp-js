@@ -14,7 +14,7 @@ namespace Tsonic.CSharp.Js
 
         public static bool sameValueZeroUndefined<T>(T value)
         {
-            return sameValueZero(JSUndefined.value, (object?)value);
+            return sameValueZero(Undefined.value, (object?)value);
         }
 
         public static T canonicalizeKeyedCollectionKey<T>(T value)

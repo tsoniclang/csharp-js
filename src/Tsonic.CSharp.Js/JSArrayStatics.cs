@@ -12,7 +12,7 @@ namespace Tsonic.CSharp.Js
         public static bool isArray(object? value)
         {
             if (value is System.Array) return true;
-            return value is IJSArray;
+            return value is IDynamicArray;
         }
 
         public static JSArray<T> from<T>(IEnumerable<T> iterable)

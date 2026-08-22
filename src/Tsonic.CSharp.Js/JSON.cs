@@ -143,7 +143,7 @@ namespace Tsonic.CSharp.Js
                 case JSObject obj:
                     WriteJsObject(writer, obj, context);
                     break;
-                case IJSArray array:
+                case IDynamicArray array:
                     WriteJsArray(writer, array, context);
                     break;
                 case IJsonValue jsonValue:
@@ -267,15 +267,15 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        private static void WriteJsArray(Utf8JsonWriter writer, IJSArray array, JsonWriteContext context)
+        private static void WriteJsArray(Utf8JsonWriter writer, IDynamicArray array, JsonWriteContext context)
         {
             Enter(array, context);
             try
             {
                 writer.WriteStartArray();
-                for (var index = 0; index < array.length; index++)
+                for (var index = 0; index < array.Length; index++)
                 {
-                    if (array.tryGetAtObject(index, out var item))
+                    if (array.TryGetAt(index, out var item))
                     {
                         writeValue(writer, item, context);
                     }
