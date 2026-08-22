@@ -24,11 +24,11 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void RuntimeUnionBoxing_PreservesUndefinedArmThroughDynamicOperators()
         {
-            var value = TsValue.from(TsUnion.From(1, 2, JSUndefined.value));
+            var value = TsValue.from(TsUnion.From(1, 2, Undefined.value));
 
             var union = Assert.IsType<TsUnion>(value.unwrap());
 
-            Assert.Same(JSUndefined.value, union.value().unwrap());
+            Assert.Same(Undefined.value, union.value().unwrap());
             Assert.Equal(
                 "fallback",
                 TsValue.ApplyDynamicLogical(value, "??", () => "fallback").unwrap());

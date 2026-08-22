@@ -301,32 +301,32 @@ namespace Tsonic.CSharp.Js.Tests
             values.setLength(2);
             values[1] = null;
 
-            Assert.True(values.includes(JSUndefined.value));
+            Assert.True(values.includes(Undefined.value));
             Assert.True(values.includes(TsValue.undefined()));
-            Assert.Equal(-1, values.indexOf(JSUndefined.value));
+            Assert.Equal(-1, values.indexOf(Undefined.value));
             Assert.True(values.includes(null));
             Assert.Equal(1, values.indexOf(null));
 
-            Assert.True(Tsonic.CSharp.Js.Array.includes(values, JSUndefined.value));
-            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(values, JSUndefined.value));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(values, Undefined.value));
+            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(values, Undefined.value));
 
             var explicitUndefined = new JSArray<object?>();
             explicitUndefined.setLength(2);
-            explicitUndefined[1] = JSUndefined.value;
+            explicitUndefined[1] = Undefined.value;
 
-            Assert.Same(JSUndefined.value, explicitUndefined.at(0));
-            Assert.Same(JSUndefined.value, explicitUndefined.at(1));
+            Assert.Same(Undefined.value, explicitUndefined.at(0));
+            Assert.Same(Undefined.value, explicitUndefined.at(1));
             Assert.False(explicitUndefined.hasIndex(0));
             Assert.True(explicitUndefined.hasIndex(1));
-            Assert.True(explicitUndefined.includes(JSUndefined.value));
+            Assert.True(explicitUndefined.includes(Undefined.value));
             Assert.True(explicitUndefined.includes(TsValue.undefined()));
-            Assert.Equal(1, explicitUndefined.indexOf(JSUndefined.value));
+            Assert.Equal(1, explicitUndefined.indexOf(Undefined.value));
             Assert.Equal(1, explicitUndefined.indexOf(TsValue.undefined()));
 
             explicitUndefined.deleteAt(1);
 
-            Assert.True(explicitUndefined.includes(JSUndefined.value));
-            Assert.Equal(-1, explicitUndefined.indexOf(JSUndefined.value));
+            Assert.True(explicitUndefined.includes(Undefined.value));
+            Assert.Equal(-1, explicitUndefined.indexOf(Undefined.value));
         }
 
         [Fact]

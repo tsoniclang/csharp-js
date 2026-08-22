@@ -37,7 +37,7 @@ namespace Tsonic.CSharp.Js.Tests
 
             var missing = value.ReadDynamicSlot("missing");
 
-            Assert.Same(JSUndefined.value, missing.unwrap());
+            Assert.Same(Undefined.value, missing.unwrap());
         }
 
         [Fact]
@@ -61,15 +61,15 @@ namespace Tsonic.CSharp.Js.Tests
             value.WriteDynamicSlot("undefinedValue", TsValue.undefined());
 
             Assert.Null(value.ReadDynamicSlot("nullValue").unwrap());
-            Assert.Same(JSUndefined.value, value.ReadDynamicSlot("undefinedValue").unwrap());
-            Assert.Same(JSUndefined.value, value.ReadDynamicSlot("missing").unwrap());
+            Assert.Same(Undefined.value, value.ReadDynamicSlot("undefinedValue").unwrap());
+            Assert.Same(Undefined.value, value.ReadDynamicSlot("missing").unwrap());
         }
 
         [Fact]
         public void OptionalPropertyRead_SkipsNullishReceivers()
         {
             Assert.Same(
-                JSUndefined.value,
+                Undefined.value,
                 TsValue.undefined().ReadDynamicSlotOptional("name").unwrap());
             Assert.Equal(
                 "Ada",
@@ -95,7 +95,7 @@ namespace Tsonic.CSharp.Js.Tests
             var value = TsValue.from(new TsObject());
 
             value.WriteDynamicElement(null, "null-key");
-            value.WriteDynamicElement(JSUndefined.value, "undefined-key");
+            value.WriteDynamicElement(Undefined.value, "undefined-key");
 
             Assert.Equal("null-key", value.ReadDynamicSlot("null").unwrap());
             Assert.Equal("undefined-key", value.ReadDynamicSlot("undefined").unwrap());
@@ -113,7 +113,7 @@ namespace Tsonic.CSharp.Js.Tests
             });
 
             Assert.False(evaluated);
-            Assert.Same(JSUndefined.value, result.unwrap());
+            Assert.Same(Undefined.value, result.unwrap());
         }
 
         [Fact]
@@ -124,7 +124,7 @@ namespace Tsonic.CSharp.Js.Tests
             value.WriteDynamicElement(2, "third");
 
             Assert.Equal(3, value.ReadDynamicSlot("length").unwrap());
-            Assert.Same(JSUndefined.value, value.ReadDynamicElement(0).unwrap());
+            Assert.Same(Undefined.value, value.ReadDynamicElement(0).unwrap());
             Assert.Equal("third", value.ReadDynamicElement(2).unwrap());
         }
 
@@ -137,7 +137,7 @@ namespace Tsonic.CSharp.Js.Tests
             var value = TsValue.from(array);
 
             Assert.Equal(3, value.ReadDynamicSlot("length").unwrap());
-            Assert.Same(JSUndefined.value, value.ReadDynamicElement(0).unwrap());
+            Assert.Same(Undefined.value, value.ReadDynamicElement(0).unwrap());
             Assert.Equal("middle", value.ReadDynamicElement(1).unwrap());
 
             value.WriteDynamicElement(2, "last");
@@ -145,7 +145,7 @@ namespace Tsonic.CSharp.Js.Tests
 
             value.WriteDynamicSlot("length", 1);
             Assert.Equal(1, array.length);
-            Assert.Same(JSUndefined.value, value.ReadDynamicElement(2).unwrap());
+            Assert.Same(Undefined.value, value.ReadDynamicElement(2).unwrap());
         }
 
         [Fact]
@@ -227,7 +227,7 @@ namespace Tsonic.CSharp.Js.Tests
                     return System.Array.Empty<object?>();
                 });
 
-            Assert.Same(JSUndefined.value, receiverResult.unwrap());
+            Assert.Same(Undefined.value, receiverResult.unwrap());
             Assert.False(keyEvaluated);
             Assert.False(argumentsEvaluated);
 
@@ -242,7 +242,7 @@ namespace Tsonic.CSharp.Js.Tests
                     return System.Array.Empty<object?>();
                 });
 
-            Assert.Same(JSUndefined.value, callResult.unwrap());
+            Assert.Same(Undefined.value, callResult.unwrap());
             Assert.False(argumentsEvaluated);
         }
 
@@ -257,7 +257,7 @@ namespace Tsonic.CSharp.Js.Tests
                 return System.Array.Empty<object?>();
             });
 
-            Assert.Same(JSUndefined.value, result.unwrap());
+            Assert.Same(Undefined.value, result.unwrap());
             Assert.False(evaluated);
         }
 
@@ -312,7 +312,7 @@ namespace Tsonic.CSharp.Js.Tests
 
             Assert.Equal(
                 "fallback",
-                TsValue.ApplyDynamicLogical(JSUndefined.value, "??", () => "fallback").unwrap());
+                TsValue.ApplyDynamicLogical(Undefined.value, "??", () => "fallback").unwrap());
             Assert.Equal("right", TsValue.ApplyDynamicLogical(true, "&&", right).unwrap());
             Assert.Equal("left", TsValue.ApplyDynamicLogical("left", "||", right).unwrap());
             Assert.Equal(1, evaluations);
@@ -331,10 +331,10 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ApplyDynamicBinaryBoolean_DistinguishesNullAndUndefinedEquality()
         {
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean(null, "==", JSUndefined.value));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "===", JSUndefined.value));
+            Assert.True(TsValue.ApplyDynamicBinaryBoolean(null, "==", Undefined.value));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "===", Undefined.value));
             Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "==", false));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, "==", false));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, "==", false));
             Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "==", 0));
             Assert.True(TsValue.ApplyDynamicBinaryBoolean(false, "==", 0));
         }
@@ -342,10 +342,10 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ApplyDynamicBinaryBoolean_UndefinedRelationalComparisonsAreFalse()
         {
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, "<", 0));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, "<=", 0));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, ">", 0));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(JSUndefined.value, ">=", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, "<", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, "<=", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, ">", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, ">=", 0));
             Assert.True(TsValue.ApplyDynamicBinaryBoolean(null, "<=", 0));
         }
 
@@ -364,7 +364,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var value = TsValue.ApplyDynamicVoid(TsValue.from(42));
 
-            Assert.Same(JSUndefined.value, value.unwrap());
+            Assert.Same(Undefined.value, value.unwrap());
         }
 
         [Fact]

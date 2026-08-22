@@ -3,3 +3,7 @@
 C# implementation of the JavaScript/global surface for the Tsonic C# target.
 
 This repository contains the CLR implementation for JavaScript globals and built-ins such as arrays, maps, sets, JSON, math, timers, typed arrays, and console. It is selected only when a Tsonic project uses the JS/global surface with the C# target.
+
+Compiler-intrinsic TypeScript carriers remain in `csharp-runtime`. This package
+depends on that substrate and adapts JS objects and arrays through its closed
+dynamic-carrier interfaces; the substrate never depends on this surface.

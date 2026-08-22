@@ -39,7 +39,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.True(JsObjectStatics.@is(1, 1d));
             Assert.True(JsObjectStatics.@is("x", "x"));
             Assert.True(JsObjectStatics.@is(null, null));
-            Assert.True(JsObjectStatics.@is(TsValue.undefined(), JSUndefined.value));
+            Assert.True(JsObjectStatics.@is(TsValue.undefined(), Undefined.value));
             Assert.True(JsObjectStatics.@is(objectValue, objectValue));
             Assert.False(JsObjectStatics.@is(0d, -0d));
             Assert.False(JsObjectStatics.@is(null, 0));
@@ -173,7 +173,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void keys_RejectsUndefinedReceiver()
         {
-            Assert.Throws<TypeError>(() => JsObjectStatics.keys(JSUndefined.value));
+            Assert.Throws<TypeError>(() => JsObjectStatics.keys(Undefined.value));
             Assert.Throws<TypeError>(() => JsObjectStatics.keys(TsValue.undefined()));
         }
 
@@ -189,17 +189,17 @@ namespace Tsonic.CSharp.Js.Tests
             var value = TsValue.from(new TsObject(new Dictionary<string, object?>
             {
                 ["name"] = "tsonic",
-                ["missing"] = JSUndefined.value,
+                ["missing"] = Undefined.value,
                 ["nil"] = null
             }));
 
             Assert.Equal(new[] { "name", "missing", "nil" }, JsObjectStatics.keys(value));
-            Assert.Equal(new object?[] { "tsonic", JSUndefined.value, null }, JsObjectStatics.values(value));
+            Assert.Equal(new object?[] { "tsonic", Undefined.value, null }, JsObjectStatics.values(value));
 
             var entries = JsObjectStatics.entries(value);
 
             Assert.Equal(("name", (object?)"tsonic"), entries[0]);
-            Assert.Equal(("missing", (object?)JSUndefined.value), entries[1]);
+            Assert.Equal(("missing", (object?)Undefined.value), entries[1]);
             Assert.Equal(("nil", (object?)null), entries[2]);
         }
 
@@ -208,14 +208,14 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var array = new TsArray();
             array.WriteDynamicElement(2, "third");
-            array.WriteDynamicElement(1, JSUndefined.value);
+            array.WriteDynamicElement(1, Undefined.value);
 
             Assert.Equal(new[] { "1", "2" }, JsObjectStatics.keys(TsValue.from(array)));
-            Assert.Equal(new object?[] { JSUndefined.value, "third" }, JsObjectStatics.values(TsValue.from(array)));
+            Assert.Equal(new object?[] { Undefined.value, "third" }, JsObjectStatics.values(TsValue.from(array)));
 
             var entries = JsObjectStatics.entries(TsValue.from(array));
 
-            Assert.Equal(("1", (object?)JSUndefined.value), entries[0]);
+            Assert.Equal(("1", (object?)Undefined.value), entries[0]);
             Assert.Equal(("2", (object?)"third"), entries[1]);
         }
 
@@ -235,7 +235,7 @@ namespace Tsonic.CSharp.Js.Tests
             sparse.setLength(4);
             sparse[2] = 9;
 
-            var result = JsObjectStatics.assign(target, null, JSUndefined.value, TsValue.undefined(), source, sparse, "xy");
+            var result = JsObjectStatics.assign(target, null, Undefined.value, TsValue.undefined(), source, sparse, "xy");
 
             Assert.Same(target, result);
             Assert.Equal("new", target["name"]);
@@ -269,7 +269,7 @@ namespace Tsonic.CSharp.Js.Tests
             {
                 ["name"] = "closed",
                 ["nil"] = null,
-                ["missing"] = JSUndefined.value
+                ["missing"] = Undefined.value
             }));
 
             var result = JsObjectStatics.assign(target, TsValue.undefined(), source);
@@ -277,7 +277,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Same(target, result);
             Assert.Equal("closed", target["name"]);
             Assert.Null(target["nil"]);
-            Assert.Same(JSUndefined.value, target["missing"]);
+            Assert.Same(Undefined.value, target["missing"]);
         }
 
         [Fact]
@@ -286,13 +286,13 @@ namespace Tsonic.CSharp.Js.Tests
             var target = new JSObject();
             var source = new TsArray();
             source.WriteDynamicElement(2, "third");
-            source.WriteDynamicElement(1, JSUndefined.value);
+            source.WriteDynamicElement(1, Undefined.value);
 
             var result = JsObjectStatics.assign(target, source);
 
             Assert.Same(target, result);
             Assert.False(target.hasOwnProperty("0"));
-            Assert.Same(JSUndefined.value, target["1"]);
+            Assert.Same(Undefined.value, target["1"]);
             Assert.Equal("third", target["2"]);
         }
 

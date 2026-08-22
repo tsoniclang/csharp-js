@@ -20,7 +20,7 @@ public static class Object
             return value == null && other == null;
         }
 
-        if (value is JSUndefined || other is JSUndefined)
+        if (value is Undefined || other is Undefined)
         {
             return ReferenceEquals(value, other);
         }
@@ -51,7 +51,7 @@ public static class Object
             throw new TypeError("Object helper receiver cannot be null.");
         }
 
-        if (value is JSUndefined)
+        if (value is Undefined)
         {
             throw new TypeError("Object helper receiver cannot be undefined.");
         }
@@ -71,7 +71,7 @@ public static class Object
             return tsArray.entries();
         }
 
-        if (value is IJSArray jsArray)
+        if (value is IDynamicArray jsArray)
         {
             return EnumerateJsArray(jsArray);
         }
@@ -225,7 +225,7 @@ public static class Object
         return value switch
         {
             null => "[object Null]",
-            JSUndefined => "[object Undefined]",
+            Undefined => "[object Undefined]",
             string text => text,
             bool boolean => BooleanOps.toString(boolean),
             byte number => Number.toString(number),
@@ -241,20 +241,20 @@ public static class Object
             decimal number => Number.toString((double)number),
             Date date => date.ToString(),
             RegExp regexp => regexp.ToString(),
-            IJSArray => "[object Array]",
+            IDynamicArray => "[object Array]",
             _ => "[object Object]",
         };
     }
 
-    public static bool hasOwn(IJSArray value, string key)
+    public static bool hasOwn(IDynamicArray value, string key)
     {
         if (value == null)
         {
             throw new TypeError("Object.hasOwn receiver cannot be null.");
         }
 
-        return TryParseArrayIndex(key, value.length, out var index) &&
-            value.tryGetAtObject(index, out _);
+        return TryParseArrayIndex(key, value.Length, out var index) &&
+            value.TryGetAt(index, out _);
     }
 
     public static bool hasOwn(string value, string key)
@@ -369,7 +369,7 @@ public static class Object
     private static bool IsNullishAssignSource(object? source)
     {
         var value = UnwrapClosedValue(source);
-        return value is null or JSUndefined;
+        return value is null or Undefined;
     }
 
     private static object? UnwrapClosedValue(object? value)
@@ -377,11 +377,11 @@ public static class Object
         return value is TsValue tsValue ? tsValue.unwrap() : value;
     }
 
-    private static IEnumerable<KeyValuePair<string, object?>> EnumerateJsArray(IJSArray array)
+    private static IEnumerable<KeyValuePair<string, object?>> EnumerateJsArray(IDynamicArray array)
     {
-        for (var index = 0; index < array.length; index++)
+        for (var index = 0; index < array.Length; index++)
         {
-            if (array.tryGetAtObject(index, out var value))
+            if (array.TryGetAt(index, out var value))
             {
                 yield return new KeyValuePair<string, object?>(
                     index.ToString(CultureInfo.InvariantCulture),

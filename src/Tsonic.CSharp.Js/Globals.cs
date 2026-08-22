@@ -16,7 +16,7 @@ namespace Tsonic.CSharp.Js
         // Global constants
         public const double Infinity = double.PositiveInfinity;
         public const double NaN = double.NaN;
-        public static readonly object undefined = JSUndefined.value;
+        public static readonly object undefined = Undefined.value;
 
         /// <summary>
         /// Parse string to integer with optional radix.
@@ -343,7 +343,7 @@ namespace Tsonic.CSharp.Js
             value = unwrapClosedValue(value);
 
             if (value == null) return 0;
-            if (value is JSUndefined) return double.NaN;
+            if (value is Undefined) return double.NaN;
 
             if (value is double d) return d;
             if (value is int i) return i;
@@ -381,7 +381,7 @@ namespace Tsonic.CSharp.Js
             value = unwrapClosedValue(value);
 
             if (value == null) return "null";
-            if (value is JSUndefined) return "undefined";
+            if (value is Undefined) return "undefined";
             if (value is string s) return s;
             if (value is bool b) return b ? "true" : "false";
             if (value is double d)
@@ -401,7 +401,7 @@ namespace Tsonic.CSharp.Js
             value = unwrapClosedValue(value);
 
             if (value == null) return false;
-            if (value is JSUndefined) return false;
+            if (value is Undefined) return false;
 
             if (value is bool b) return b;
             if (value is string s) return s.Length > 0;
