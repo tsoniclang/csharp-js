@@ -186,12 +186,31 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string replace(this string str, string search, string replacement)
         {
-            int index = str.IndexOf(search, StringComparison.Ordinal);
-            if (index < 0)
-            {
-                return str;
-            }
-            return str.Substring(0, index) + replacement + str.Substring(index + search.Length);
+            ArgumentNullException.ThrowIfNull(search);
+            ArgumentNullException.ThrowIfNull(replacement);
+            return replaceStringCore(
+                str,
+                search,
+                index => getStringSubstitution(str, search, index, replacement),
+                replaceAll: false);
+        }
+
+        public static string replace(
+            this string str,
+            string search,
+            ReplacementCallback replacer)
+        {
+            ArgumentNullException.ThrowIfNull(search);
+            ArgumentNullException.ThrowIfNull(replacer);
+            return replaceStringCore(
+                str,
+                search,
+                index => replacer(
+                    ReplacementCallbackArguments.FromStringMatch(
+                        search,
+                        index,
+                        str)),
+                replaceAll: false);
         }
 
         /// <summary>
@@ -277,27 +296,47 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Split string into array
         /// </summary>
-        public static JSArray<string> split(this string str, string separator, int? limit = null)
+        public static JSArray<string> split(this string str, string separator, double? limit = null)
         {
+            var maximum = toUint32(limit ?? uint.MaxValue);
+            if (maximum == 0)
+            {
+                return new JSArray<string>();
+            }
             // Handle empty separator - split into individual characters (JS behavior)
             if (separator == "")
             {
                 var chars = str.ToCharArray().Select(c => c.ToString());
-                return applySplitLimit(chars, limit);
+                return applySplitLimit(chars, maximum);
             }
 
             string[] parts = str.Split(new[] { separator }, StringSplitOptions.None);
-            return applySplitLimit(parts, limit);
+            return applySplitLimit(parts, maximum);
         }
 
-        private static JSArray<string> applySplitLimit(IEnumerable<string> parts, int? limit)
+        private static JSArray<string> applySplitLimit(
+            IEnumerable<string> parts,
+            uint maximum)
         {
-            if (!limit.HasValue || limit.Value < 0)
-            {
-                return JSArray<string>.from(parts);
-            }
+            return maximum >= int.MaxValue
+                ? JSArray<string>.from(parts)
+                : JSArray<string>.from(parts.Take((int)maximum));
+        }
 
-            return JSArray<string>.from(parts.Take(limit.Value));
+        private static uint toUint32(double value)
+        {
+            if (!double.IsFinite(value) || value == 0)
+            {
+                return 0;
+            }
+            const double modulus = 4_294_967_296d;
+            var integer = System.Math.Truncate(value);
+            var result = integer % modulus;
+            if (result < 0)
+            {
+                result += modulus;
+            }
+            return (uint)result;
         }
 
         /// <summary>
@@ -354,91 +393,170 @@ namespace Tsonic.CSharp.Js
             return string.Compare(str, compareString, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.CompareOptions.None);
         }
 
-        /// <summary>
-        /// Match string against regex pattern
-        /// </summary>
-        public static string[]? match(this string str, string pattern)
-        {
-            var regex = new RegExp(pattern);
-            var match = regex.exec(str);
+        public static RegExpMatchArray? match(this string str, string pattern) =>
+            RegExpProtocols.Match(str, new RegExp(pattern));
 
-            if (match is null)
-            {
-                return null;
-            }
+        public static RegExpMatchArray? match(this string str, RegExp pattern) =>
+            RegExpProtocols.Match(str, pattern);
 
-            var result = new List<string>();
-            result.Add(match.value);
+        public static RegExpStringIterator matchAll(this string str, RegExp pattern) =>
+            RegExpProtocols.MatchAll(str, pattern, requireGlobal: true);
 
-            for (int i = 1; i < match.length; i++)
-            {
-                result.Add(match[i] ?? "");
-            }
+        public static double search(this string str, string pattern) =>
+            RegExpProtocols.Search(str, new RegExp(pattern));
 
-            return result.ToArray();
-        }
+        public static double search(this string str, RegExp pattern) =>
+            RegExpProtocols.Search(str, pattern);
 
-        /// <summary>
-        /// Match all occurrences against regex pattern
-        /// </summary>
-        public static string[][] matchAll(this string str, string pattern)
-        {
-            var result = new List<string[]>();
-            var regex = new RegExp(pattern, "g");
+        public static string replace(this string str, RegExp pattern, string replacement) =>
+            RegExpProtocols.Replace(str, pattern, replacement);
 
-            while (true)
-            {
-                var match = regex.exec(str);
-                if (match is null)
-                {
-                    break;
-                }
+        public static string replace(this string str, RegExp pattern, ReplacementCallback replacer) =>
+            RegExpProtocols.Replace(str, pattern, replacer);
 
-                var matchArray = new List<string>();
-                matchArray.Add(match.value);
-
-                for (int i = 1; i < match.length; i++)
-                {
-                    matchArray.Add(match[i] ?? "");
-                }
-
-                result.Add(matchArray.ToArray());
-                if (match.value.Length == 0)
-                {
-                    regex.lastIndex = regex.lastIndex < str.Length ? regex.lastIndex + 1 : str.Length + 1;
-                }
-            }
-
-            return result.ToArray();
-        }
-
-        /// <summary>
-        /// Search for regex pattern and return index
-        /// </summary>
-        public static int search(this string str, string pattern)
-        {
-            var regex = new RegExp(pattern);
-            var match = regex.exec(str);
-            return match is null ? -1 : match.index;
-        }
+        public static JSArray<string> split(this string str, RegExp separator, double? limit = null) =>
+            RegExpProtocols.Split(str, separator, limit);
 
         /// <summary>
         /// Replace all occurrences of search with replacement
         /// </summary>
         public static string replaceAll(this string str, string search, string replacement)
         {
-            if (search.Length == 0)
+            ArgumentNullException.ThrowIfNull(search);
+            ArgumentNullException.ThrowIfNull(replacement);
+            return replaceStringCore(
+                str,
+                search,
+                index => getStringSubstitution(str, search, index, replacement),
+                replaceAll: true);
+        }
+
+        public static string replaceAll(
+            this string str,
+            string search,
+            ReplacementCallback replacer)
+        {
+            ArgumentNullException.ThrowIfNull(search);
+            ArgumentNullException.ThrowIfNull(replacer);
+            return replaceStringCore(
+                str,
+                search,
+                index => replacer(
+                    ReplacementCallbackArguments.FromStringMatch(
+                        search,
+                        index,
+                        str)),
+                replaceAll: true);
+        }
+
+        public static string replaceAll(this string str, RegExp search, string replacement)
+        {
+            if (!search.global)
             {
-                var builder = new System.Text.StringBuilder();
-                builder.Append(replacement);
-                foreach (char ch in str)
-                {
-                    builder.Append(ch);
-                    builder.Append(replacement);
-                }
-                return builder.ToString();
+                throw new TypeError("String.prototype.replaceAll requires a global RegExp.");
             }
-            return str.Replace(search, replacement);
+            return RegExpProtocols.Replace(str, search, replacement);
+        }
+
+        public static string replaceAll(this string str, RegExp search, ReplacementCallback replacer)
+        {
+            if (!search.global)
+            {
+                throw new TypeError("String.prototype.replaceAll requires a global RegExp.");
+            }
+            return RegExpProtocols.Replace(str, search, replacer);
+        }
+
+        private static string replaceStringCore(
+            string input,
+            string search,
+            Func<int, string> replacement,
+            bool replaceAll)
+        {
+            var first = input.IndexOf(search, StringComparison.Ordinal);
+            if (first < 0)
+            {
+                return input;
+            }
+
+            var output = new System.Text.StringBuilder(input.Length);
+            var sourcePosition = 0;
+            var matchPosition = first;
+            while (matchPosition >= 0)
+            {
+                output.Append(
+                    input,
+                    sourcePosition,
+                    matchPosition - sourcePosition);
+                output.Append(replacement(matchPosition));
+                sourcePosition = matchPosition + search.Length;
+                if (!replaceAll)
+                {
+                    break;
+                }
+                if (search.Length == 0)
+                {
+                    if (matchPosition >= input.Length)
+                    {
+                        break;
+                    }
+                    output.Append(input[matchPosition]);
+                    sourcePosition = matchPosition + 1;
+                    matchPosition += 1;
+                    continue;
+                }
+                matchPosition = input.IndexOf(
+                    search,
+                    sourcePosition,
+                    StringComparison.Ordinal);
+            }
+            output.Append(
+                input,
+                sourcePosition,
+                input.Length - sourcePosition);
+            return output.ToString();
+        }
+
+        private static string getStringSubstitution(
+            string input,
+            string matched,
+            int position,
+            string replacement)
+        {
+            var output = new System.Text.StringBuilder(replacement.Length);
+            for (var index = 0; index < replacement.Length; index += 1)
+            {
+                var current = replacement[index];
+                if (current != '$' || index + 1 >= replacement.Length)
+                {
+                    output.Append(current);
+                    continue;
+                }
+                switch (replacement[index + 1])
+                {
+                    case '$':
+                        output.Append('$');
+                        index += 1;
+                        break;
+                    case '&':
+                        output.Append(matched);
+                        index += 1;
+                        break;
+                    case '`':
+                        output.Append(input, 0, position);
+                        index += 1;
+                        break;
+                    case '\'':
+                        var suffix = position + matched.Length;
+                        output.Append(input, suffix, input.Length - suffix);
+                        index += 1;
+                        break;
+                    default:
+                        output.Append('$');
+                        break;
+                }
+            }
+            return output.ToString();
         }
 
         /// <summary>
@@ -648,4 +766,5 @@ namespace Tsonic.CSharp.Js
             return result.ToString();
         }
     }
+
 }

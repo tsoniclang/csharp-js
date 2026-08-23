@@ -17,11 +17,3 @@ public sealed class JsRegExpSyntaxException : JsRegExpException
     {
     }
 }
-
-public sealed class JsRegExpUnsupportedException : JsRegExpException
-{
-    public JsRegExpUnsupportedException(string message)
-        : base(message)
-    {
-    }
-}
