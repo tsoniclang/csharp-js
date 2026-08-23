@@ -156,6 +156,17 @@ public sealed class RegExpTests
         var calls = new List<ReplacementObservation>();
         var output = expression.replace("a1b2x", arguments =>
         {
+            var broadCapture = arguments.Get<Tsonic.CSharp.Runtime.TsValue>(1);
+            Assert.True(Tsonic.CSharp.Runtime.TsValue.ApplyDynamicBinaryBoolean(
+                broadCapture,
+                "===",
+                arguments.Get<string>(1)));
+            var broadTail = arguments.Rest<Tsonic.CSharp.Runtime.TsValue>(1);
+            Assert.Equal(arguments.length - 1, broadTail.length);
+            Assert.True(Tsonic.CSharp.Runtime.TsValue.ApplyDynamicBinaryBoolean(
+                broadTail[0],
+                "===",
+                arguments.Get<string>(1)));
             calls.Add(new ReplacementObservation(
                 arguments.Get<string>(0),
                 arguments.Get<string>(1),

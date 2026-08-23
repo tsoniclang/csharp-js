@@ -22,7 +22,7 @@ public sealed class ReplacementCallbackArguments
         var value = index < _values.Length
             ? _values[index]
             : TsValue.undefined();
-        return TsValue.CastDynamic<T>(value);
+        return Project<T>(value);
     }
 
     public JSArray<T> Rest<T>(int index)
@@ -34,10 +34,15 @@ public sealed class ReplacementCallbackArguments
         var result = new JSArray<T>();
         for (var valueIndex = index; valueIndex < _values.Length; valueIndex += 1)
         {
-            result.push(TsValue.CastDynamic<T>(_values[valueIndex]));
+            result.push(Project<T>(_values[valueIndex]));
         }
         return result;
     }
+
+    private static T Project<T>(TsValue value) =>
+        typeof(T) == typeof(TsValue)
+            ? (T)(object)value
+            : TsValue.CastDynamic<T>(value);
 
     internal static ReplacementCallbackArguments FromStringMatch(
         string match,
