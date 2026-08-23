@@ -26,4 +26,3 @@ internal readonly record struct RegExpGroupResult(
     int Length,
     string Value,
     string? Name);
-
