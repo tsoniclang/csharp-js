@@ -67,6 +67,8 @@ public sealed class RegExpTests
             OracleCase("unicode-set", "[\\p{ASCII}&&\\p{Letter}]+", "v", Exec("éAb9")),
             OracleCase("modifiers", "(?i:a)b", "", Exec("Ab")),
             OracleCase("sticky", "b", "y", Exec("😀b", 2)),
+            OracleCase("legacy-astral-quantifier", "💚+", "", Exec("a💚💚b")),
+            OracleCase("nullable-mid-surrogate", "a*", "g", Exec("😀a", 1)),
         };
 
         foreach (var testCase in cases)
