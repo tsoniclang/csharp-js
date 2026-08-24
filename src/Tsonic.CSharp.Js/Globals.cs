@@ -13,6 +13,8 @@ namespace Tsonic.CSharp.Js
     /// </summary>
     public static class Globals
     {
+        private static readonly UTF8Encoding StrictUtf8 = new(false, true);
+
         // Global constants
         public const double Infinity = double.PositiveInfinity;
         public const double NaN = double.NaN;
@@ -304,7 +306,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string decodeURIComponent(string component)
         {
-            return Uri.UnescapeDataString(component);
+            return DecodeUriText(component, preserveReserved: false);
         }
 
         /// <summary>
@@ -332,7 +334,94 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static string decodeURI(string uri)
         {
-            return Uri.UnescapeDataString(uri);
+            return DecodeUriText(uri, preserveReserved: true);
+        }
+
+        private static string DecodeUriText(string value, bool preserveReserved)
+        {
+            var output = new StringBuilder(value.Length);
+            Span<byte> encoded = stackalloc byte[4];
+            for (var index = 0; index < value.Length;)
+            {
+                if (value[index] != '%')
+                {
+                    output.Append(value[index]);
+                    index++;
+                    continue;
+                }
+
+                encoded[0] = ParsePercentEncodedByte(value, index);
+                var byteCount = encoded[0] switch
+                {
+                    <= 0x7f => 1,
+                    >= 0xc2 and <= 0xdf => 2,
+                    >= 0xe0 and <= 0xef => 3,
+                    >= 0xf0 and <= 0xf4 => 4,
+                    _ => throw InvalidUriEncoding()
+                };
+
+                for (var byteIndex = 1; byteIndex < byteCount; byteIndex++)
+                {
+                    encoded[byteIndex] = ParsePercentEncodedByte(
+                        value,
+                        index + byteIndex * 3);
+                }
+
+                if (preserveReserved && byteCount == 1 && IsUriReserved((char)encoded[0]))
+                {
+                    output.Append(value, index, 3);
+                }
+                else
+                {
+                    try
+                    {
+                        output.Append(StrictUtf8.GetString(encoded[..byteCount]));
+                    }
+                    catch (DecoderFallbackException exception)
+                    {
+                        throw new URIError("URI contains malformed UTF-8 data.", exception);
+                    }
+                }
+
+                index += byteCount * 3;
+            }
+            return output.ToString();
+        }
+
+        private static byte ParsePercentEncodedByte(string value, int index)
+        {
+            if (index + 2 >= value.Length || value[index] != '%')
+            {
+                throw InvalidUriEncoding();
+            }
+            var high = HexDigit(value[index + 1]);
+            var low = HexDigit(value[index + 2]);
+            if (high < 0 || low < 0)
+            {
+                throw InvalidUriEncoding();
+            }
+            return (byte)(high * 16 + low);
+        }
+
+        private static int HexDigit(char value)
+        {
+            return value switch
+            {
+                >= '0' and <= '9' => value - '0',
+                >= 'A' and <= 'F' => value - 'A' + 10,
+                >= 'a' and <= 'f' => value - 'a' + 10,
+                _ => -1
+            };
+        }
+
+        private static bool IsUriReserved(char value)
+        {
+            return value is ';' or '/' or '?' or ':' or '@' or '&' or '=' or '+' or '$' or ',' or '#';
+        }
+
+        private static URIError InvalidUriEncoding()
+        {
+            return new URIError("URI contains an invalid percent-encoded sequence.");
         }
 
         /// <summary>

@@ -135,6 +135,23 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("hello world", decoded);
         }
 
+        [Theory]
+        [InlineData("%")]
+        [InlineData("%GG")]
+        [InlineData("%C0%AF")]
+        [InlineData("%ED%A0%80")]
+        [InlineData("%F0%28%8C%28")]
+        public void decodeURIComponent_RejectsInvalidPercentEncoding(string encoded)
+        {
+            Assert.Throws<URIError>(() => Globals.decodeURIComponent(encoded));
+        }
+
+        [Fact]
+        public void decodeURIComponent_DecodesExactUnicodeScalars()
+        {
+            Assert.Equal("a/😀", Globals.decodeURIComponent("a%2F%F0%9F%98%80"));
+        }
+
         [Fact]
         public void encodeURI_PreservesUriStructure()
         {
@@ -149,6 +166,12 @@ namespace Tsonic.CSharp.Js.Tests
             var encoded = Globals.encodeURI("https://example.com/path with spaces");
             var decoded = Globals.decodeURI(encoded);
             Assert.Contains("path with spaces", decoded);
+        }
+
+        [Fact]
+        public void decodeURI_PreservesEncodedReservedCharacters()
+        {
+            Assert.Equal("%3F%23 a", Globals.decodeURI("%3F%23%20a"));
         }
 
         // New constants and type conversion tests
