@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Tsonic.CSharp.Js;
 using Xunit;
 
@@ -308,8 +309,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void matchAll_FindsAllMatches()
         {
-            var result = "test test test".matchAll("test");
-            Assert.Equal(3, result.Length);
+            var result = "test test test".matchAll(new RegExp("test", "g"));
+            Assert.Equal(3, result.Count());
         }
 
         [Fact]
