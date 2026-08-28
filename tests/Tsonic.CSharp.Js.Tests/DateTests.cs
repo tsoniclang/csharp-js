@@ -371,5 +371,64 @@ namespace Tsonic.CSharp.Js.Tests
             var result = date.setUTCFullYear(2025);
             Assert.Equal(date.getTime(), result);
         }
+
+        [Fact]
+        public void Date_UtcOperations_CoverTheCompleteTimeClipRange()
+        {
+            var maximum = new Date(8_640_000_000_000_000);
+            var minimum = new Date(-8_640_000_000_000_000);
+
+            Assert.Equal(275760, maximum.getUTCFullYear());
+            Assert.Equal(8, maximum.getUTCMonth());
+            Assert.Equal(13, maximum.getUTCDate());
+            Assert.Equal("+275760-09-13T00:00:00.000Z", maximum.toISOString());
+
+            Assert.Equal(-271821, minimum.getUTCFullYear());
+            Assert.Equal(3, minimum.getUTCMonth());
+            Assert.Equal(20, minimum.getUTCDate());
+            Assert.Equal("-271821-04-20T00:00:00.000Z", minimum.toISOString());
+        }
+
+        [Fact]
+        public void Date_TimeClip_TruncatesFiniteValuesAndRejectsOutOfRangeValues()
+        {
+            Assert.Equal(1234, new Date(1234.9).getTime());
+
+            var outOfRange = new Date(8_640_000_000_000_001);
+            Assert.True(double.IsNaN(outOfRange.getTime()));
+            Assert.True(double.IsNaN(outOfRange.getUTCFullYear()));
+            Assert.Equal("Invalid Date", outOfRange.toUTCString());
+            Assert.Null(outOfRange.toJSON());
+            Assert.Throws<RangeError>(() => outOfRange.toISOString());
+        }
+
+        [Fact]
+        public void Date_UTC_NormalizesComponentsAndTwoDigitYears()
+        {
+            Assert.Equal(Date.UTC(2024, 0, 1), Date.UTC(2023, 12, 1));
+            Assert.Equal(Date.UTC(2022, 11, 31), Date.UTC(2023, 0, 0));
+            Assert.Equal(1999, new Date(Date.UTC(99, 0, 1)).getUTCFullYear());
+        }
+
+        [Fact]
+        public void Date_UtcSetters_NormalizeOverflowAndPreserveUnspecifiedFields()
+        {
+            var date = new Date(Date.UTC(2023, 0, 31, 12, 30, 40, 500));
+
+            date.setUTCMonth(1);
+            Assert.Equal("2023-03-03T12:30:40.500Z", date.toISOString());
+
+            date.setUTCHours(24, 5);
+            Assert.Equal("2023-03-04T00:05:40.500Z", date.toISOString());
+        }
+
+        [Fact]
+        public void Date_InvalidUtcMutation_OnlyFullYearCanRecover()
+        {
+            var date = new Date(double.NaN);
+
+            Assert.True(double.IsNaN(date.setUTCMonth(1)));
+            Assert.Equal(Date.UTC(2024, 0, 1), date.setUTCFullYear(2024));
+        }
     }
 }

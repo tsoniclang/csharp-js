@@ -1,6 +1,7 @@
 /**
  * JavaScript Date implementation
- * Wraps System.DateTimeOffset with JavaScript Date semantics
+ * Retains the ECMAScript epoch-millisecond scalar and uses DateTimeOffset only
+ * for representable local-time operations.
  */
 
 using System;
@@ -14,9 +15,14 @@ namespace Tsonic.CSharp.Js
     public class Date
     {
         private DateTimeOffset _value;
+        private double _milliseconds;
+        private bool _hasLocalValue;
 
-        // Unix epoch: January 1, 1970 00:00:00 UTC
         private static readonly DateTimeOffset Epoch = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        private const long MillisecondsPerDay = 86_400_000;
+        private const double MaximumTimeMilliseconds = 8_640_000_000_000_000.0;
+        private static readonly string[] Weekdays = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+        private static readonly string[] Months = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
         // ==================== Constructors ====================
 
@@ -25,7 +31,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Date()
         {
-            _value = DateTimeOffset.Now;
+            SetFromMilliseconds(now());
         }
 
         /// <summary>
@@ -53,6 +59,8 @@ namespace Tsonic.CSharp.Js
             {
                 case Date date:
                     _value = date._value;
+                    _milliseconds = date._milliseconds;
+                    _hasLocalValue = date._hasLocalValue;
                     break;
                 case string text:
                     SetFromString(text);
@@ -94,20 +102,31 @@ namespace Tsonic.CSharp.Js
                     SetFromMilliseconds(0);
                     break;
                 default:
-                    _value = DateTimeOffset.MinValue;
+                    SetInvalid();
                     break;
             }
         }
 
         private void SetFromMilliseconds(double milliseconds)
         {
-            if (double.IsNaN(milliseconds) || double.IsInfinity(milliseconds))
+            _milliseconds = TimeClip(milliseconds);
+            if (!double.IsFinite(_milliseconds))
             {
                 _value = DateTimeOffset.MinValue;
+                _hasLocalValue = false;
             }
             else
             {
-                _value = Epoch.AddMilliseconds(milliseconds);
+                try
+                {
+                    _value = Epoch.AddMilliseconds(_milliseconds);
+                    _hasLocalValue = true;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    _value = DateTimeOffset.MinValue;
+                    _hasLocalValue = false;
+                }
             }
         }
 
@@ -116,10 +135,12 @@ namespace Tsonic.CSharp.Js
             if (DateTimeOffset.TryParse(dateString, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
             {
                 _value = parsed;
+                _milliseconds = TimeClip((parsed.ToUniversalTime() - Epoch).TotalMilliseconds);
+                _hasLocalValue = true;
             }
             else
             {
-                _value = DateTimeOffset.MinValue;
+                SetInvalid();
             }
         }
 
@@ -133,10 +154,12 @@ namespace Tsonic.CSharp.Js
             {
                 // JavaScript months are 0-indexed, DateTimeOffset months are 1-indexed
                 _value = new DateTimeOffset(year, month + 1, day, hours, minutes, seconds, milliseconds, TimeZoneInfo.Local.GetUtcOffset(DateTime.Now));
+                _hasLocalValue = true;
+                SyncMillisecondsFromValue();
             }
             catch
             {
-                _value = DateTimeOffset.MinValue;
+                SetInvalid();
             }
         }
 
@@ -165,15 +188,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static double UTC(int year, int month, int day = 1, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds = 0)
         {
-            try
-            {
-                var date = new DateTimeOffset(year, month + 1, day, hours, minutes, seconds, milliseconds, TimeSpan.Zero);
-                return (date - Epoch).TotalMilliseconds;
-            }
-            catch
-            {
-                return double.NaN;
-            }
+            var normalizedYear = year >= 0 && year <= 99 ? year + 1900 : year;
+            return MakeUtcMilliseconds(normalizedYear, month, day, hours, minutes, seconds, milliseconds);
         }
 
         public static string call() => new Date().ToString();
@@ -183,7 +199,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get milliseconds since epoch
         /// </summary>
-        public double getTime() => (_value - Epoch).TotalMilliseconds;
+        public double getTime() => _milliseconds;
 
         /// <summary>
         /// Get full year (4 digits)
@@ -235,42 +251,48 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get UTC full year
         /// </summary>
-        public double getUTCFullYear() => _value.UtcDateTime.Year;
+        public double getUTCFullYear() => TryGetUtcParts(out var parts) ? parts.Year : double.NaN;
 
         /// <summary>
         /// Get UTC month (0-11)
         /// </summary>
-        public double getUTCMonth() => _value.UtcDateTime.Month - 1;
+        public double getUTCMonth() => TryGetUtcParts(out var parts) ? parts.Month - 1 : double.NaN;
 
         /// <summary>
         /// Get UTC day of month
         /// </summary>
-        public double getUTCDate() => _value.UtcDateTime.Day;
+        public double getUTCDate() => TryGetUtcParts(out var parts) ? parts.Day : double.NaN;
 
         /// <summary>
         /// Get UTC day of week
         /// </summary>
-        public double getUTCDay() => (int)_value.UtcDateTime.DayOfWeek;
+        public double getUTCDay()
+        {
+            if (!double.IsFinite(_milliseconds))
+                return double.NaN;
+            var days = FloorDiv(checked((long)Math.Truncate(_milliseconds)), MillisecondsPerDay);
+            return Modulo(days + 4, 7);
+        }
 
         /// <summary>
         /// Get UTC hours
         /// </summary>
-        public double getUTCHours() => _value.UtcDateTime.Hour;
+        public double getUTCHours() => TryGetUtcParts(out var parts) ? parts.Hour : double.NaN;
 
         /// <summary>
         /// Get UTC minutes
         /// </summary>
-        public double getUTCMinutes() => _value.UtcDateTime.Minute;
+        public double getUTCMinutes() => TryGetUtcParts(out var parts) ? parts.Minute : double.NaN;
 
         /// <summary>
         /// Get UTC seconds
         /// </summary>
-        public double getUTCSeconds() => _value.UtcDateTime.Second;
+        public double getUTCSeconds() => TryGetUtcParts(out var parts) ? parts.Second : double.NaN;
 
         /// <summary>
         /// Get UTC milliseconds
         /// </summary>
-        public double getUTCMilliseconds() => _value.UtcDateTime.Millisecond;
+        public double getUTCMilliseconds() => TryGetUtcParts(out var parts) ? parts.Millisecond : double.NaN;
 
         // ==================== Instance Methods - Setters (Local Time) ====================
 
@@ -279,7 +301,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public double setTime(double milliseconds)
         {
-            _value = Epoch.AddMilliseconds(milliseconds);
+            SetFromMilliseconds(milliseconds);
             return getTime();
         }
 
@@ -290,6 +312,7 @@ namespace Tsonic.CSharp.Js
         {
             var local = _value.LocalDateTime;
             _value = new DateTimeOffset(local.Year, local.Month, local.Day, local.Hour, local.Minute, local.Second, ms, _value.Offset);
+            SyncMillisecondsFromValue();
             return getTime();
         }
 
@@ -301,6 +324,7 @@ namespace Tsonic.CSharp.Js
             var local = _value.LocalDateTime;
             var newMs = ms ?? local.Millisecond;
             _value = new DateTimeOffset(local.Year, local.Month, local.Day, local.Hour, local.Minute, sec, newMs, _value.Offset);
+            SyncMillisecondsFromValue();
             return getTime();
         }
 
@@ -313,6 +337,7 @@ namespace Tsonic.CSharp.Js
             var newSec = sec ?? local.Second;
             var newMs = ms ?? local.Millisecond;
             _value = new DateTimeOffset(local.Year, local.Month, local.Day, local.Hour, min, newSec, newMs, _value.Offset);
+            SyncMillisecondsFromValue();
             return getTime();
         }
 
@@ -326,6 +351,7 @@ namespace Tsonic.CSharp.Js
             var newSec = sec ?? local.Second;
             var newMs = ms ?? local.Millisecond;
             _value = new DateTimeOffset(local.Year, local.Month, local.Day, hour, newMin, newSec, newMs, _value.Offset);
+            SyncMillisecondsFromValue();
             return getTime();
         }
 
@@ -336,6 +362,7 @@ namespace Tsonic.CSharp.Js
         {
             var local = _value.LocalDateTime;
             _value = new DateTimeOffset(local.Year, local.Month, day, local.Hour, local.Minute, local.Second, local.Millisecond, _value.Offset);
+            SyncMillisecondsFromValue();
             return getTime();
         }
 
@@ -348,6 +375,7 @@ namespace Tsonic.CSharp.Js
             var newDay = day ?? local.Day;
             // JavaScript months are 0-indexed
             _value = new DateTimeOffset(local.Year, month + 1, newDay, local.Hour, local.Minute, local.Second, local.Millisecond, _value.Offset);
+            SyncMillisecondsFromValue();
             return getTime();
         }
 
@@ -361,6 +389,7 @@ namespace Tsonic.CSharp.Js
             var newMonth = month.HasValue ? month.Value + 1 : local.Month;
             var newDay = day ?? local.Day;
             _value = new DateTimeOffset(year, newMonth, newDay, local.Hour, local.Minute, local.Second, local.Millisecond, _value.Offset);
+            SyncMillisecondsFromValue();
             return getTime();
         }
 
@@ -431,37 +460,173 @@ namespace Tsonic.CSharp.Js
             double? seconds = null,
             double? milliseconds = null)
         {
-            var utc = _value.UtcDateTime;
-            var selectedYear = DateInteger(year ?? utc.Year, nameof(year));
-            var selectedMonth = DateInteger(month ?? (utc.Month - 1), nameof(month));
-            var selectedDate = DateInteger(date ?? utc.Day, nameof(date));
-            var selectedHours = DateInteger(hours ?? utc.Hour, nameof(hours));
-            var selectedMinutes = DateInteger(minutes ?? utc.Minute, nameof(minutes));
-            var selectedSeconds = DateInteger(seconds ?? utc.Second, nameof(seconds));
-            var selectedMilliseconds = DateInteger(milliseconds ?? utc.Millisecond, nameof(milliseconds));
-            _value = new DateTimeOffset(selectedYear, 1, 1, 0, 0, 0, TimeSpan.Zero)
-                .AddMonths(selectedMonth)
-                .AddDays(selectedDate - 1)
-                .AddHours(selectedHours)
-                .AddMinutes(selectedMinutes)
-                .AddSeconds(selectedSeconds)
-                .AddMilliseconds(selectedMilliseconds);
+            if (!TryGetUtcParts(out var parts))
+            {
+                if (!year.HasValue)
+                {
+                    SetInvalid();
+                    return double.NaN;
+                }
+                parts = new UtcParts(1970, 1, 1, 0, 0, 0, 0);
+            }
+
+            var result = MakeUtcMilliseconds(
+                year ?? parts.Year,
+                month ?? (parts.Month - 1),
+                date ?? parts.Day,
+                hours ?? parts.Hour,
+                minutes ?? parts.Minute,
+                seconds ?? parts.Second,
+                milliseconds ?? parts.Millisecond);
+            SetFromMilliseconds(result);
             return getTime();
         }
 
-        private static int DateInteger(double value, string parameterName)
+        private void SetInvalid()
         {
-            if (!double.IsFinite(value) || value < int.MinValue || value > int.MaxValue)
-                throw new RangeError($"Date component '{parameterName}' is outside the supported finite range.");
-            return checked((int)System.Math.Truncate(value));
+            _milliseconds = double.NaN;
+            _value = DateTimeOffset.MinValue;
+            _hasLocalValue = false;
         }
+
+        private void SyncMillisecondsFromValue()
+        {
+            _milliseconds = TimeClip((_value.ToUniversalTime() - Epoch).TotalMilliseconds);
+            _hasLocalValue = true;
+        }
+
+        private bool TryGetUtcParts(out UtcParts parts)
+        {
+            if (!double.IsFinite(_milliseconds))
+            {
+                parts = default;
+                return false;
+            }
+
+            var milliseconds = checked((long)Math.Truncate(_milliseconds));
+            var days = FloorDiv(milliseconds, MillisecondsPerDay);
+            var millisecondsInDay = Modulo(milliseconds, MillisecondsPerDay);
+            var (year, month, day) = CivilFromDays(days);
+            parts = new UtcParts(
+                year,
+                month,
+                day,
+                millisecondsInDay / 3_600_000,
+                (millisecondsInDay % 3_600_000) / 60_000,
+                (millisecondsInDay % 60_000) / 1_000,
+                millisecondsInDay % 1_000);
+            return true;
+        }
+
+        private static double MakeUtcMilliseconds(
+            double year,
+            double month,
+            double day,
+            double hours,
+            double minutes,
+            double seconds,
+            double milliseconds)
+        {
+            if (!double.IsFinite(year)
+                || !double.IsFinite(month)
+                || !double.IsFinite(day)
+                || !double.IsFinite(hours)
+                || !double.IsFinite(minutes)
+                || !double.IsFinite(seconds)
+                || !double.IsFinite(milliseconds))
+                return double.NaN;
+
+            year = Math.Truncate(year);
+            month = Math.Truncate(month);
+            if (Math.Abs(year) > 1_000_000 || Math.Abs(month) > 10_000_000)
+                return double.NaN;
+
+            var totalMonths = checked((long)year * 12 + (long)month);
+            var civilYear = FloorDiv(totalMonths, 12);
+            if (Math.Abs(civilYear) > 1_000_000)
+                return double.NaN;
+            var civilMonth = checked((int)Modulo(totalMonths, 12) + 1);
+            var dayNumber = DaysFromCivil(civilYear, civilMonth, 1);
+            return TimeClip(
+                (dayNumber + Math.Truncate(day) - 1) * MillisecondsPerDay
+                + Math.Truncate(hours) * 3_600_000
+                + Math.Truncate(minutes) * 60_000
+                + Math.Truncate(seconds) * 1_000
+                + Math.Truncate(milliseconds));
+        }
+
+        private static double TimeClip(double value)
+        {
+            if (!double.IsFinite(value) || Math.Abs(value) > MaximumTimeMilliseconds)
+                return double.NaN;
+            return value == 0 ? 0 : Math.Truncate(value);
+        }
+
+        private static long DaysFromCivil(long year, int month, int day)
+        {
+            year -= month <= 2 ? 1 : 0;
+            var era = FloorDiv(year, 400);
+            var yearOfEra = year - era * 400;
+            var dayOfYear = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
+            var dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear;
+            return era * 146_097 + dayOfEra - 719_468;
+        }
+
+        private static (int Year, int Month, int Day) CivilFromDays(long days)
+        {
+            var zeroDay = days + 719_468;
+            var era = FloorDiv(zeroDay, 146_097);
+            var dayOfEra = zeroDay - era * 146_097;
+            var yearOfEra = (dayOfEra - dayOfEra / 1_460 + dayOfEra / 36_524 - dayOfEra / 146_096) / 365;
+            var year = yearOfEra + era * 400;
+            var dayOfYear = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100);
+            var monthPart = (5 * dayOfYear + 2) / 153;
+            var day = dayOfYear - (153 * monthPart + 2) / 5 + 1;
+            var month = monthPart + (monthPart < 10 ? 3 : -9);
+            year += month <= 2 ? 1 : 0;
+            return (checked((int)year), checked((int)month), checked((int)day));
+        }
+
+        private static long FloorDiv(long dividend, long divisor)
+        {
+            var quotient = dividend / divisor;
+            return dividend % divisor < 0 ? quotient - 1 : quotient;
+        }
+
+        private static long Modulo(long value, long modulus)
+        {
+            var remainder = value % modulus;
+            return remainder < 0 ? remainder + modulus : remainder;
+        }
+
+        private static string IsoYear(int year) => year switch
+        {
+            >= 0 and <= 9999 => year.ToString("0000", CultureInfo.InvariantCulture),
+            < 0 => $"-{Math.Abs((long)year):000000}",
+            _ => $"+{year:000000}",
+        };
+
+        private static string UtcStringYear(int year) => year >= 0
+            ? year.ToString("0000", CultureInfo.InvariantCulture)
+            : $"-{Math.Abs((long)year):0000}";
+
+        private readonly record struct UtcParts(
+            int Year,
+            int Month,
+            int Day,
+            long Hour,
+            long Minute,
+            long Second,
+            long Millisecond);
 
         // ==================== Instance Methods - String Conversion ====================
 
         /// <summary>
         /// Convert to string representation
         /// </summary>
-        public override string ToString() => _value.LocalDateTime.ToString("ddd MMM dd yyyy HH:mm:ss 'GMT'zzz", CultureInfo.InvariantCulture);
+        public override string ToString() => double.IsFinite(_milliseconds) && _hasLocalValue
+            ? _value.LocalDateTime.ToString("ddd MMM dd yyyy HH:mm:ss 'GMT'zzz", CultureInfo.InvariantCulture)
+            : "Invalid Date";
 
         /// <summary>
         /// Convert to date string
@@ -476,17 +641,28 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Convert to ISO 8601 string
         /// </summary>
-        public string toISOString() => _value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
+        public string toISOString()
+        {
+            if (!TryGetUtcParts(out var parts))
+                throw new RangeError("Invalid Date");
+            return $"{IsoYear(parts.Year)}-{parts.Month:00}-{parts.Day:00}T{parts.Hour:00}:{parts.Minute:00}:{parts.Second:00}.{parts.Millisecond:000}Z";
+        }
 
         /// <summary>
         /// Convert to UTC string
         /// </summary>
-        public string toUTCString() => _value.UtcDateTime.ToString("ddd, dd MMM yyyy HH:mm:ss 'GMT'", CultureInfo.InvariantCulture);
+        public string toUTCString()
+        {
+            if (!TryGetUtcParts(out var parts))
+                return "Invalid Date";
+            var weekday = checked((int)getUTCDay());
+            return $"{Weekdays[weekday]}, {parts.Day:00} {Months[parts.Month - 1]} {UtcStringYear(parts.Year)} {parts.Hour:00}:{parts.Minute:00}:{parts.Second:00} GMT";
+        }
 
         /// <summary>
-        /// Convert to JSON (same as toISOString)
+        /// Convert to JSON using the ECMAScript invalid-date null contract
         /// </summary>
-        public string toJSON() => toISOString();
+        public string? toJSON() => double.IsFinite(_milliseconds) ? toISOString() : null;
 
         /// <summary>
         /// Convert to locale date string
