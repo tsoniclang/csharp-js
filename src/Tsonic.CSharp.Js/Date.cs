@@ -235,42 +235,42 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get UTC full year
         /// </summary>
-        public int getUTCFullYear() => _value.UtcDateTime.Year;
+        public double getUTCFullYear() => _value.UtcDateTime.Year;
 
         /// <summary>
         /// Get UTC month (0-11)
         /// </summary>
-        public int getUTCMonth() => _value.UtcDateTime.Month - 1;
+        public double getUTCMonth() => _value.UtcDateTime.Month - 1;
 
         /// <summary>
         /// Get UTC day of month
         /// </summary>
-        public int getUTCDate() => _value.UtcDateTime.Day;
+        public double getUTCDate() => _value.UtcDateTime.Day;
 
         /// <summary>
         /// Get UTC day of week
         /// </summary>
-        public int getUTCDay() => (int)_value.UtcDateTime.DayOfWeek;
+        public double getUTCDay() => (int)_value.UtcDateTime.DayOfWeek;
 
         /// <summary>
         /// Get UTC hours
         /// </summary>
-        public int getUTCHours() => _value.UtcDateTime.Hour;
+        public double getUTCHours() => _value.UtcDateTime.Hour;
 
         /// <summary>
         /// Get UTC minutes
         /// </summary>
-        public int getUTCMinutes() => _value.UtcDateTime.Minute;
+        public double getUTCMinutes() => _value.UtcDateTime.Minute;
 
         /// <summary>
         /// Get UTC seconds
         /// </summary>
-        public int getUTCSeconds() => _value.UtcDateTime.Second;
+        public double getUTCSeconds() => _value.UtcDateTime.Second;
 
         /// <summary>
         /// Get UTC milliseconds
         /// </summary>
-        public int getUTCMilliseconds() => _value.UtcDateTime.Millisecond;
+        public double getUTCMilliseconds() => _value.UtcDateTime.Millisecond;
 
         // ==================== Instance Methods - Setters (Local Time) ====================
 
@@ -369,80 +369,91 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Set UTC milliseconds
         /// </summary>
-        public double setUTCMilliseconds(int ms)
+        public double setUTCMilliseconds(double ms)
         {
-            var utc = _value.UtcDateTime;
-            _value = new DateTimeOffset(utc.Year, utc.Month, utc.Day, utc.Hour, utc.Minute, utc.Second, ms, TimeSpan.Zero);
-            return getTime();
+            return MutateUtc(milliseconds: ms);
         }
 
         /// <summary>
         /// Set UTC seconds
         /// </summary>
-        public double setUTCSeconds(int sec, int? ms = null)
+        public double setUTCSeconds(double sec, double? ms = null)
         {
-            var utc = _value.UtcDateTime;
-            var newMs = ms ?? utc.Millisecond;
-            _value = new DateTimeOffset(utc.Year, utc.Month, utc.Day, utc.Hour, utc.Minute, sec, newMs, TimeSpan.Zero);
-            return getTime();
+            return MutateUtc(seconds: sec, milliseconds: ms);
         }
 
         /// <summary>
         /// Set UTC minutes
         /// </summary>
-        public double setUTCMinutes(int min, int? sec = null, int? ms = null)
+        public double setUTCMinutes(double min, double? sec = null, double? ms = null)
         {
-            var utc = _value.UtcDateTime;
-            var newSec = sec ?? utc.Second;
-            var newMs = ms ?? utc.Millisecond;
-            _value = new DateTimeOffset(utc.Year, utc.Month, utc.Day, utc.Hour, min, newSec, newMs, TimeSpan.Zero);
-            return getTime();
+            return MutateUtc(minutes: min, seconds: sec, milliseconds: ms);
         }
 
         /// <summary>
         /// Set UTC hours
         /// </summary>
-        public double setUTCHours(int hour, int? min = null, int? sec = null, int? ms = null)
+        public double setUTCHours(double hour, double? min = null, double? sec = null, double? ms = null)
         {
-            var utc = _value.UtcDateTime;
-            var newMin = min ?? utc.Minute;
-            var newSec = sec ?? utc.Second;
-            var newMs = ms ?? utc.Millisecond;
-            _value = new DateTimeOffset(utc.Year, utc.Month, utc.Day, hour, newMin, newSec, newMs, TimeSpan.Zero);
-            return getTime();
+            return MutateUtc(hours: hour, minutes: min, seconds: sec, milliseconds: ms);
         }
 
         /// <summary>
         /// Set UTC day of month
         /// </summary>
-        public double setUTCDate(int day)
+        public double setUTCDate(double day)
         {
-            var utc = _value.UtcDateTime;
-            _value = new DateTimeOffset(utc.Year, utc.Month, day, utc.Hour, utc.Minute, utc.Second, utc.Millisecond, TimeSpan.Zero);
-            return getTime();
+            return MutateUtc(date: day);
         }
 
         /// <summary>
         /// Set UTC month (0-11)
         /// </summary>
-        public double setUTCMonth(int month, int? day = null)
+        public double setUTCMonth(double month, double? day = null)
         {
-            var utc = _value.UtcDateTime;
-            var newDay = day ?? utc.Day;
-            _value = new DateTimeOffset(utc.Year, month + 1, newDay, utc.Hour, utc.Minute, utc.Second, utc.Millisecond, TimeSpan.Zero);
-            return getTime();
+            return MutateUtc(month: month, date: day);
         }
 
         /// <summary>
         /// Set UTC full year
         /// </summary>
-        public double setUTCFullYear(int year, int? month = null, int? day = null)
+        public double setUTCFullYear(double year, double? month = null, double? day = null)
+        {
+            return MutateUtc(year: year, month: month, date: day);
+        }
+
+        private double MutateUtc(
+            double? year = null,
+            double? month = null,
+            double? date = null,
+            double? hours = null,
+            double? minutes = null,
+            double? seconds = null,
+            double? milliseconds = null)
         {
             var utc = _value.UtcDateTime;
-            var newMonth = month.HasValue ? month.Value + 1 : utc.Month;
-            var newDay = day ?? utc.Day;
-            _value = new DateTimeOffset(year, newMonth, newDay, utc.Hour, utc.Minute, utc.Second, utc.Millisecond, TimeSpan.Zero);
+            var selectedYear = DateInteger(year ?? utc.Year, nameof(year));
+            var selectedMonth = DateInteger(month ?? (utc.Month - 1), nameof(month));
+            var selectedDate = DateInteger(date ?? utc.Day, nameof(date));
+            var selectedHours = DateInteger(hours ?? utc.Hour, nameof(hours));
+            var selectedMinutes = DateInteger(minutes ?? utc.Minute, nameof(minutes));
+            var selectedSeconds = DateInteger(seconds ?? utc.Second, nameof(seconds));
+            var selectedMilliseconds = DateInteger(milliseconds ?? utc.Millisecond, nameof(milliseconds));
+            _value = new DateTimeOffset(selectedYear, 1, 1, 0, 0, 0, TimeSpan.Zero)
+                .AddMonths(selectedMonth)
+                .AddDays(selectedDate - 1)
+                .AddHours(selectedHours)
+                .AddMinutes(selectedMinutes)
+                .AddSeconds(selectedSeconds)
+                .AddMilliseconds(selectedMilliseconds);
             return getTime();
+        }
+
+        private static int DateInteger(double value, string parameterName)
+        {
+            if (!double.IsFinite(value) || value < int.MinValue || value > int.MaxValue)
+                throw new RangeError($"Date component '{parameterName}' is outside the supported finite range.");
+            return checked((int)System.Math.Truncate(value));
         }
 
         // ==================== Instance Methods - String Conversion ====================

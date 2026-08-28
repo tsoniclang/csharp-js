@@ -15,6 +15,17 @@ namespace Tsonic.CSharp.Js
         private static ManualResetEventSlim? _releaseSignal;
         private static Thread? _keeperThread;
 
+        public static bool HasReferences
+        {
+            get
+            {
+                lock (Sync)
+                {
+                    return _refCount != 0;
+                }
+            }
+        }
+
         public static void Acquire()
         {
             lock (Sync)

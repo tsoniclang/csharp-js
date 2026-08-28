@@ -5,6 +5,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 
 namespace Tsonic.CSharp.Js
 {
@@ -23,6 +24,14 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public WeakMap() { }
 
+        public WeakMap(IEnumerable<(K, V)>? entries)
+        {
+            if (entries is null)
+                return;
+            foreach (var (key, value) in entries)
+                set(key, value);
+        }
+
         // ==================== Core Methods ====================
 
         /// <summary>
@@ -35,6 +44,17 @@ namespace Tsonic.CSharp.Js
                 return box.Value;
             }
             return default;
+        }
+
+        internal bool TryGetValue(K key, out V value)
+        {
+            if (_table.TryGetValue(key, out var box))
+            {
+                value = box.Value;
+                return true;
+            }
+            value = default!;
+            return false;
         }
 
         /// <summary>
@@ -66,5 +86,24 @@ namespace Tsonic.CSharp.Js
 
         // Note: WeakMap is intentionally not iterable (matches JavaScript)
         // No keys(), values(), entries(), forEach(), size, or clear()
+    }
+
+    public static class WeakMap
+    {
+        public static V? getValue<K, V>(WeakMap<K, V> map, K key)
+            where K : class
+            where V : struct
+        {
+            ArgumentNullException.ThrowIfNull(map);
+            return map.TryGetValue(key, out var value) ? value : null;
+        }
+
+        public static V? getReference<K, V>(WeakMap<K, V> map, K key)
+            where K : class
+            where V : class
+        {
+            ArgumentNullException.ThrowIfNull(map);
+            return map.TryGetValue(key, out var value) ? value : null;
+        }
     }
 }
