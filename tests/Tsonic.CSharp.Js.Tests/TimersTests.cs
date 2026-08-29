@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests
@@ -32,6 +33,31 @@ namespace Tsonic.CSharp.Js.Tests
                     Name = "Tsonic.CSharp.Js.Tests event loop",
                 };
                 _eventLoopThread.Start();
+            }
+        }
+
+        private static void EnsureEventLoopStopped()
+        {
+            Thread? eventLoopThread;
+            lock (EventLoopLock)
+            {
+                eventLoopThread = _eventLoopThread;
+            }
+
+            if (eventLoopThread is { IsAlive: true })
+            {
+                Assert.True(
+                    eventLoopThread.Join(1000),
+                    "The JavaScript event loop did not stop after its final referenced handle completed."
+                );
+            }
+
+            lock (EventLoopLock)
+            {
+                if (ReferenceEquals(_eventLoopThread, eventLoopThread))
+                {
+                    _eventLoopThread = null;
+                }
             }
         }
 
@@ -372,6 +398,20 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         // ==================== Edge Cases ====================
+
+        [Fact]
+        public void Run_WithEntrypointTask_DrivesTimerBackedAwaitToCompletion()
+        {
+            EnsureEventLoopStopped();
+            var completion = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously
+            );
+            Timers.setTimeout(_ => completion.SetResult(), 0);
+
+            JsEventLoop.Run(completion.Task);
+
+            Assert.True(completion.Task.IsCompletedSuccessfully);
+        }
 
         [Fact]
         public void setTimeout_VeryShortDelay_ExecutesQuickly()

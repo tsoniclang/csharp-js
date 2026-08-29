@@ -28,30 +28,35 @@ namespace Tsonic.CSharp.Js
 
         public static void Acquire()
         {
+            var changed = false;
             lock (Sync)
             {
                 _refCount++;
-                if (_refCount != 1)
+                if (_refCount == 1)
                 {
-                    return;
+                    var releaseSignal = new ManualResetEventSlim(false);
+                    var keeperThread = new Thread(() => releaseSignal.Wait())
+                    {
+                        IsBackground = false,
+                        Name = "Tsonic.ProcessKeepAlive",
+                    };
+
+                    _releaseSignal = releaseSignal;
+                    _keeperThread = keeperThread;
+                    keeperThread.Start();
+                    changed = true;
                 }
-
-                var releaseSignal = new ManualResetEventSlim(false);
-                var keeperThread = new Thread(() => releaseSignal.Wait())
-                {
-                    IsBackground = false,
-                    Name = "Tsonic.ProcessKeepAlive",
-                };
-
-                _releaseSignal = releaseSignal;
-                _keeperThread = keeperThread;
-                keeperThread.Start();
+            }
+            if (changed)
+            {
+                JsEventLoop.NotifyStateChanged();
             }
         }
 
         public static void Release()
         {
             ManualResetEventSlim? releaseSignal = null;
+            var changed = false;
 
             lock (Sync)
             {
@@ -69,9 +74,14 @@ namespace Tsonic.CSharp.Js
                 releaseSignal = _releaseSignal;
                 _releaseSignal = null;
                 _keeperThread = null;
+                changed = true;
             }
 
             releaseSignal?.Set();
+            if (changed)
+            {
+                JsEventLoop.NotifyStateChanged();
+            }
         }
     }
 }
