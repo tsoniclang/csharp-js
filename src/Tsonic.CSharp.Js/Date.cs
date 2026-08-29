@@ -270,7 +270,7 @@ namespace Tsonic.CSharp.Js
         {
             if (!double.IsFinite(_milliseconds))
                 return double.NaN;
-            var days = FloorDiv(checked((long)Math.Truncate(_milliseconds)), MillisecondsPerDay);
+            var days = FloorDiv(checked((long)System.Math.Truncate(_milliseconds)), MillisecondsPerDay);
             return Modulo(days + 4, 7);
         }
 
@@ -503,7 +503,7 @@ namespace Tsonic.CSharp.Js
                 return false;
             }
 
-            var milliseconds = checked((long)Math.Truncate(_milliseconds));
+            var milliseconds = checked((long)System.Math.Truncate(_milliseconds));
             var days = FloorDiv(milliseconds, MillisecondsPerDay);
             var millisecondsInDay = Modulo(milliseconds, MillisecondsPerDay);
             var (year, month, day) = CivilFromDays(days);
@@ -536,30 +536,30 @@ namespace Tsonic.CSharp.Js
                 || !double.IsFinite(milliseconds))
                 return double.NaN;
 
-            year = Math.Truncate(year);
-            month = Math.Truncate(month);
-            if (Math.Abs(year) > 1_000_000 || Math.Abs(month) > 10_000_000)
+            year = System.Math.Truncate(year);
+            month = System.Math.Truncate(month);
+            if (System.Math.Abs(year) > 1_000_000 || System.Math.Abs(month) > 10_000_000)
                 return double.NaN;
 
             var totalMonths = checked((long)year * 12 + (long)month);
             var civilYear = FloorDiv(totalMonths, 12);
-            if (Math.Abs(civilYear) > 1_000_000)
+            if (System.Math.Abs(civilYear) > 1_000_000)
                 return double.NaN;
             var civilMonth = checked((int)Modulo(totalMonths, 12) + 1);
             var dayNumber = DaysFromCivil(civilYear, civilMonth, 1);
             return TimeClip(
-                (dayNumber + Math.Truncate(day) - 1) * MillisecondsPerDay
-                + Math.Truncate(hours) * 3_600_000
-                + Math.Truncate(minutes) * 60_000
-                + Math.Truncate(seconds) * 1_000
-                + Math.Truncate(milliseconds));
+                (dayNumber + System.Math.Truncate(day) - 1) * MillisecondsPerDay
+                + System.Math.Truncate(hours) * 3_600_000
+                + System.Math.Truncate(minutes) * 60_000
+                + System.Math.Truncate(seconds) * 1_000
+                + System.Math.Truncate(milliseconds));
         }
 
         private static double TimeClip(double value)
         {
-            if (!double.IsFinite(value) || Math.Abs(value) > MaximumTimeMilliseconds)
+            if (!double.IsFinite(value) || System.Math.Abs(value) > MaximumTimeMilliseconds)
                 return double.NaN;
-            return value == 0 ? 0 : Math.Truncate(value);
+            return value == 0 ? 0 : System.Math.Truncate(value);
         }
 
         private static long DaysFromCivil(long year, int month, int day)
@@ -602,13 +602,13 @@ namespace Tsonic.CSharp.Js
         private static string IsoYear(int year) => year switch
         {
             >= 0 and <= 9999 => year.ToString("0000", CultureInfo.InvariantCulture),
-            < 0 => $"-{Math.Abs((long)year):000000}",
+            < 0 => $"-{System.Math.Abs((long)year):000000}",
             _ => $"+{year:000000}",
         };
 
         private static string UtcStringYear(int year) => year >= 0
             ? year.ToString("0000", CultureInfo.InvariantCulture)
-            : $"-{Math.Abs((long)year):0000}";
+            : $"-{System.Math.Abs((long)year):0000}";
 
         private readonly record struct UtcParts(
             int Year,

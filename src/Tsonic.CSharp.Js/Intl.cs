@@ -136,7 +136,7 @@ namespace Tsonic.CSharp.Js
             DateTimeOffset value;
             try
             {
-                value = DateTimeOffset.FromUnixTimeMilliseconds(checked((long)Math.Truncate(milliseconds)));
+                value = DateTimeOffset.FromUnixTimeMilliseconds(checked((long)System.Math.Truncate(milliseconds)));
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -236,7 +236,7 @@ namespace Tsonic.CSharp.Js
             _minimumIntegerDigits = IntlRuntime.IntegerOption(options, "minimumIntegerDigits", 1, 21) ?? 1;
             _minimumFractionDigits = IntlRuntime.IntegerOption(options, "minimumFractionDigits", 0, 20) ?? 0;
             _maximumFractionDigits = IntlRuntime.IntegerOption(options, "maximumFractionDigits", _minimumFractionDigits, 20)
-                ?? Math.Max(_minimumFractionDigits, _style == "currency" ? 2 : 3);
+                ?? System.Math.Max(_minimumFractionDigits, _style == "currency" ? 2 : 3);
             if (_style == "currency" && string.IsNullOrWhiteSpace(_currency))
             {
                 throw new TypeError("Intl.NumberFormat currency style requires a currency code.");
@@ -264,7 +264,7 @@ namespace Tsonic.CSharp.Js
 
             var scaled = _style == "percent" ? value * 100 : value;
             var negative = scaled < 0;
-            var absolute = Math.Abs(scaled);
+            var absolute = System.Math.Abs(scaled);
             var rendered = absolute.ToString($"F{_maximumFractionDigits}", CultureInfo.InvariantCulture);
             var split = rendered.Split('.', 2);
             var integer = split[0].PadLeft(_minimumIntegerDigits, '0');
@@ -350,7 +350,7 @@ namespace Tsonic.CSharp.Js
                 var ordinal = string.CompareOrdinal(left, right);
                 result = _caseFirst == "upper" ? ordinal : -ordinal;
             }
-            return Math.Sign(result);
+            return System.Math.Sign(result);
         }
 
         public IntlResolvedCollatorOptions resolvedOptions() => new()
@@ -479,7 +479,7 @@ namespace Tsonic.CSharp.Js
                 byte numberValue => numberValue,
                 _ => throw new TypeError($"Intl option '{name}' must be numeric."),
             };
-            if (!double.IsFinite(number) || Math.Truncate(number) != number || number < minimum || number > maximum)
+            if (!double.IsFinite(number) || System.Math.Truncate(number) != number || number < minimum || number > maximum)
             {
                 throw new RangeError($"Intl option '{name}' is outside its supported range.");
             }
@@ -594,12 +594,68 @@ namespace Tsonic.CSharp.Js
 
         public static int CompareNumericStrings(string left, string right)
         {
-            if (ulong.TryParse(left, NumberStyles.None, CultureInfo.InvariantCulture, out var leftNumber) &&
-                ulong.TryParse(right, NumberStyles.None, CultureInfo.InvariantCulture, out var rightNumber))
+            var leftIndex = 0;
+            var rightIndex = 0;
+            while (leftIndex < left.Length && rightIndex < right.Length)
             {
-                return leftNumber.CompareTo(rightNumber);
+                if (IsAsciiDigit(left[leftIndex]) && IsAsciiDigit(right[rightIndex]))
+                {
+                    var leftEnd = DigitRunEnd(left, leftIndex);
+                    var rightEnd = DigitRunEnd(right, rightIndex);
+                    var leftSignificant = SignificantDigitStart(left, leftIndex, leftEnd);
+                    var rightSignificant = SignificantDigitStart(right, rightIndex, rightEnd);
+                    var leftLength = leftEnd - leftSignificant;
+                    var rightLength = rightEnd - rightSignificant;
+                    if (leftLength != rightLength)
+                    {
+                        return leftLength.CompareTo(rightLength);
+                    }
+                    var numeric = string.CompareOrdinal(
+                        left,
+                        leftSignificant,
+                        right,
+                        rightSignificant,
+                        leftLength);
+                    if (numeric != 0)
+                    {
+                        return numeric;
+                    }
+                    leftIndex = leftEnd;
+                    rightIndex = rightEnd;
+                    continue;
+                }
+
+                var character = left[leftIndex].CompareTo(right[rightIndex]);
+                if (character != 0)
+                {
+                    return character;
+                }
+                leftIndex += 1;
+                rightIndex += 1;
             }
-            return string.CompareOrdinal(left, right);
+            return (left.Length - leftIndex).CompareTo(right.Length - rightIndex);
+        }
+
+        private static bool IsAsciiDigit(char value) => value is >= '0' and <= '9';
+
+        private static int DigitRunEnd(string value, int start)
+        {
+            var index = start;
+            while (index < value.Length && IsAsciiDigit(value[index]))
+            {
+                index += 1;
+            }
+            return index;
+        }
+
+        private static int SignificantDigitStart(string value, int start, int end)
+        {
+            var index = start;
+            while (index < end - 1 && value[index] == '0')
+            {
+                index += 1;
+            }
+            return index;
         }
 
         private static void ValidateLocaleName(string locale)

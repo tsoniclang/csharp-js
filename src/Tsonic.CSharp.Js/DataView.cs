@@ -145,7 +145,7 @@ namespace Tsonic.CSharp.Js
             {
                 throw new RangeError("DataView offsets and lengths must be finite.");
             }
-            var integer = Math.Truncate(value);
+            var integer = System.Math.Truncate(value);
             if (integer < 0 || integer > int.MaxValue)
             {
                 throw new RangeError("DataView offset or length is outside the supported range.");

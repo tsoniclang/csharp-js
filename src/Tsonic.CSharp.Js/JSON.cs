@@ -603,9 +603,9 @@ namespace Tsonic.CSharp.Js
         {
             var indentation = space.unwrap() switch
             {
-                string text => text[..Math.Min(10, text.Length)],
-                double number when double.IsFinite(number) => new string(' ', Math.Clamp((int)Math.Truncate(number), 0, 10)),
-                int number => new string(' ', Math.Clamp(number, 0, 10)),
+                string text => text[..System.Math.Min(10, text.Length)],
+                double number when double.IsFinite(number) => new string(' ', System.Math.Clamp((int)System.Math.Truncate(number), 0, 10)),
+                int number => new string(' ', System.Math.Clamp(number, 0, 10)),
                 _ => string.Empty,
             };
             if (indentation.Length == 0)

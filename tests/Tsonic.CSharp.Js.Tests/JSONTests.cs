@@ -110,7 +110,7 @@ namespace Tsonic.CSharp.Js.Tests
                 ["IsActive"] = true
             };
 
-            var json = JSON.stringify(original);
+            var json = Assert.IsType<string>(JSON.stringify(original));
             var restored = Assert.IsType<JSObject>(JSON.parse(json).unwrap());
 
             Assert.Equal(99d, restored["Id"]);

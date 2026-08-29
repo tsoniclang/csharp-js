@@ -23,7 +23,7 @@ namespace Tsonic.CSharp.Js
         {
             if (!double.IsFinite(byteLength) || byteLength < 0 || byteLength > int.MaxValue)
                 throw new RangeError("ArrayBuffer byteLength is outside the supported range.");
-            _buffer = new byte[checked((int)Math.Truncate(byteLength))];
+            _buffer = new byte[checked((int)System.Math.Truncate(byteLength))];
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Tsonic.CSharp.Js
         {
             var start = NormalizeIndex(begin);
             var finish = NormalizeIndex(end ?? _buffer.Length);
-            var length = Math.Max(0, finish - start);
+            var length = System.Math.Max(0, finish - start);
             var result = new ArrayBuffer(length);
             if (length > 0)
                 System.Array.Copy(_buffer, start, result._buffer, 0, length);
@@ -53,7 +53,7 @@ namespace Tsonic.CSharp.Js
             if (integer == long.MaxValue) return _buffer.Length;
             if (integer == long.MinValue) return 0;
             var resolved = integer < 0 ? _buffer.Length + integer : integer;
-            return checked((int)Math.Clamp(resolved, 0, _buffer.Length));
+            return checked((int)System.Math.Clamp(resolved, 0, _buffer.Length));
         }
     }
 }

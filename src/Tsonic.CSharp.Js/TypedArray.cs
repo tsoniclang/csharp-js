@@ -151,7 +151,7 @@ namespace Tsonic.CSharp.Js
             var start = NormalizeStart(fromIndex);
             for (var index = start; index < ElementCount; index++)
             {
-                if (FromElement(Elements[index]).Equals(value))
+                if (FromElement(Elements[index]) == value)
                 {
                     return index;
                 }
@@ -184,9 +184,10 @@ namespace Tsonic.CSharp.Js
         public TArray sort(Func<double, double, double>? compareFn = null)
         {
             var values = this.ToArray();
-            System.Array.Sort(values, compareFn is null
+            Comparison<double> comparison = compareFn is null
                 ? TypedArrayNumbers.Compare
-                : (left, right) => Math.Sign(compareFn(left, right)));
+                : (left, right) => System.Math.Sign(compareFn(left, right));
+            System.Array.Sort(values, comparison);
             for (var index = 0; index < values.Length; index++)
             {
                 Elements[index] = ToElement(values[index]);
@@ -236,12 +237,12 @@ namespace Tsonic.CSharp.Js
                 return 0;
             }
             var selected = integer < 0 ? ElementCount + integer : integer;
-            return checked((int)Math.Clamp(selected, 0, ElementCount));
+            return checked((int)System.Math.Clamp(selected, 0, ElementCount));
         }
 
         private int ElementIndex(double index)
         {
-            if (!double.IsFinite(index) || Math.Truncate(index) != index || index < 0 || index >= ElementCount)
+            if (!double.IsFinite(index) || System.Math.Truncate(index) != index || index < 0 || index >= ElementCount)
             {
                 return -1;
             }
@@ -254,7 +255,7 @@ namespace Tsonic.CSharp.Js
             {
                 throw new RangeError("Typed array length or offset must be finite.");
             }
-            var integer = Math.Truncate(value);
+            var integer = System.Math.Truncate(value);
             if (integer < 0 || integer > int.MaxValue)
             {
                 throw new RangeError("Typed array length or offset is outside the supported range.");
@@ -279,7 +280,7 @@ namespace Tsonic.CSharp.Js
             {
                 return long.MinValue;
             }
-            return checked((long)Math.Truncate(value));
+            return checked((long)System.Math.Truncate(value));
         }
 
         public static ulong ToUnsigned(double value, int width)
@@ -288,8 +289,8 @@ namespace Tsonic.CSharp.Js
             {
                 return 0;
             }
-            var modulus = Math.Pow(2, width);
-            var remainder = Math.Truncate(value) % modulus;
+            var modulus = System.Math.Pow(2, width);
+            var remainder = System.Math.Truncate(value) % modulus;
             if (remainder < 0)
             {
                 remainder += modulus;
@@ -303,7 +304,7 @@ namespace Tsonic.CSharp.Js
             var sign = 1UL << (width - 1);
             var modulus = 1UL << width;
             return unsigned >= sign
-                ? checked((long)(unsigned - modulus))
+                ? checked((long)unsigned) - checked((long)modulus)
                 : checked((long)unsigned);
         }
 
@@ -317,7 +318,7 @@ namespace Tsonic.CSharp.Js
             {
                 return 255;
             }
-            return checked((byte)Math.Round(value, MidpointRounding.ToEven));
+            return checked((byte)System.Math.Round(value, MidpointRounding.ToEven));
         }
 
         public static int Compare(double left, double right)

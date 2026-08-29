@@ -50,7 +50,7 @@ namespace Tsonic.CSharp.Js
         {
             if (_table.TryGetValue(key, out var box))
             {
-                value = box.Value;
+                value = box.Value!;
                 return true;
             }
             value = default!;

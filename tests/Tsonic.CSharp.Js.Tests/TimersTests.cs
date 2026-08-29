@@ -6,15 +6,44 @@ using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests
 {
+    [CollectionDefinition("JavaScript event loop", DisableParallelization = true)]
+    public sealed class JavaScriptEventLoopCollection
+    {
+    }
+
+    [Collection("JavaScript event loop")]
     public class TimersTests
     {
+        private static readonly object EventLoopLock = new();
+        private static Thread? _eventLoopThread;
+
+        private static void EnsureEventLoopRunning()
+        {
+            lock (EventLoopLock)
+            {
+                if (_eventLoopThread is { IsAlive: true })
+                {
+                    return;
+                }
+
+                _eventLoopThread = new Thread(JsEventLoop.Run)
+                {
+                    IsBackground = true,
+                    Name = "Tsonic.CSharp.Js.Tests event loop",
+                };
+                _eventLoopThread.Start();
+            }
+        }
+
         private static void WaitFor(ManualResetEventSlim signal, int timeoutMs, string message)
         {
+            EnsureEventLoopRunning();
             Assert.True(signal.Wait(timeoutMs), message);
         }
 
         private static void WaitUntil(Func<bool> predicate, int timeoutMs, string message)
         {
+            EnsureEventLoopRunning();
             var deadline = Stopwatch.GetTimestamp() + (long)(timeoutMs * (Stopwatch.Frequency / 1000.0));
             while (Stopwatch.GetTimestamp() < deadline)
             {
@@ -31,6 +60,7 @@ namespace Tsonic.CSharp.Js.Tests
 
         private static void AssertStays(Func<bool> predicate, int durationMs, string message)
         {
+            EnsureEventLoopRunning();
             var deadline = Stopwatch.GetTimestamp() + (long)(durationMs * (Stopwatch.Frequency / 1000.0));
             while (Stopwatch.GetTimestamp() < deadline)
             {
@@ -45,7 +75,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setTimeout_ExecutesCallbackAfterDelay()
         {
             using var executed = new ManualResetEventSlim(false);
-            var id = Timers.setTimeout(() => executed.Set(), 50);
+            var id = Timers.setTimeout(_ => executed.Set(), 50);
 
             Assert.False(executed.IsSet);
             WaitFor(executed, 1000, "setTimeout callback did not execute within the expected timeout window.");
@@ -54,8 +84,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void setTimeout_ReturnsUniqueId()
         {
-            var id1 = Timers.setTimeout(() => { }, 1000);
-            var id2 = Timers.setTimeout(() => { }, 1000);
+            var id1 = Timers.setTimeout(_ => { }, 1000);
+            var id2 = Timers.setTimeout(_ => { }, 1000);
 
             Assert.NotEqual(id1, id2);
 
@@ -68,7 +98,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setTimeout_WithZeroDelay_ExecutesCallback()
         {
             using var executed = new ManualResetEventSlim(false);
-            Timers.setTimeout(() => executed.Set(), 0);
+            Timers.setTimeout(_ => executed.Set(), 0);
 
             WaitFor(executed, 1000, "Zero-delay setTimeout did not execute.");
         }
@@ -77,7 +107,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setTimeout_TruncatesFractionalDelay()
         {
             using var executed = new ManualResetEventSlim(false);
-            Timers.setTimeout(() => executed.Set(), 10.9);
+            Timers.setTimeout(_ => executed.Set(), 10.9);
 
             WaitFor(executed, 1000, "Fractional-delay setTimeout did not execute.");
         }
@@ -86,7 +116,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setTimeout_DefaultDelay_IsZero()
         {
             using var executed = new ManualResetEventSlim(false);
-            Timers.setTimeout(() => executed.Set());
+            Timers.setTimeout(_ => executed.Set());
 
             WaitFor(executed, 1000, "Default-delay setTimeout did not execute.");
         }
@@ -95,7 +125,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setTimeout_ExecutesOnlyOnce()
         {
             var count = 0;
-            Timers.setTimeout(() => count++, 50);
+            Timers.setTimeout(_ => count++, 50);
 
             WaitUntil(() => Volatile.Read(ref count) == 1, 1000, "setTimeout did not execute exactly once.");
             AssertStays(() => Volatile.Read(ref count) == 1, 250, "setTimeout executed more than once.");
@@ -107,9 +137,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             string? received = null;
             using var delivered = new ManualResetEventSlim(false);
-            Timers.setTimeout<string>(arg =>
+            Timers.setTimeout(arguments =>
             {
-                received = arg;
+                received = arguments.Get<string>(0);
                 delivered.Set();
             }, 50, "hello");
 
@@ -123,7 +153,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void clearTimeout_PreventsExecution()
         {
             using var executed = new ManualResetEventSlim(false);
-            var id = Timers.setTimeout(() => executed.Set(), 100);
+            var id = Timers.setTimeout(_ => executed.Set(), 100);
 
             Timers.clearTimeout(id);
             Assert.False(executed.Wait(300), "clearTimeout did not prevent callback execution.");
@@ -147,7 +177,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void clearTimeout_CalledTwice_DoesNotThrow()
         {
-            var id = Timers.setTimeout(() => { }, 1000);
+            var id = Timers.setTimeout(_ => { }, 1000);
 
             Timers.clearTimeout(id);
             var exception = Record.Exception(() => Timers.clearTimeout(id));
@@ -158,7 +188,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void clearTimeout_AfterExecution_DoesNotThrow()
         {
             using var executed = new ManualResetEventSlim(false);
-            var id = Timers.setTimeout(() => executed.Set(), 10);
+            var id = Timers.setTimeout(_ => executed.Set(), 10);
 
             WaitFor(executed, 1000, "Timeout did not execute before clearTimeout-after-execution check.");
             var exception = Record.Exception(() => Timers.clearTimeout(id));
@@ -171,7 +201,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setInterval_ExecutesRepeatedly()
         {
             var count = 0;
-            var id = Timers.setInterval(() => count++, 50);
+            var id = Timers.setInterval(_ => count++, 50);
 
             WaitUntil(() => Volatile.Read(ref count) >= 2, 1000, $"Expected at least 2 executions, got {Volatile.Read(ref count)}.");
             Timers.clearInterval(id);
@@ -182,8 +212,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void setInterval_ReturnsUniqueId()
         {
-            var id1 = Timers.setInterval(() => { }, 1000);
-            var id2 = Timers.setInterval(() => { }, 1000);
+            var id1 = Timers.setInterval(_ => { }, 1000);
+            var id2 = Timers.setInterval(_ => { }, 1000);
 
             Assert.NotEqual(id1, id2);
 
@@ -196,7 +226,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setInterval_WithArgument_PassesArgument()
         {
             var received = new List<string>();
-            var id = Timers.setInterval<string>(arg => received.Add(arg), 50, "test");
+            var id = Timers.setInterval(arguments => received.Add(arguments.Get<string>(0)), 50, "test");
 
             WaitUntil(() => received.Count >= 2, 1000, $"Expected at least 2 interval executions, got {received.Count}.");
             Timers.clearInterval(id);
@@ -211,7 +241,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void clearInterval_StopsExecution()
         {
             var count = 0;
-            var id = Timers.setInterval(() => count++, 50);
+            var id = Timers.setInterval(_ => count++, 50);
 
             WaitUntil(() => Volatile.Read(ref count) >= 1, 1000, "Interval did not tick before clearInterval.");
             Timers.clearInterval(id);
@@ -231,7 +261,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void clearInterval_CalledTwice_DoesNotThrow()
         {
-            var id = Timers.setInterval(() => { }, 1000);
+            var id = Timers.setInterval(_ => { }, 1000);
 
             Timers.clearInterval(id);
             var exception = Record.Exception(() => Timers.clearInterval(id));
@@ -244,8 +274,9 @@ namespace Tsonic.CSharp.Js.Tests
             for (var iteration = 0; iteration < 200; iteration++)
             {
                 var sawTick = new ManualResetEventSlim(false);
-                var id = Timers.setInterval(() => sawTick.Set(), 1);
+                var id = Timers.setInterval(_ => sawTick.Set(), 1);
 
+                EnsureEventLoopRunning();
                 Assert.True(sawTick.Wait(1000));
                 Timers.clearInterval(id);
                 Thread.Sleep(5);
@@ -257,8 +288,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void setTimeout_And_setInterval_UseUniqueIds()
         {
-            var timeoutId = Timers.setTimeout(() => { }, 1000);
-            var intervalId = Timers.setInterval(() => { }, 1000);
+            var timeoutId = Timers.setTimeout(_ => { }, 1000);
+            var intervalId = Timers.setInterval(_ => { }, 1000);
 
             Assert.NotEqual(timeoutId, intervalId);
 
@@ -270,7 +301,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void clearTimeout_CanClearInterval()
         {
             var count = 0;
-            var id = Timers.setInterval(() => count++, 50);
+            var id = Timers.setInterval(_ => count++, 50);
 
             WaitUntil(() => Volatile.Read(ref count) >= 1, 1000, "Interval did not tick before cross-clear.");
             Timers.clearTimeout(id);
@@ -284,7 +315,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void clearInterval_CanClearTimeout()
         {
             using var executed = new ManualResetEventSlim(false);
-            var id = Timers.setTimeout(() => executed.Set(), 100);
+            var id = Timers.setTimeout(_ => executed.Set(), 100);
 
             Timers.clearInterval(id);
             Assert.False(executed.Wait(300), "clearInterval did not prevent timeout execution.");
@@ -298,22 +329,23 @@ namespace Tsonic.CSharp.Js.Tests
             var results = new bool[3];
             using var allExecuted = new CountdownEvent(3);
 
-            Timers.setTimeout(() =>
+            Timers.setTimeout(_ =>
             {
                 results[0] = true;
                 allExecuted.Signal();
             }, 30);
-            Timers.setTimeout(() =>
+            Timers.setTimeout(_ =>
             {
                 results[1] = true;
                 allExecuted.Signal();
             }, 60);
-            Timers.setTimeout(() =>
+            Timers.setTimeout(_ =>
             {
                 results[2] = true;
                 allExecuted.Signal();
             }, 90);
 
+            EnsureEventLoopRunning();
             Assert.True(allExecuted.Wait(1000), "Not all timeout callbacks executed within the expected window.");
             Assert.All(results, r => Assert.True(r));
         }
@@ -323,8 +355,8 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var counts = new int[2];
 
-            var id1 = Timers.setInterval(() => counts[0]++, 50);
-            var id2 = Timers.setInterval(() => counts[1]++, 50);
+            var id1 = Timers.setInterval(_ => counts[0]++, 50);
+            var id2 = Timers.setInterval(_ => counts[1]++, 50);
 
             WaitUntil(
                 () => Volatile.Read(ref counts[0]) >= 2 && Volatile.Read(ref counts[1]) >= 2,
@@ -345,7 +377,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setTimeout_VeryShortDelay_ExecutesQuickly()
         {
             using var executed = new ManualResetEventSlim(false);
-            Timers.setTimeout(() => executed.Set(), 1);
+            Timers.setTimeout(_ => executed.Set(), 1);
 
             WaitFor(executed, 1000, "Very-short-delay setTimeout did not execute.");
         }
@@ -354,7 +386,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void setInterval_VeryShortInterval_ExecutesMultipleTimes()
         {
             var count = 0;
-            var id = Timers.setInterval(() => count++, 10);
+            var id = Timers.setInterval(_ => count++, 10);
 
             WaitUntil(() => Volatile.Read(ref count) >= 5, 1000, $"Expected at least 5 executions, got {Volatile.Read(ref count)}.");
             Timers.clearInterval(id);
