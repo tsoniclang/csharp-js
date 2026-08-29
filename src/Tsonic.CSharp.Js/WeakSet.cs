@@ -5,6 +5,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 
 namespace Tsonic.CSharp.Js
 {
@@ -23,6 +24,14 @@ namespace Tsonic.CSharp.Js
         /// Create empty WeakSet
         /// </summary>
         public WeakSet() { }
+
+        public WeakSet(IEnumerable<T>? values)
+        {
+            if (values is null)
+                return;
+            foreach (var value in values)
+                add(value);
+        }
 
         // ==================== Core Methods ====================
 

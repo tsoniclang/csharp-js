@@ -84,7 +84,10 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Schedule a callback to run after a delay (one-shot timer)
         /// </summary>
-        public static double setTimeout(Action callback, double delayMs = 0)
+        public static double setTimeout(
+            TimerCallback callback,
+            double delayMs = 0,
+            params object?[] arguments)
         {
             var id = Interlocked.Increment(ref _nextId);
             var handle = new TimerHandle();
@@ -96,28 +99,23 @@ namespace Tsonic.CSharp.Js
                     return;
                 }
 
-                try
+                JsEventLoop.EnqueueReferenced(() =>
                 {
-                    callback();
-                }
-                finally
-                {
-                    _timers.TryRemove(id, out TimerHandle? _);
-                    handle.Dispose();
-                }
+                    try
+                    {
+                        callback(new TimerCallbackArguments(arguments));
+                    }
+                    finally
+                    {
+                        _timers.TryRemove(id, out TimerHandle? _);
+                        handle.Dispose();
+                    }
+                });
             }, null, NormalizeDelay(delayMs), Timeout.Infinite);
 
             handle.SetTimer(timer);
             _timers[id] = handle;
             return id;
-        }
-
-        /// <summary>
-        /// Schedule a callback to run after a delay with arguments
-        /// </summary>
-        public static double setTimeout<T>(Action<T> callback, double delayMs, T arg)
-        {
-            return setTimeout(() => callback(arg), delayMs);
         }
 
         /// <summary>
@@ -139,7 +137,10 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Schedule a callback to run repeatedly at an interval
         /// </summary>
-        public static double setInterval(Action callback, double intervalMs)
+        public static double setInterval(
+            TimerCallback callback,
+            double intervalMs = 0,
+            params object?[] arguments)
         {
             var id = Interlocked.Increment(ref _nextId);
             var handle = new TimerHandle();
@@ -149,21 +150,19 @@ namespace Tsonic.CSharp.Js
             {
                 if (!handle.IsDisposed)
                 {
-                    callback();
+                    JsEventLoop.EnqueueReferenced(() =>
+                    {
+                        if (!handle.IsDisposed)
+                        {
+                            callback(new TimerCallbackArguments(arguments));
+                        }
+                    });
                 }
             }, null, normalizedInterval, normalizedInterval);
 
             handle.SetTimer(timer);
             _timers[id] = handle;
             return id;
-        }
-
-        /// <summary>
-        /// Schedule a callback to run repeatedly with arguments
-        /// </summary>
-        public static double setInterval<T>(Action<T> callback, double intervalMs, T arg)
-        {
-            return setInterval(() => callback(arg), intervalMs);
         }
 
         /// <summary>

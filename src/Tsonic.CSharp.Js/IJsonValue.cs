@@ -4,6 +4,8 @@ namespace Tsonic.CSharp.Js
 {
     public interface IJsonValue
     {
-        void __tsonicWriteJson(Utf8JsonWriter writer, JsonWriteContext context);
+        object? __tsonicJsonValue(string key);
+
+        void __tsonicWriteJson(Utf8JsonWriter writer, JsonWriteContext context, string key);
     }
 }

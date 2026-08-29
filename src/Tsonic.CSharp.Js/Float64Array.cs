@@ -1,137 +1,15 @@
-/**
- * JavaScript Float64Array implementation
- * Typed array of 64-bit floating point numbers backed by native double[]
- */
-
-using System;
-using SysMath = System.Math;
-using SysArray = System.Array;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Tsonic.CSharp.Js
 {
-    /// <summary>
-    /// JavaScript Float64Array - typed array of 64-bit floating point numbers
-    /// </summary>
-    public class Float64Array : IEnumerable<double>
+    public sealed class Float64Array : TypedArray<Float64Array, double>
     {
-        private readonly double[] _array;
-
-        public static int BYTES_PER_ELEMENT => 8;
-
-        public Float64Array(int length)
-        {
-            _array = new double[length];
-        }
-
-        public Float64Array(IEnumerable<double> values)
-        {
-            _array = values.ToArray();
-        }
-
-        public Float64Array(double[] values)
-        {
-            _array = (double[])values.Clone();
-        }
-
-        public int length => _array.Length;
-        public int byteLength => _array.Length * BYTES_PER_ELEMENT;
-
-        public double this[int index]
-        {
-            get => (index < 0 || index >= _array.Length) ? 0.0 : _array[index];
-            set { if (index >= 0 && index < _array.Length) _array[index] = value; }
-        }
-
-        public double? at(int index)
-        {
-            if (index < 0) index = _array.Length + index;
-            if (index < 0 || index >= _array.Length) return null;
-            return _array[index];
-        }
-
-        public Float64Array fill(double value, int start = 0, int? end = null)
-        {
-            int actualEnd = end ?? _array.Length;
-            if (start < 0) start = SysMath.Max(0, _array.Length + start);
-            if (actualEnd < 0) actualEnd = SysMath.Max(0, _array.Length + actualEnd);
-            start = SysMath.Min(start, _array.Length);
-            actualEnd = SysMath.Min(actualEnd, _array.Length);
-            for (int i = start; i < actualEnd; i++) _array[i] = value;
-            return this;
-        }
-
-        public void set(IEnumerable<double> array, int offset = 0)
-        {
-            int i = offset;
-            foreach (var value in array)
-            {
-                if (i >= _array.Length) break;
-                _array[i++] = value;
-            }
-        }
-
-        public Float64Array subarray(int begin = 0, int? end = null)
-        {
-            int actualEnd = end ?? _array.Length;
-            if (begin < 0) begin = SysMath.Max(0, _array.Length + begin);
-            if (actualEnd < 0) actualEnd = SysMath.Max(0, _array.Length + actualEnd);
-            begin = SysMath.Min(begin, _array.Length);
-            actualEnd = SysMath.Min(actualEnd, _array.Length);
-            int newLength = SysMath.Max(0, actualEnd - begin);
-            var result = new Float64Array(newLength);
-            SysArray.Copy(_array, begin, result._array, 0, newLength);
-            return result;
-        }
-
-        public Float64Array slice(int begin = 0, int? end = null) => subarray(begin, end);
-
-        public int indexOf(double value, int fromIndex = 0)
-        {
-            if (fromIndex >= _array.Length) return -1;
-            if (fromIndex < 0) fromIndex = SysMath.Max(0, _array.Length + fromIndex);
-            for (var index = fromIndex; index < _array.Length; index++)
-            {
-                if (JSKeyEquality.strictEquals(_array[index], value))
-                {
-                    return index;
-                }
-            }
-            return -1;
-        }
-
-        public bool includes(double value, int fromIndex = 0)
-        {
-            if (fromIndex >= _array.Length) return false;
-            if (fromIndex < 0) fromIndex = SysMath.Max(0, _array.Length + fromIndex);
-            for (var index = fromIndex; index < _array.Length; index++)
-            {
-                if (JSKeyEquality.sameValueZero(_array[index], value))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public string join(string separator = ",") => string.Join(separator, _array);
-
-        public Float64Array reverse()
-        {
-            SysArray.Reverse(_array);
-            return this;
-        }
-
-        public Float64Array sort(Comparison<double>? compareFn = null)
-        {
-            if (compareFn != null) SysArray.Sort(_array, compareFn);
-            else SysArray.Sort(_array);
-            return this;
-        }
-
-        public IEnumerator<double> GetEnumerator() => ((IEnumerable<double>)_array).GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => _array.GetEnumerator();
+        public Float64Array(double length) : base(length) { }
+        public Float64Array(IEnumerable<double> values) : base(values) { }
+        public Float64Array(ArrayBuffer buffer, double byteOffset = 0, double? length = null) : base(buffer, byteOffset, length) { }
+        protected override double ToElement(double value) => value;
+        protected override double FromElement(double value) => value;
+        protected override Float64Array CreateView(ArrayBuffer buffer, double byteOffset, double length) => new(buffer, byteOffset, length);
+        protected override Float64Array CreateCopy(IEnumerable<double> values) => new(values);
     }
 }

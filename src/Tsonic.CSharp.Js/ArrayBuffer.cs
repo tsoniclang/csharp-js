@@ -4,8 +4,6 @@
  */
 
 using System;
-using SysMath = System.Math;
-using SysArray = System.Array;
 
 namespace Tsonic.CSharp.Js
 {
@@ -16,39 +14,46 @@ namespace Tsonic.CSharp.Js
     {
         private readonly byte[] _buffer;
 
+        internal byte[] Bytes => _buffer;
+
         /// <summary>
         /// Create ArrayBuffer with specified byte length
         /// </summary>
-        public ArrayBuffer(int byteLength)
+        public ArrayBuffer(double byteLength)
         {
-            if (byteLength < 0)
-                throw new ArgumentException("byteLength must be non-negative", nameof(byteLength));
-            _buffer = new byte[byteLength];
+            if (!double.IsFinite(byteLength) || byteLength < 0 || byteLength > int.MaxValue)
+                throw new RangeError("ArrayBuffer byteLength is outside the supported range.");
+            _buffer = new byte[checked((int)System.Math.Truncate(byteLength))];
         }
 
         /// <summary>
         /// Length of the buffer in bytes
         /// </summary>
-        public int byteLength => _buffer.Length;
+        public double byteLength => _buffer.Length;
+
+        internal int ByteLength => _buffer.Length;
 
         /// <summary>
         /// Create new ArrayBuffer containing a copy of bytes from begin to end
         /// </summary>
-        public ArrayBuffer slice(int begin = 0, int? end = null)
+        public ArrayBuffer slice(double begin = 0, double? end = null)
         {
-            int actualEnd = end ?? _buffer.Length;
-
-            if (begin < 0) begin = SysMath.Max(0, _buffer.Length + begin);
-            if (actualEnd < 0) actualEnd = SysMath.Max(0, _buffer.Length + actualEnd);
-
-            begin = SysMath.Min(begin, _buffer.Length);
-            actualEnd = SysMath.Min(actualEnd, _buffer.Length);
-
-            int length = SysMath.Max(0, actualEnd - begin);
+            var start = NormalizeIndex(begin);
+            var finish = NormalizeIndex(end ?? _buffer.Length);
+            var length = System.Math.Max(0, finish - start);
             var result = new ArrayBuffer(length);
             if (length > 0)
-                SysArray.Copy(_buffer, begin, result._buffer, 0, length);
+                System.Array.Copy(_buffer, start, result._buffer, 0, length);
             return result;
+        }
+
+        private int NormalizeIndex(double value)
+        {
+            var integer = TypedArrayNumbers.IntegerOrInfinity(value);
+            if (integer == long.MaxValue) return _buffer.Length;
+            if (integer == long.MinValue) return 0;
+            var resolved = integer < 0 ? _buffer.Length + integer : integer;
+            return checked((int)System.Math.Clamp(resolved, 0, _buffer.Length));
         }
     }
 }
