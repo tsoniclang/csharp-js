@@ -24,7 +24,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Constructor_NegativeLength_Throws()
         {
-            Assert.Throws<ArgumentException>(() => new ArrayBuffer(-1));
+            Assert.Throws<Tsonic.CSharp.Runtime.RangeError>(() => new ArrayBuffer(-1));
         }
 
         // ==================== slice Tests ====================
