@@ -1,9 +1,14 @@
-# Tsonic C# JS Runtime
+# `@tsonic/csharp-js`
 
-C# implementation of the JavaScript/global surface for the Tsonic C# target.
+C# runtime implementation for Tsonic's explicitly selected JavaScript source
+surface. It owns the closed C# implementations of supported JavaScript
+globals and built-ins and depends on `@tsonic/csharp-runtime`.
 
-This repository contains the CLR implementation for JavaScript globals and built-ins such as arrays, maps, sets, JSON, math, timers, typed arrays, and console. It is selected only when a Tsonic project uses the JS/global surface with the C# target.
+Canonical product documentation:
 
-Compiler-intrinsic TypeScript carriers remain in `csharp-runtime`. This package
-depends on that substrate and adapts JS objects and arrays through its closed
-dynamic-carrier interfaces; the substrate never depends on this surface.
+- [JavaScript source profile](https://github.com/tsoniclang/tsonic/blob/main/docs/reference/javascript-source-profile.md)
+- [C# JavaScript surface](https://github.com/tsoniclang/tsonic/blob/main/docs/reference/targets/csharp/javascript-surface.md)
+- [C# support inventory](https://github.com/tsoniclang/tsonic/blob/main/docs/reference/targets/csharp/support-inventory.md)
+
+The npm package contains the canonical runtime artifacts under `runtimes/`.
+Compiler-intrinsic carriers remain owned by `@tsonic/csharp-runtime`.
