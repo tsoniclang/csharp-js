@@ -1,6 +1,6 @@
 {
   "name": "@tsonic/csharp-js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "C# JavaScript surface runtime artifacts for Tsonic",
   "license": "MIT",
   "repository": {
@@ -8,12 +8,16 @@
     "url": "https://github.com/tsoniclang/csharp-js.git"
   },
   "type": "module",
-  "files": ["runtimes", "README.md", "LICENSE"],
+  "files": [
+    "runtimes",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@tsonic/csharp-runtime": "0.1.0"
+    "@tsonic/csharp-runtime": "0.1.1"
   },
   "engines": {
     "node": ">=22.18.0"
