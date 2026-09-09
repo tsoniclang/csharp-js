@@ -9,6 +9,51 @@ namespace Tsonic.CSharp.Js.Tests
     public class StringTests
     {
         [Fact]
+        public void RepetitionAndPaddingHaveNoProductSizeCap()
+        {
+            const int length = 16_777_217;
+            var repeated = "x".repeat(length);
+            Assert.Equal(length, repeated.Length);
+            Assert.True(repeated.All(character => character == 'x'));
+            var padded = "tail".padStart(length, "ab");
+            Assert.Equal(length, padded.Length);
+            Assert.StartsWith("ababa", padded);
+            Assert.EndsWith("tail", padded);
+            Assert.Throws<RangeError>(() => "ab".repeat(int.MaxValue));
+        }
+
+        [Fact]
+        public void PaddingCopiesOnlyTheRequiredUtf16Prefix()
+        {
+            var filler = new string('x', 1_000_000);
+            Assert.Equal("xvalue", "value".padStart(6, filler));
+            Assert.Equal("valuex", "value".padEnd(6, filler));
+            Assert.Equal("\uD83Dx", "x".padStart(2, "😀"));
+            Assert.Equal("x\uD83D", "x".padEnd(2, "😀"));
+            Assert.Equal("ababx", "x".padStart(5, "ab"));
+            Assert.Equal("xaba", "x".padEnd(4, "ab"));
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void PaddingAllocationDependsOnResultSizeNotFillerSize(bool atStart)
+        {
+            var filler = new string('x', 1_000_000);
+            for (var warmup = 0; warmup < 32; warmup++)
+            {
+                _ = atStart ? "value".padStart(6, filler) : "value".padEnd(6, filler);
+            }
+
+            var allocatedBefore = System.GC.GetAllocatedBytesForCurrentThread();
+            var padded = atStart ? "value".padStart(6, filler) : "value".padEnd(6, filler);
+            var allocatedBytes = System.GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(atStart ? "xvalue" : "valuex", padded);
+            Assert.InRange(allocatedBytes, 0L, 4096L);
+        }
+
+        [Fact]
         public void toUpperCase_ConvertsToUpperCase()
         {
             Assert.Equal("HELLO", "hello".toUpperCase());

@@ -265,12 +265,12 @@ namespace Tsonic.CSharp.Js
 
         private static string buildPadding(string padString, int length)
         {
-            var builder = new System.Text.StringBuilder(length + padString.Length);
+            var builder = new System.Text.StringBuilder(length);
             while (builder.Length < length)
             {
-                builder.Append(padString);
+                builder.Append(padString, 0, System.Math.Min(padString.Length, length - builder.Length));
             }
-            return builder.Length == length ? builder.ToString() : builder.ToString(0, length);
+            return builder.ToString();
         }
 
         /// <summary>
