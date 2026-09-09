@@ -34,6 +34,25 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("xaba", "x".padEnd(4, "ab"));
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void PaddingAllocationDependsOnResultSizeNotFillerSize(bool atStart)
+        {
+            var filler = new string('x', 1_000_000);
+            for (var warmup = 0; warmup < 32; warmup++)
+            {
+                _ = atStart ? "value".padStart(6, filler) : "value".padEnd(6, filler);
+            }
+
+            var allocatedBefore = System.GC.GetAllocatedBytesForCurrentThread();
+            var padded = atStart ? "value".padStart(6, filler) : "value".padEnd(6, filler);
+            var allocatedBytes = System.GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(atStart ? "xvalue" : "valuex", padded);
+            Assert.InRange(allocatedBytes, 0L, 4096L);
+        }
+
         [Fact]
         public void toUpperCase_ConvertsToUpperCase()
         {
