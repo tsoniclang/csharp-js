@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using Tsonic.CSharp.Runtime;
 
@@ -16,6 +17,11 @@ namespace Tsonic.CSharp.Js
         public static IntlDateTimeFormatConstructor DateTimeFormat { get; } = new();
         public static IntlNumberFormatConstructor NumberFormat { get; } = new();
         public static IntlCollatorConstructor Collator { get; } = new();
+        public static string formatInteger(long value, TsValue locales = default, TsValue options = default) => new IntlNumberFormat(locales, options).formatInteger(value);
+        public static string formatInteger(ulong value, TsValue locales = default, TsValue options = default) => new IntlNumberFormat(locales, options).formatInteger(value);
+        public static string formatInteger(Int128 value, TsValue locales = default, TsValue options = default) => new IntlNumberFormat(locales, options).formatInteger(value);
+        public static string formatInteger(UInt128 value, TsValue locales = default, TsValue options = default) => new IntlNumberFormat(locales, options).formatInteger(value);
+        public static string formatInteger(BigInteger value, TsValue locales = default, TsValue options = default) => new IntlNumberFormat(locales, options).formatInteger(value);
     }
 
     public sealed class IntlDateTimeFormatPart
@@ -56,9 +62,23 @@ namespace Tsonic.CSharp.Js
         public string numberingSystem => "latn";
         public required string style { get; init; }
         public required double minimumIntegerDigits { get; init; }
-        public required double minimumFractionDigits { get; init; }
-        public required double maximumFractionDigits { get; init; }
-        public required bool useGrouping { get; init; }
+        public double? minimumFractionDigits { get; init; }
+        public double? maximumFractionDigits { get; init; }
+        public double? minimumSignificantDigits { get; init; }
+        public double? maximumSignificantDigits { get; init; }
+        public required Union<bool, string> useGrouping { get; init; }
+        public string? currency { get; init; }
+        public string? currencyDisplay { get; init; }
+        public string? currencySign { get; init; }
+        public string? unit => null;
+        public string? unitDisplay => null;
+        public string notation => "standard";
+        public string? compactDisplay => null;
+        public string signDisplay => "auto";
+        public string roundingPriority => "auto";
+        public double roundingIncrement => 1;
+        public string roundingMode => "halfExpand";
+        public string trailingZeroDisplay => "auto";
     }
 
     public sealed class IntlResolvedCollatorOptions
@@ -220,10 +240,8 @@ namespace Tsonic.CSharp.Js
         private readonly string _style;
         private readonly string? _currency;
         private readonly string _currencyDisplay;
-        private readonly bool _useGrouping;
-        private readonly int _minimumIntegerDigits;
-        private readonly int _minimumFractionDigits;
-        private readonly int _maximumFractionDigits;
+        private readonly string? _useGrouping;
+        private readonly IntlNumberPrecision _precision;
 
         public IntlNumberFormat(TsValue locales = default, TsValue options = default)
         {
@@ -232,11 +250,34 @@ namespace Tsonic.CSharp.Js
             _style = IntlRuntime.EnumOption(options, "style", "decimal", "percent", "currency") ?? "decimal";
             _currency = IntlRuntime.StringOption(options, "currency");
             _currencyDisplay = IntlRuntime.EnumOption(options, "currencyDisplay", "symbol", "narrowSymbol", "code", "name") ?? "symbol";
-            _useGrouping = IntlRuntime.BooleanOption(options, "useGrouping") ?? true;
-            _minimumIntegerDigits = IntlRuntime.IntegerOption(options, "minimumIntegerDigits", 1, 21) ?? 1;
-            _minimumFractionDigits = IntlRuntime.IntegerOption(options, "minimumFractionDigits", 0, 20) ?? 0;
-            _maximumFractionDigits = IntlRuntime.IntegerOption(options, "maximumFractionDigits", _minimumFractionDigits, 20)
-                ?? System.Math.Max(_minimumFractionDigits, _style == "currency" ? 2 : 3);
+            IntlRuntime.EnumOption(options, "numberingSystem", "latn");
+            IntlRuntime.EnumOption(options, "currencySign", "standard");
+            IntlRuntime.EnumOption(options, "notation", "standard");
+            IntlRuntime.EnumOption(options, "compactDisplay", "short", "long");
+            if (IntlRuntime.StringOption(options, "unit") is not null)
+                throw new RangeError("Intl.NumberFormat unit options are not supported.");
+            IntlRuntime.EnumOption(options, "unitDisplay", "short", "long", "narrow");
+            IntlRuntime.EnumOption(options, "signDisplay", "auto");
+            IntlRuntime.EnumOption(options, "roundingPriority", "auto");
+            IntlRuntime.EnumOption(options, "roundingMode", "halfExpand");
+            IntlRuntime.EnumOption(options, "trailingZeroDisplay", "auto");
+            if ((IntlRuntime.IntegerOption(options, "roundingIncrement", 1, 5000) ?? 1) != 1)
+                throw new RangeError("Intl.NumberFormat supports only roundingIncrement 1.");
+            _useGrouping = options.ReadDynamicSlotOptional("useGrouping").unwrap() switch
+            {
+                Undefined => "auto",
+                null => null,
+                false => null,
+                true => "always",
+                "auto" => "auto",
+                "always" => "always",
+                "min2" => "min2",
+                "true" or "false" => "auto",
+                _ => throw new RangeError("Intl.NumberFormat useGrouping must be boolean or a grouping strategy."),
+            };
+            var currencyDigits = string.Equals(_currency, "JPY", StringComparison.OrdinalIgnoreCase) ? 0 : 2;
+            _precision = new IntlNumberPrecision(options, _style == "currency" ? currencyDigits : 0,
+                _style == "currency" ? currencyDigits : _style == "percent" ? 0 : 3);
             if (_style == "currency" && string.IsNullOrWhiteSpace(_currency))
             {
                 throw new TypeError("Intl.NumberFormat currency style requires a currency code.");
@@ -244,6 +285,16 @@ namespace Tsonic.CSharp.Js
         }
 
         public string format(double value) => string.Concat(formatToParts(value).Select(part => part.value));
+        public string formatInteger(long value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
+        public string formatInteger(ulong value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
+        public string formatInteger(Int128 value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
+        public string formatInteger(UInt128 value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
+        public string formatInteger(BigInteger value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
+        public JSArray<IntlNumberFormatPart> formatToPartsInteger(long value) => FormatExact(BigInteger.Abs(new BigInteger(value)).ToString(CultureInfo.InvariantCulture), value < 0);
+        public JSArray<IntlNumberFormatPart> formatToPartsInteger(ulong value) => FormatExact(value.ToString(CultureInfo.InvariantCulture), false);
+        public JSArray<IntlNumberFormatPart> formatToPartsInteger(Int128 value) => formatToPartsInteger((BigInteger)value);
+        public JSArray<IntlNumberFormatPart> formatToPartsInteger(UInt128 value) => formatToPartsInteger((BigInteger)value);
+        public JSArray<IntlNumberFormatPart> formatToPartsInteger(BigInteger value) => FormatExact(BigInteger.Abs(value).ToString(CultureInfo.InvariantCulture), value.Sign < 0);
 
         public JSArray<IntlNumberFormatPart> formatToParts(double value)
         {
@@ -262,17 +313,12 @@ namespace Tsonic.CSharp.Js
                 return new JSArray<IntlNumberFormatPart>(infinity);
             }
 
-            var scaled = _style == "percent" ? value * 100 : value;
-            var negative = scaled < 0;
-            var absolute = System.Math.Abs(scaled);
-            var rendered = absolute.ToString($"F{_maximumFractionDigits}", CultureInfo.InvariantCulture);
-            var split = rendered.Split('.', 2);
-            var integer = split[0].PadLeft(_minimumIntegerDigits, '0');
-            var fraction = split.Length == 1 ? string.Empty : split[1];
-            while (fraction.Length > _minimumFractionDigits && fraction.EndsWith('0'))
-            {
-                fraction = fraction[..^1];
-            }
+            return FormatExact(Number.toString(System.Math.Abs(value)), double.IsNegative(value));
+        }
+
+        private JSArray<IntlNumberFormatPart> FormatExact(string magnitude, bool negative)
+        {
+            var (integer, fraction) = _precision.Format(magnitude, _style == "percent");
 
             var parts = new List<IntlNumberFormatPart>();
             if (negative)
@@ -288,7 +334,7 @@ namespace Tsonic.CSharp.Js
                 }
             }
 
-            var groups = IntlRuntime.GroupInteger(integer, _useGrouping);
+            var groups = IntlRuntime.GroupInteger(integer, _useGrouping is not null && (_useGrouping != "min2" || integer.Length > 4));
             for (var index = 0; index < groups.Count; index++)
             {
                 if (index > 0)
@@ -312,10 +358,15 @@ namespace Tsonic.CSharp.Js
         public IntlResolvedNumberFormatOptions resolvedOptions() => new()
         {
             style = _style,
-            minimumIntegerDigits = _minimumIntegerDigits,
-            minimumFractionDigits = _minimumFractionDigits,
-            maximumFractionDigits = _maximumFractionDigits,
-            useGrouping = _useGrouping,
+            minimumIntegerDigits = _precision.MinimumInteger,
+            minimumFractionDigits = _precision.MinimumFraction,
+            maximumFractionDigits = _precision.MaximumFraction,
+            minimumSignificantDigits = _precision.MinimumSignificant,
+            maximumSignificantDigits = _precision.MaximumSignificant,
+            useGrouping = _useGrouping is null ? Union<bool, string>.From1(false) : Union<bool, string>.From2(_useGrouping),
+            currency = _style == "currency" ? _currency?.ToUpperInvariant() : null,
+            currencyDisplay = _style == "currency" ? _currencyDisplay : null,
+            currencySign = _style == "currency" ? "standard" : null,
         };
     }
 
@@ -479,7 +530,7 @@ namespace Tsonic.CSharp.Js
                 byte numberValue => numberValue,
                 _ => throw new TypeError($"Intl option '{name}' must be numeric."),
             };
-            if (!double.IsFinite(number) || System.Math.Truncate(number) != number || number < minimum || number > maximum)
+            if (!double.IsFinite(number) || number < minimum || number > maximum)
             {
                 throw new RangeError($"Intl option '{name}' is outside its supported range.");
             }
