@@ -59,7 +59,7 @@ namespace Tsonic.CSharp.Js
         {
             if (length < 0)
             {
-                throw new ArgumentException("Invalid array length", nameof(length));
+                throw new RangeError("Invalid array length");
             }
 
             _slots = new List<Slot>(length);
@@ -1494,7 +1494,7 @@ namespace Tsonic.CSharp.Js
         {
             if (double.IsNaN(length) || double.IsInfinity(length) || length < 0 || length > int.MaxValue || System.Math.Truncate(length) != length)
             {
-                throw new ArgumentException("Invalid array length", nameof(length));
+                throw new RangeError("Invalid array length");
             }
 
             return (int)length;

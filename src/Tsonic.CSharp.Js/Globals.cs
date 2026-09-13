@@ -427,6 +427,27 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Convert value to number
         /// </summary>
+        public static double Number<TFirst, TSecond>(Union<TFirst, TSecond> value) =>
+            value.Match(part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird>(Union<TFirst, TSecond, TThird> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth>(Union<TFirst, TSecond, TThird, TFourth> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth, TFifth>(Union<TFirst, TSecond, TThird, TFourth, TFifth> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth, TFifth, TSixth>(Union<TFirst, TSecond, TThird, TFourth, TFifth, TSixth> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh>(Union<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh, TEighth>(Union<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh, TEighth> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
         public static double Number(object? value = null)
         {
             value = unwrapClosedValue(value);
@@ -439,6 +460,10 @@ namespace Tsonic.CSharp.Js
             if (value is long l) return l;
             if (value is float f) return f;
             if (value is decimal dec) return (double)dec;
+            if (value is System.Numerics.BigInteger bigInteger) return (double)bigInteger;
+            if (value is ulong unsignedInteger) return unsignedInteger;
+            if (value is Int128 wideInteger) return (double)wideInteger;
+            if (value is UInt128 wideUnsignedInteger) return (double)wideUnsignedInteger;
             if (value is bool b) return b ? 1 : 0;
 
             if (value is string str)
