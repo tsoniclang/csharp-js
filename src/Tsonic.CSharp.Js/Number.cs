@@ -318,7 +318,35 @@ namespace Tsonic.CSharp.Js
                 return special;
             }
 
-            return value == 0 ? "0" : value.ToString(CultureInfo.InvariantCulture);
+            if (value == 0)
+            {
+                return "0";
+            }
+
+            var formatted = value.ToString("R", CultureInfo.InvariantCulture);
+            var exponentIndex = formatted.IndexOf('E');
+            if (exponentIndex < 0)
+            {
+                return formatted;
+            }
+            var magnitude = System.Math.Abs(value);
+            if (magnitude < 1e-6 || magnitude >= 1e21)
+            {
+                return normalizeExponent(formatted);
+            }
+            var sign = value < 0 ? "-" : "";
+            var mantissa = formatted.Substring(sign.Length, exponentIndex - sign.Length);
+            var exponent = int.Parse(formatted.AsSpan(exponentIndex + 1), CultureInfo.InvariantCulture);
+            var decimalIndex = mantissa.IndexOf('.');
+            var point = (decimalIndex < 0 ? mantissa.Length : decimalIndex) + exponent;
+            var digits = mantissa.Replace(".", "");
+            if (point <= 0)
+            {
+                return sign + "0." + new string('0', -point) + digits;
+            }
+            return sign + (point >= digits.Length
+                ? digits + new string('0', point - digits.Length)
+                : digits.Insert(point, "."));
         }
 
         private static string? formatSpecialJsNumber(double value)

@@ -472,6 +472,22 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void CharacterConstructorsPreserveTheSourceNumericDomain()
+        {
+            Assert.Equal("", String.fromCharCode());
+            Assert.Equal("", String.fromCodePoint());
+            Assert.Equal("AB", String.fromCharCode(65.9, 66.1));
+            Assert.Equal("\uffff\u0001\u0000", String.fromCharCode(-1.9, 4_294_967_297d, -0.9));
+            Assert.Equal("\u0000\u0000\u0000", String.fromCharCode(double.NaN, double.PositiveInfinity, double.NegativeInfinity));
+            Assert.Equal("😀", String.fromCharCode(0xD83D, 0xDE00));
+            Assert.Equal("\u0000\uffff😀", String.fromCodePoint(-0d, 0xFFFF, 0x1F600));
+            foreach (double invalid in new[] { 65.9, -0.9, double.NaN, double.PositiveInfinity, double.NegativeInfinity, 1_114_112d })
+            {
+                Assert.Throws<RangeError>(() => String.fromCodePoint(invalid));
+            }
+        }
+
+        [Fact]
         public void fromCodePoint_CreatesStringFromCodePoints()
         {
             Assert.Equal("ABC", String.fromCodePoint(65, 66, 67));
