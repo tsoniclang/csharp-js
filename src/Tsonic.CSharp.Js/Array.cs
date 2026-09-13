@@ -8,6 +8,21 @@ namespace Tsonic.CSharp.Js
 {
     public static class Array
     {
+        public static double[] snapshotNumberArguments<T>(JSArray<T> source, Converter<T, double> convert)
+        {
+            var result = new double[source.length];
+            for (var index = 0; index < result.Length; index++)
+            {
+                result[index] = source.tryGetAt(index, out var value) ? convert(value) : double.NaN;
+            }
+            return result;
+        }
+
+        public static double[] snapshotNumberArguments<T>(T[] source, Converter<T, double> convert)
+        {
+            return System.Array.ConvertAll(source, convert);
+        }
+
         public static List<T> from<T>(IEnumerable<T> iterable)
         {
             return new List<T>(iterable);
