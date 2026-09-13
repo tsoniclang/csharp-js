@@ -23,9 +23,9 @@ namespace Tsonic.CSharp.Js
         public static JSArray<string> from(string source)
         {
             var chars = JSArray<string>.createWithCapacity(source.Length);
-            for (var i = 0; i < source.Length; i++)
+            for (var offset = 0; offset < source.Length;)
             {
-                chars.push(source[i].ToString());
+                chars.push(String.ReadIteratorValue(source, ref offset));
             }
 
             return chars;
@@ -53,9 +53,9 @@ namespace Tsonic.CSharp.Js
         )
         {
             var result = JSArray<TResult>.createWithCapacity(source.Length);
-            for (var i = 0; i < source.Length; i++)
+            for (var offset = 0; offset < source.Length;)
             {
-                result.push(mapFunc(source[i].ToString(), i));
+                result.push(mapFunc(String.ReadIteratorValue(source, ref offset), result.length));
             }
 
             return result;
@@ -67,9 +67,9 @@ namespace Tsonic.CSharp.Js
         )
         {
             var result = JSArray<TResult>.createWithCapacity(source.Length);
-            for (var i = 0; i < source.Length; i++)
+            for (var offset = 0; offset < source.Length;)
             {
-                result.push(mapFunc(source[i].ToString()));
+                result.push(mapFunc(String.ReadIteratorValue(source, ref offset)));
             }
 
             return result;

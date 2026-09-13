@@ -37,7 +37,12 @@ namespace Tsonic.CSharp.Js
 
         public static List<string> from(string source)
         {
-            return source.Select(character => character.ToString()).ToList();
+            var result = new List<string>(source.Length);
+            for (var offset = 0; offset < source.Length;)
+            {
+                result.Add(String.ReadIteratorValue(source, ref offset));
+            }
+            return result;
         }
 
         public static List<T> of<T>(params T[] items)

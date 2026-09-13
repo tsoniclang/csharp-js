@@ -14,6 +14,14 @@ namespace Tsonic.CSharp.Js
     /// </summary>
     public static class String
     {
+        internal static string ReadIteratorValue(string source, ref int offset)
+        {
+            var length = char.IsSurrogatePair(source, offset) ? 2 : 1;
+            var value = source.Substring(offset, length);
+            offset += length;
+            return value;
+        }
+
         /// <summary>
         /// Convert string to upper case
         /// </summary>
