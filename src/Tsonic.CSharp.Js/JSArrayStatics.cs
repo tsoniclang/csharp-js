@@ -7,7 +7,7 @@ namespace Tsonic.CSharp.Js
     /// Static JavaScript Array helpers exposed through the global Array object.
     /// Instance methods remain on JSArray&lt;T&gt;.
     /// </summary>
-    public static class JSArrayStatics
+    public static partial class JSArrayStatics
     {
         public static bool isArray(object? value)
         {
