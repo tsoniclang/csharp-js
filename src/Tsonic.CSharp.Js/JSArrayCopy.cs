@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Js
@@ -8,60 +7,75 @@ namespace Tsonic.CSharp.Js
     {
         public static JSArray<T> fromDense<T>(JSArray<T> source)
         {
-            return from(DenseValues(source));
+            var result = JSArray<T>.createWithCapacity(source.length);
+            for (var index = 0; index < source.length; index++)
+            {
+                result.push(source.readDenseAt(index));
+            }
+            return result;
         }
 
         public static JSArray<TResult> fromDense<T, TResult>(JSArray<T> source, Func<T, int, TResult> map)
         {
-            return from(DenseValues(source), map);
+            var result = JSArray<TResult>.createWithCapacity(source.length);
+            for (var index = 0; index < source.length; index++)
+            {
+                result.push(map(source.readDenseAt(index), index));
+            }
+            return result;
         }
 
         public static JSArray<T> fromOptional<T>(JSArray<T> source)
         {
-            return from(OptionalValues(source));
+            var result = JSArray<T>.createWithCapacity(source.length);
+            for (var index = 0; index < source.length; index++)
+            {
+                result.push(source.tryGetAt(index, out var value) ? value : default!);
+            }
+            return result;
         }
 
         public static JSArray<TResult> fromOptional<T, TResult>(JSArray<T> source, Func<T, int, TResult> map)
         {
-            return from(OptionalValues(source), map);
+            var result = JSArray<TResult>.createWithCapacity(source.length);
+            for (var index = 0; index < source.length; index++)
+            {
+                result.push(map(source.tryGetAt(index, out var value) ? value : default!, index));
+            }
+            return result;
         }
 
         public static JSArray<Undefined> fromUndefined(JSArray<Undefined> source)
         {
-            return from(UndefinedValues(source));
+            var result = JSArray<Undefined>.createWithCapacity(source.length);
+            for (var index = 0; index < source.length; index++)
+            {
+                result.push(Undefined.value);
+            }
+            return result;
         }
 
         public static JSArray<TResult> fromUndefined<TResult>(JSArray<Undefined> source, Func<Undefined, int, TResult> map)
         {
-            return from(UndefinedValues(source), map);
-        }
-
-        private static IEnumerable<T> DenseValues<T>(JSArray<T> source)
-        {
+            var result = JSArray<TResult>.createWithCapacity(source.length);
             for (var index = 0; index < source.length; index++)
             {
-                if (!source.tryGetAt(index, out var value))
-                {
-                    throw new InvalidOperationException("checked array density invariant violated");
-                }
-                yield return value;
+                result.push(map(Undefined.value, index));
             }
+            return result;
         }
+    }
 
-        private static IEnumerable<T> OptionalValues<T>(JSArray<T> source)
+    public partial class JSArray<T>
+    {
+        internal T readDenseAt(int index)
         {
-            for (var index = 0; index < source.length; index++)
+            var slot = _slots[index];
+            if (!slot.IsPresent)
             {
-                yield return source.tryGetAt(index, out var value) ? value : default!;
+                throw new InvalidOperationException("checked array density invariant violated");
             }
-        }
-
-        private static IEnumerable<Undefined> UndefinedValues(JSArray<Undefined> source)
-        {
-            for (var index = 0; index < source.length; index++)
-            {
-                yield return Undefined.value;
-            }
+            return slot.Value;
         }
     }
 }

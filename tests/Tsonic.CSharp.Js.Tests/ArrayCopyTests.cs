@@ -44,6 +44,46 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void DenseMappingObservesGrowthShrinkageAndOriginalFailure()
+        {
+            var growing = new JSArray<int>(new[] { 1, 2 });
+            var mapped = JSArrayStatics.fromDense<int, int>(growing, (value, index) =>
+            {
+                if (index == 0) growing.push(3);
+                return value + index;
+            });
+            Assert.Equal(new[] { 1, 3, 5 }, mapped);
+            var shrinking = new JSArray<int>(new[] { 1, 2, 3 });
+            Assert.Equal(new[] { 1 }, JSArrayStatics.fromDense<int, int>(shrinking, (value, index) =>
+            {
+                shrinking.pop();
+                shrinking.pop();
+                return value;
+            }));
+            var failure = new InvalidOperationException("exact failure");
+            Assert.Same(failure, Assert.Throws<InvalidOperationException>(() =>
+                JSArrayStatics.fromDense<int, int>(growing, (value, index) => throw failure)));
+        }
+
+        [Fact]
+        public void DenseCopyAllocatesOnlyTheResultAndItsSizedStorage()
+        {
+            var source = new JSArray<int>(new int[128]);
+            JSArrayStatics.fromDense(source);
+            _ = new JSArray<int>(source.length);
+            var started = GC.GetAllocatedBytesForCurrentThread();
+            var empty = new JSArray<int>(source.length);
+            var expected = GC.GetAllocatedBytesForCurrentThread() - started;
+            started = GC.GetAllocatedBytesForCurrentThread();
+            var copy = JSArrayStatics.fromDense(source);
+            var actual = GC.GetAllocatedBytesForCurrentThread() - started;
+            GC.KeepAlive(empty);
+            GC.KeepAlive(copy);
+            Assert.Equal(expected, actual);
+            Assert.Equal(source, copy);
+        }
+
+        [Fact]
         public void MappingUsesTheLiveIteratorAndPreservesTheExactException()
         {
             var source = JSArray<int?>.fromSparse(3, (0, 4));
