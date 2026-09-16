@@ -24,13 +24,13 @@ namespace Tsonic.CSharp.Js.Tests
         public void OptionalCopiesMaterializeHolesAsPresentUndefined()
         {
             var source = JSArray<int?>.fromSparse(3, (0, 4), (2, null));
-            var copy = JSArrayStatics.fromOptionalValue(source);
+            var copy = JSArrayStatics.fromOptional(source);
             Assert.Equal(new int?[] { 4, null, null }, copy);
             Assert.False(source.hasIndex(1));
             Assert.True(copy.hasIndex(1));
             Assert.True(copy.hasIndex(2));
             var references = JSArray<string?>.fromSparse(3, (0, "value"), (2, null));
-            var referenceCopy = JSArrayStatics.fromOptionalReference(references);
+            var referenceCopy = JSArrayStatics.fromOptional(references);
             Assert.Equal(new string?[] { "value", null, null }, referenceCopy);
             Assert.True(referenceCopy.hasIndex(1));
             Assert.False(references.hasIndex(1));
@@ -50,7 +50,7 @@ namespace Tsonic.CSharp.Js.Tests
             var visited = new System.Collections.Generic.List<int?>();
             var error = new InvalidOperationException("stop");
             var thrown = Assert.Throws<InvalidOperationException>(() =>
-                JSArrayStatics.fromOptionalValue<int, int>(source, (value, index) =>
+                JSArrayStatics.fromOptional<int?, int>(source, (value, index) =>
                 {
                     visited.Add(value);
                     if (index == 0) source[2] = 9;
@@ -59,7 +59,7 @@ namespace Tsonic.CSharp.Js.Tests
                 }));
             Assert.Same(error, thrown);
             Assert.Equal(new int?[] { 4, null, 9 }, visited);
-            Assert.Equal(new[] { "value", "missing" }, JSArrayStatics.fromOptionalReference<string, string>(
+            Assert.Equal(new[] { "value", "missing" }, JSArrayStatics.fromOptional<string?, string>(
                 JSArray<string?>.fromSparse(2, (0, "value")), (value, _) => value ?? "missing"));
             Assert.Equal(new[] { 0, 1 }, JSArrayStatics.fromUndefined(new JSArray<Undefined>(2), (value, index) =>
             {

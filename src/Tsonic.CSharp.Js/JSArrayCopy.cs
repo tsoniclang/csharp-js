@@ -16,26 +16,14 @@ namespace Tsonic.CSharp.Js
             return from(DenseValues(source), map);
         }
 
-        public static JSArray<T?> fromOptionalValue<T>(JSArray<T?> source) where T : struct
+        public static JSArray<T> fromOptional<T>(JSArray<T> source)
         {
             return from(OptionalValues(source));
         }
 
-        public static JSArray<TResult> fromOptionalValue<T, TResult>(JSArray<T?> source, Func<T?, int, TResult> map)
-            where T : struct
+        public static JSArray<TResult> fromOptional<T, TResult>(JSArray<T> source, Func<T, int, TResult> map)
         {
             return from(OptionalValues(source), map);
-        }
-
-        public static JSArray<T?> fromOptionalReference<T>(JSArray<T?> source) where T : class
-        {
-            return from(OptionalReferences(source));
-        }
-
-        public static JSArray<TResult> fromOptionalReference<T, TResult>(JSArray<T?> source, Func<T?, int, TResult> map)
-            where T : class
-        {
-            return from(OptionalReferences(source), map);
         }
 
         public static JSArray<Undefined> fromUndefined(JSArray<Undefined> source)
@@ -60,19 +48,11 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        private static IEnumerable<T?> OptionalValues<T>(JSArray<T?> source) where T : struct
+        private static IEnumerable<T> OptionalValues<T>(JSArray<T> source)
         {
             for (var index = 0; index < source.length; index++)
             {
-                yield return source.tryGetAt(index, out var value) ? value : null;
-            }
-        }
-
-        private static IEnumerable<T?> OptionalReferences<T>(JSArray<T?> source) where T : class
-        {
-            for (var index = 0; index < source.length; index++)
-            {
-                yield return source.tryGetAt(index, out var value) ? value : null;
+                yield return source.tryGetAt(index, out var value) ? value : default!;
             }
         }
 
