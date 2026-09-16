@@ -13,8 +13,7 @@ public interface IArrayLike<T>
 public static class ArrayLike
 {
     public static bool HasIndex<T>(double index, JSArray<T> source) =>
-        double.IsFinite(index) && index >= 0 && index < source.length &&
-        index == System.Math.Truncate(index) && source.hasIndex((int)index);
+        source.hasIndex(index);
 
     /// <summary>Reads a numeric element or returns the absent-value carrier.</summary>
     public static double? ReadNumber(IArrayLike<double> source, double index) =>

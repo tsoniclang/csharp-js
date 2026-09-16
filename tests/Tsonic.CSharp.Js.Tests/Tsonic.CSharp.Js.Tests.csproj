@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Tsonic.CSharp.Js/Tsonic.CSharp.Js.csproj" />
+    <Compile Include="../../tools/source-guard/ForbiddenSyntax.cs" Link="ForbiddenSyntax.cs" />
   </ItemGroup>
 
   <ItemGroup>

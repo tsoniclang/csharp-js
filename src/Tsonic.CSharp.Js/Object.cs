@@ -73,7 +73,7 @@ public static class Object
 
         if (value is IDynamicArray jsArray)
         {
-            return EnumerateJsArray(jsArray);
+            return jsArray.Entries();
         }
 
         if (value is IDictionary<string, object?> dictionary)
@@ -253,8 +253,7 @@ public static class Object
             throw new TypeError("Object.hasOwn receiver cannot be null.");
         }
 
-        return TryParseArrayIndex(key, value.Length, out var index) &&
-            value.TryGetAt(index, out _);
+        return value.HasOwn(key);
     }
 
     public static bool hasOwn(string value, string key)
@@ -375,20 +374,6 @@ public static class Object
     private static object? UnwrapClosedValue(object? value)
     {
         return value is TsValue tsValue ? tsValue.unwrap() : value;
-    }
-
-    private static IEnumerable<KeyValuePair<string, object?>> EnumerateJsArray(IDynamicArray array)
-    {
-        for (var index = 0; index < array.Length; index++)
-        {
-            if (array.TryGetAt(index, out var value))
-            {
-                yield return new KeyValuePair<string, object?>(
-                    index.ToString(CultureInfo.InvariantCulture),
-                    value
-                );
-            }
-        }
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> EnumerateString(string text)
