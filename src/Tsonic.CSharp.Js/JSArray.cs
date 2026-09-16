@@ -16,7 +16,7 @@ namespace Tsonic.CSharp.Js
     /// JavaScript-style resizable array with full JS semantics.
     /// Backed by slots so empty array elements remain distinct from present default values.
     /// </summary>
-    public class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IDynamicArray
+    public class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IDynamicArray, IArrayLike<T>
     {
         private readonly List<Slot> _slots;
 
@@ -189,6 +189,16 @@ namespace Tsonic.CSharp.Js
             }
 
             value = null;
+            return false;
+        }
+
+        double IArrayLike<T>.Length => length;
+
+        bool IArrayLike<T>.TryGet(double index, out T value)
+        {
+            if (double.IsFinite(index) && index >= 0 && index <= int.MaxValue && index == System.Math.Truncate(index))
+                return tryGetAt((int)index, out value);
+            value = default!;
             return false;
         }
 
