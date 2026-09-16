@@ -195,13 +195,7 @@ namespace Tsonic.CSharp.Js
 
         double IArrayLike<T>.Length => length;
 
-        bool IArrayLike<T>.TryGet(double index, out T value)
-        {
-            if (double.IsFinite(index) && index >= 0 && index <= int.MaxValue && index == System.Math.Truncate(index))
-                return tryGetAt((int)index, out value);
-            value = default!;
-            return false;
-        }
+        bool IArrayLike<T>.TryGet(double index, out T value) => tryGetAt(index, out value);
 
         public bool trySetAtObject(int index, object? value)
         {

@@ -27,6 +27,10 @@ public class JSArrayNumericPropertyTests
         Assert.False(values.hasIndex(1));
         Assert.True(ArrayLike.HasIndex(-1, values));
         Assert.True(ArrayLike.HasIndex(double.NaN, values));
+        Assert.Equal(3, ArrayLike.ReadNumber(values, -1));
+        Assert.Equal(4, ArrayLike.ReadNumber(values, 1.5));
+        Assert.Equal(5, ArrayLike.ReadNumber(values, double.NaN));
+        Assert.Null(ArrayLike.ReadNumber(values, 1));
         Assert.Equal(new[] { "0", "-1", "1.5", "NaN", "Infinity", "4294967295" }, Object.keys(values).ToArray());
         Assert.True(Object.hasOwn(values, "length"));
         Assert.False(Object.hasOwn(values, "-0"));
@@ -56,6 +60,26 @@ public class JSArrayNumericPropertyTests
         Assert.Equal(10, alias[1.5]);
         Assert.Equal(0, values.length);
         Assert.False(values.hasIndex(0));
+    }
+
+    [Fact]
+    public void ClosedWritesUseTheSameLengthAndNumericKeyContract()
+    {
+        var values = new JSArray<double>();
+        var closed = TsValue.from(values);
+        closed.WriteDynamicSlot("length", 3d);
+        Assert.Equal(3, values.length);
+        Assert.True(closed.ReadDynamicSlot("1").isUndefined());
+        closed.WriteDynamicSlot("1", 4d);
+        Assert.Equal(4, values[1]);
+        closed.WriteDynamicSlot("1.5", 9d);
+        closed.WriteDynamicSlot("length", 0d);
+        Assert.Equal(0, values.length);
+        Assert.Equal(9, values[1.5]);
+        Assert.Throws<RangeError>(() => closed.WriteDynamicSlot("length", 1.5));
+        Assert.Throws<TypeError>(() => closed.WriteDynamicSlot("length", System.Numerics.BigInteger.One));
+        Assert.Throws<TypeError>(() => closed.WriteDynamicSlot("0", "wrong carrier"));
+        Assert.Equal(0, values.length);
     }
 
     [Fact]
