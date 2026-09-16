@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Text.RegularExpressions;
+using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests
@@ -21,32 +24,95 @@ namespace Tsonic.CSharp.Js.Tests
                 Path.Combine(repositoryRoot, "src", "Tsonic.CSharp.Js"),
                 Path.Combine(csharpRuntimeRoot, "src"),
             };
-            var bannedPatterns = new[]
-            {
-                new Regex(@"\bdynamic\b"),
-                new Regex(@"System\.Reflection"),
-                new Regex(@"\bGetProperty\b"),
-                new Regex(@"\bGetProperties\b"),
-                new Regex(@"\bGetMethod\b"),
-                new Regex(@"\bGetMethods\b"),
-                new Regex(@"\bMethodInfo\.Invoke\b"),
-                new Regex(@"\bMakeGenericMethod\b"),
-                new Regex(@"\bActivator\.CreateInstance\b"),
-                new Regex(@"\bAssembly\.Load\b"),
-            };
-
             foreach (var sourceRoot in sourceRoots)
             {
                 Assert.True(Directory.Exists(sourceRoot), $"Missing runtime source root: {sourceRoot}");
                 foreach (var sourceFile in Directory.EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories))
                 {
                     var text = File.ReadAllText(sourceFile);
-                    foreach (var pattern in bannedPatterns)
-                    {
-                        Assert.DoesNotMatch(pattern, text);
-                    }
+                    var violations = FindForbiddenSyntax(text);
+                    Assert.True(violations.Count == 0,
+                        $"{sourceFile} contains forbidden runtime syntax: {string.Join(", ", violations)}");
                 }
             }
+        }
+
+        [Theory]
+        [InlineData("class Value { dynamic field; }", "dynamic")]
+        [InlineData("class Value { @dynamic field; }", "dynamic")]
+        [InlineData("class Value { \\u0064ynamic field; }", "dynamic")]
+        [InlineData("using System /* retained */ . Reflection;", "System.Reflection")]
+        [InlineData("var result = target.GetProperty(name);", "GetProperty")]
+        [InlineData("var result = target.GetProperties();", "GetProperties")]
+        [InlineData("var result = target.GetMethod(name);", "GetMethod")]
+        [InlineData("var result = target.GetMethods();", "GetMethods")]
+        [InlineData("MethodInfo /* retained */ . Invoke(target, values);", "MethodInfo.Invoke")]
+        [InlineData("target.MakeGenericMethod(arguments);", "MakeGenericMethod")]
+        [InlineData("Activator.CreateInstance(type);", "Activator.CreateInstance")]
+        [InlineData("Assembly.Load(path);", "Assembly.Load")]
+        [InlineData("var text = $\"{((dynamic)value).field}\";", "dynamic")]
+        [InlineData("#if NEVER_SELECTED\nclass Value { dynamic field; }\n#endif", "dynamic")]
+        [InlineData("#if NEVER_SELECTED\n#if ALSO_NOT_SELECTED\nAssembly.Load(path);\n#endif\n#endif", "Assembly.Load")]
+        public void SourceGuardRejectsEveryForbiddenOperation(string source, string expected)
+        {
+            Assert.Contains(expected, FindForbiddenSyntax(source));
+        }
+
+        [Theory]
+        [InlineData("throw new NotSupportedException(\"does not expose dynamic properties\");")]
+        [InlineData("// dynamic System.Reflection\n/* Activator.CreateInstance */\nclass Value {}")]
+        [InlineData("var text = @\"System.Reflection and GetProperty\";")]
+        [InlineData("var text = \"\"\"dynamic Assembly.Load\"\"\";")]
+        [InlineData("var text = $\"dynamic {value} GetMethod\";")]
+        [InlineData("var text = $$\"\"\"System.Reflection {{value}} dynamic\"\"\";")]
+        [InlineData("#if NEVER_SELECTED\nvar text = \"dynamic\";\n#endif")]
+        public void SourceGuardDoesNotTreatProseAsExecutableSyntax(string source)
+        {
+            Assert.Empty(FindForbiddenSyntax(source));
+        }
+
+        private static IReadOnlyCollection<string> FindForbiddenSyntax(string source)
+        {
+            string[][] bannedSequences =
+            [
+                ["dynamic"],
+                ["System", ".", "Reflection"],
+                ["GetProperty"],
+                ["GetProperties"],
+                ["GetMethod"],
+                ["GetMethods"],
+                ["MethodInfo", ".", "Invoke"],
+                ["MakeGenericMethod"],
+                ["Activator", ".", "CreateInstance"],
+                ["Assembly", ".", "Load"],
+            ];
+            var violations = new SortedSet<string>(StringComparer.Ordinal);
+            var pending = new Queue<string>();
+            pending.Enqueue(source);
+            while (pending.TryDequeue(out var fragment))
+            {
+                var root = CSharpSyntaxTree.ParseText(fragment).GetRoot();
+                var tokens = root.DescendantTokens().Select(token =>
+                    token.IsKind(SyntaxKind.IdentifierToken) || token.IsKind(SyntaxKind.DotToken)
+                        ? token.ValueText : string.Empty).ToArray();
+                foreach (var sequence in bannedSequences)
+                {
+                    for (var start = 0; start <= tokens.Length - sequence.Length; start++)
+                    {
+                        if (tokens.AsSpan(start, sequence.Length).SequenceEqual(sequence))
+                            violations.Add(string.Concat(sequence));
+                    }
+                }
+                foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
+                {
+                    if (!trivia.IsKind(SyntaxKind.DisabledTextTrivia)) continue;
+                    var disabled = trivia.ToFullString();
+                    if (disabled.Length >= fragment.Length)
+                        throw new InvalidOperationException("Disabled source must be a strict fragment of its containing syntax.");
+                    pending.Enqueue(disabled);
+                }
+            }
+            return violations;
         }
 
         private static string FindRepositoryRoot()
