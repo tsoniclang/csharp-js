@@ -77,7 +77,8 @@ public class JSArrayNumericPropertyTests
         Assert.Equal(0, values.length);
         Assert.Equal(9, values[1.5]);
         Assert.Throws<RangeError>(() => closed.WriteDynamicSlot("length", 1.5));
-        Assert.Throws<TypeError>(() => closed.WriteDynamicSlot("length", System.Numerics.BigInteger.One));
+        Assert.Throws<TypeError>(() => ((IDynamicObject)values).WriteDynamicSlot("length", System.Numerics.BigInteger.One));
+        Assert.Throws<NotSupportedException>(() => closed.WriteDynamicSlot("length", System.Numerics.BigInteger.One));
         Assert.Throws<TypeError>(() => closed.WriteDynamicSlot("0", "wrong carrier"));
         Assert.Equal(0, values.length);
     }

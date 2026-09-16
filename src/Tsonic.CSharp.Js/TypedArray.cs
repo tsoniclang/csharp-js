@@ -222,6 +222,8 @@ namespace Tsonic.CSharp.Js
 
         protected abstract TArray CreateCopy(IEnumerable<double> values);
 
+        protected ReadOnlyMemory<byte> ByteMemory => _buffer.Bytes.AsMemory(_byteOffset, checked(ElementCount * ElementSize));
+
         private Span<TElement> Elements => MemoryMarshal.Cast<byte, TElement>(
             _buffer.Bytes.AsSpan(_byteOffset, checked(ElementCount * ElementSize)));
 
