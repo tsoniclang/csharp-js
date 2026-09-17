@@ -10,10 +10,12 @@
     <Version>0.0.9</Version>
 
     <!-- Target framework -->
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net10.0</TargetFramework>
+    <TsonicCsharpRuntimeProject Condition="'$(TsonicCsharpRuntimeProject)' == ''">$(MSBuildThisFileDirectory)../csharp-runtime/src/Tsonic.CSharp.Runtime/Tsonic.CSharp.Runtime.csproj</TsonicCsharpRuntimeProject>
 
     <!-- Centralize build outputs in artifacts/ directory -->
-    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts\bin\$(MSBuildProjectName)\</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <TsonicRuntimeArtifactsPath Condition="'$(TsonicRuntimeArtifactsPath)' == ''">$(MSBuildThisFileDirectory)artifacts/</TsonicRuntimeArtifactsPath>
+    <BaseOutputPath>$(TsonicRuntimeArtifactsPath)bin/$(MSBuildProjectName)/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(TsonicRuntimeArtifactsPath)obj/$(MSBuildProjectName)/$(TargetFramework)/</BaseIntermediateOutputPath>
   </PropertyGroup>
 </Project>
