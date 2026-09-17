@@ -14,6 +14,14 @@ namespace Tsonic.CSharp.Js
     /// </summary>
     public static class String
     {
+        internal static string ReadIteratorValue(string source, ref int offset)
+        {
+            var length = char.IsSurrogatePair(source, offset) ? 2 : 1;
+            var value = source.Substring(offset, length);
+            offset += length;
+            return value;
+        }
+
         /// <summary>
         /// Convert string to upper case
         /// </summary>
@@ -713,12 +721,12 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Static method: Create string from character codes
         /// </summary>
-        public static string fromCharCode(params int[] codes)
+        public static string fromCharCode(params double[] codes)
         {
             var chars = new char[codes.Length];
-            for (int i = 0; i < codes.Length; i++)
+            for (int index = 0; index < codes.Length; index++)
             {
-                chars[i] = (char)(codes[i] & 0xFFFF);
+                chars[index] = (char)(toUint32(codes[index]) & 0xFFFF);
             }
             return new string(chars);
         }
@@ -726,12 +734,13 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Static method: Create string from code points
         /// </summary>
-        public static string fromCodePoint(params int[] codePoints)
+        public static string fromCodePoint(params double[] codePoints)
         {
             var result = new System.Text.StringBuilder();
-            foreach (int codePoint in codePoints)
+            foreach (double codePoint in codePoints)
             {
-                if (codePoint < 0 || codePoint > 0x10FFFF)
+                if (!double.IsFinite(codePoint) || codePoint != System.Math.Truncate(codePoint) ||
+                    codePoint < 0 || codePoint > 0x10FFFF)
                 {
                     throw new RangeError("Invalid code point.");
                 }
@@ -742,7 +751,7 @@ namespace Tsonic.CSharp.Js
                     continue;
                 }
 
-                int offset = codePoint - 0x10000;
+                int offset = (int)codePoint - 0x10000;
                 result.Append((char)(0xD800 + (offset >> 10)));
                 result.Append((char)(0xDC00 + (offset & 0x3FF)));
             }

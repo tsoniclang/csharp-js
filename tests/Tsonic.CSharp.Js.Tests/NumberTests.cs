@@ -47,6 +47,22 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(string.Empty, ((int?)null).toString(16));
         }
 
+        [Theory]
+        [InlineData(1e-7, "1e-7")]
+        [InlineData(-1e-7, "-1e-7")]
+        [InlineData(1e-6, "0.000001")]
+        [InlineData(-1.234e-6, "-0.000001234")]
+        [InlineData(1e20, "100000000000000000000")]
+        [InlineData(-1.2345678901234568e20, "-123456789012345680000")]
+        [InlineData(1e21, "1e+21")]
+        [InlineData(-1e21, "-1e+21")]
+        [InlineData(double.Epsilon, "5e-324")]
+        [InlineData(double.MaxValue, "1.7976931348623157e+308")]
+        public void toString_PreservesShortestDigitsWithSourceDecimalNotation(double value, string expected)
+        {
+            Assert.Equal(expected, value.toString());
+        }
+
         [Fact]
         public void toString_WithRadix_RejectsInvalidRadix()
         {

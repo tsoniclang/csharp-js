@@ -427,6 +427,27 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Convert value to number
         /// </summary>
+        public static double Number<TFirst, TSecond>(Union<TFirst, TSecond> value) =>
+            value.Match(part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird>(Union<TFirst, TSecond, TThird> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth>(Union<TFirst, TSecond, TThird, TFourth> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth, TFifth>(Union<TFirst, TSecond, TThird, TFourth, TFifth> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth, TFifth, TSixth>(Union<TFirst, TSecond, TThird, TFourth, TFifth, TSixth> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh>(Union<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
+        public static double Number<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh, TEighth>(Union<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh, TEighth> value) =>
+            value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
+
         public static double Number(object? value = null)
         {
             value = unwrapClosedValue(value);
@@ -439,6 +460,10 @@ namespace Tsonic.CSharp.Js
             if (value is long l) return l;
             if (value is float f) return f;
             if (value is decimal dec) return (double)dec;
+            if (value is System.Numerics.BigInteger bigInteger) return (double)bigInteger;
+            if (value is ulong unsignedInteger) return unsignedInteger;
+            if (value is Int128 wideInteger) return (double)wideInteger;
+            if (value is UInt128 wideUnsignedInteger) return (double)wideUnsignedInteger;
             if (value is bool b) return b ? 1 : 0;
 
             if (value is string str)
@@ -465,20 +490,42 @@ namespace Tsonic.CSharp.Js
             return "";
         }
 
-        public static string String(object? value)
-        {
-            value = unwrapClosedValue(value);
+        public static string String<T1, T2>(Tsonic.CSharp.Runtime.Union<T1, T2>? value)
+            => value is null ? "null" : value.Match<string>(String, String);
 
-            if (value == null) return "null";
+        public static string String<T1, T2, T3>(Tsonic.CSharp.Runtime.Union<T1, T2, T3>? value)
+            => value is null ? "null" : value.Match<string>(String, String, String);
+
+        public static string String<T1, T2, T3, T4>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4>? value)
+            => value is null ? "null" : value.Match<string>(String, String, String, String);
+
+        public static string String<T1, T2, T3, T4, T5>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5>? value)
+            => value is null ? "null" : value.Match<string>(String, String, String, String, String);
+
+        public static string String<T1, T2, T3, T4, T5, T6>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6>? value)
+            => value is null ? "null" : value.Match<string>(String, String, String, String, String, String);
+
+        public static string String<T1, T2, T3, T4, T5, T6, T7>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6, T7>? value)
+            => value is null ? "null" : value.Match<string>(String, String, String, String, String, String, String);
+
+        public static string String<T1, T2, T3, T4, T5, T6, T7, T8>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6, T7, T8>? value)
+            => value is null ? "null" : value.Match<string>(String, String, String, String, String, String, String, String);
+
+        public static string String<TValue>(TValue input)
+        {
+            object? value = unwrapClosedValue(input);
+            while (value is Tsonic.CSharp.Runtime.TsUnion union)
+            {
+                value = union.unwrap();
+            }
+
+            if (value == null || value is Tsonic.CSharp.Runtime.Null) return "null";
             if (value is Undefined) return "undefined";
             if (value is string s) return s;
             if (value is bool b) return b ? "true" : "false";
-            if (value is double d)
-            {
-                if (double.IsNaN(d)) return "NaN";
-                if (double.IsPositiveInfinity(d)) return "Infinity";
-                if (double.IsNegativeInfinity(d)) return "-Infinity";
-            }
+            if (value is double number) return Tsonic.CSharp.Js.Number.toString(number);
+            if (value is float single) return Tsonic.CSharp.Js.Number.toString((double)single);
+            if (value is IFormattable formatted) return formatted.ToString(null, CultureInfo.InvariantCulture);
             return value.ToString() ?? "";
         }
 

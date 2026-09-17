@@ -16,6 +16,16 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Tsonic.CSharp.Js/Tsonic.CSharp.Js.csproj" />
+    <Compile Include="../../tools/source-guard/ForbiddenSyntax.cs" Link="ForbiddenSyntax.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.CodeAnalysis">
+      <HintPath>$(MSBuildBinPath)/Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp">
+      <HintPath>$(MSBuildBinPath)/Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

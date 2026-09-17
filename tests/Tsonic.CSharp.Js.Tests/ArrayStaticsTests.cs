@@ -5,6 +5,60 @@ namespace Tsonic.CSharp.Js.Tests
 {
     public class ArrayStaticsTests
     {
+        [Theory]
+        [InlineData("", new string[0])]
+        [InlineData("abc", new[] { "a", "b", "c" })]
+        [InlineData("a😀é", new[] { "a", "😀", "é" })]
+        public void from_StringOverloadsPreserveExactIteratorValues(string input, string[] expected)
+        {
+            Assert.Equal(expected, JSArrayStatics.from(input));
+            Assert.Equal(expected, Tsonic.CSharp.Js.Array.from(input));
+            var visits = 0;
+            Assert.Equal(expected, JSArrayStatics.from(input, value => { visits++; return value; }));
+            Assert.Equal(expected.Length, visits);
+            visits = 0;
+            Assert.Equal(expected, JSArrayStatics.from(input, (value, index) =>
+            {
+                Assert.Equal(visits, index);
+                visits++;
+                return value;
+            }));
+            Assert.Equal(expected.Length, visits);
+        }
+
+        [Fact]
+        public void from_StringOverloadsPreserveLoneSurrogates()
+        {
+            var high = new string((char)0xD800, 1);
+            var low = new string((char)0xDC00, 1);
+            from_StringOverloadsPreserveExactIteratorValues(high + "x" + low, new[] { high, "x", low });
+            from_StringOverloadsPreserveExactIteratorValues(low + "😀" + high, new[] { low, "😀", high });
+        }
+
+        [Fact]
+        public void from_StringMappingStopsOnTheExactCallbackException()
+        {
+            var error = new System.InvalidOperationException("stop");
+            var visited = "";
+            var thrown = Assert.Throws<System.InvalidOperationException>(() => JSArrayStatics.from("a😀z", (value, index) =>
+            {
+                visited += value;
+                if (index == 1) throw error;
+                return value;
+            }));
+            Assert.Same(error, thrown);
+            Assert.Equal("a😀", visited);
+            visited = "";
+            thrown = Assert.Throws<System.InvalidOperationException>(() => JSArrayStatics.from("a😀z", value =>
+            {
+                visited += value;
+                if (value == "😀") throw error;
+                return value;
+            }));
+            Assert.Same(error, thrown);
+            Assert.Equal("a😀", visited);
+        }
+
         [Fact]
         public void from_WithEnumerable_ReturnsArray()
         {

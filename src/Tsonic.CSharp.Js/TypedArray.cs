@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace Tsonic.CSharp.Js
 {
-    public abstract class TypedArray<TArray, TElement> : IEnumerable<double>
+    public abstract class TypedArray<TArray, TElement> : IEnumerable<double>, IArrayLike<double>
         where TArray : TypedArray<TArray, TElement>
         where TElement : unmanaged
     {
@@ -66,6 +66,15 @@ namespace Tsonic.CSharp.Js
         public double byteLength => checked(ElementCount * ElementSize);
 
         public double length => ElementCount;
+
+        double IArrayLike<double>.Length => length;
+
+        bool IArrayLike<double>.TryGet(double index, out double value)
+        {
+            var selected = ElementIndex(index);
+            value = selected < 0 ? default : FromElement(Elements[selected]);
+            return selected >= 0;
+        }
 
         public double BYTES_PER_ELEMENT => ElementSize;
 
@@ -212,6 +221,8 @@ namespace Tsonic.CSharp.Js
         protected abstract TArray CreateView(ArrayBuffer buffer, double byteOffset, double length);
 
         protected abstract TArray CreateCopy(IEnumerable<double> values);
+
+        protected ReadOnlyMemory<byte> ByteMemory => _buffer.Bytes.AsMemory(_byteOffset, checked(ElementCount * ElementSize));
 
         private Span<TElement> Elements => MemoryMarshal.Cast<byte, TElement>(
             _buffer.Bytes.AsSpan(_byteOffset, checked(ElementCount * ElementSize)));

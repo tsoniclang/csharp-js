@@ -16,7 +16,7 @@ namespace Tsonic.CSharp.Js
     /// JavaScript-style resizable array with full JS semantics.
     /// Backed by slots so empty array elements remain distinct from present default values.
     /// </summary>
-    public class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IDynamicArray
+    public partial class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IDynamicArray, IArrayLike<T>
     {
         private readonly List<Slot> _slots;
 
@@ -59,7 +59,7 @@ namespace Tsonic.CSharp.Js
         {
             if (length < 0)
             {
-                throw new ArgumentException("Invalid array length", nameof(length));
+                throw new RangeError("Invalid array length");
             }
 
             _slots = new List<Slot>(length);
@@ -142,13 +142,14 @@ namespace Tsonic.CSharp.Js
         {
             get
             {
-                return ReadValue(index);
+                return index < 0 ? this[(double)index] : ReadValue(index);
             }
             set
             {
                 if (index < 0)
                 {
-                    throw new ArgumentException("Array index cannot be negative", nameof(index));
+                    this[(double)index] = value;
+                    return;
                 }
 
                 EnsureLengthForIndex(index);
@@ -162,7 +163,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool hasIndex(int index)
         {
-            return IsPresent(index);
+            return index < 0 ? hasIndex((double)index) : IsPresent(index);
         }
 
         /// <summary>
@@ -191,6 +192,10 @@ namespace Tsonic.CSharp.Js
             value = null;
             return false;
         }
+
+        double IArrayLike<T>.Length => length;
+
+        bool IArrayLike<T>.TryGet(double index, out T value) => tryGetAt(index, out value);
 
         public bool trySetAtObject(int index, object? value)
         {
@@ -224,6 +229,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool deleteAt(int index)
         {
+            if (index < 0) return deleteAt((double)index);
             if (index >= 0 && index < _slots.Count)
             {
                 _slots[index] = Slot.Hole;
@@ -1476,6 +1482,7 @@ namespace Tsonic.CSharp.Js
 
         private void EnsureLengthForIndex(int index)
         {
+            if (index == int.MaxValue) throw new RangeError("Array index exceeds native storage");
             while (_slots.Count <= index)
             {
                 _slots.Add(Slot.Hole);
@@ -1494,7 +1501,7 @@ namespace Tsonic.CSharp.Js
         {
             if (double.IsNaN(length) || double.IsInfinity(length) || length < 0 || length > int.MaxValue || System.Math.Truncate(length) != length)
             {
-                throw new ArgumentException("Invalid array length", nameof(length));
+                throw new RangeError("Invalid array length");
             }
 
             return (int)length;
