@@ -16,9 +16,9 @@ namespace Tsonic.CSharp.Js
     /// JavaScript-style resizable array with native dense storage.
     /// Backed by contiguous initialized native elements.
     /// </summary>
-    public partial class JSArray<T> : IReadOnlyList<T>, IEnumerable<T>, IDynamicArray, IArrayLike<T>
+    public partial class JSArray<T> : List<T>, IReadOnlyList<T>, IEnumerable<T>, IDynamicArray, IArrayLike<T>
     {
-        private readonly List<T> _values;
+        private List<T> _values => this;
 
         // ==================== Constructors ====================
 
@@ -27,7 +27,6 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public JSArray()
         {
-            _values = new List<T>();
         }
 
         /// <summary>
@@ -40,7 +39,7 @@ namespace Tsonic.CSharp.Js
                 throw new RangeError("Invalid array length");
             }
 
-            _values = new List<T>(length);
+            Capacity = length;
             AddDefaults(length);
         }
 
@@ -54,36 +53,29 @@ namespace Tsonic.CSharp.Js
             return new JSArray<T>(capacity, false);
         }
 
-        private JSArray(int capacity, bool _)
+        private JSArray(int capacity, bool _) : base(capacity)
         {
-            _values = new List<T>(capacity);
         }
 
         /// <summary>
         /// Create JSArray from native array
         /// </summary>
-        public JSArray(T[] source)
+        public JSArray(T[] source) : base(source)
         {
-            _values = new List<T>(source.Length);
-            AddPresentRange(source);
         }
 
         /// <summary>
         /// Create JSArray from List
         /// </summary>
-        public JSArray(List<T> source)
+        public JSArray(List<T> source) : base(source)
         {
-            _values = new List<T>(source.Count);
-            AddPresentRange(source);
         }
 
         /// <summary>
         /// Create JSArray from any enumerable
         /// </summary>
-        public JSArray(IEnumerable<T> source)
+        public JSArray(IEnumerable<T> source) : base(source)
         {
-            _values = new List<T>();
-            AddPresentRange(source);
         }
 
         // ==================== Properties ====================
@@ -93,14 +85,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int length => _values.Count;
 
-        public int Count => _values.Count;
-
         // ==================== Indexer ====================
 
         /// <summary>
         /// Get or set element at index
         /// </summary>
-        public T this[int index]
+        public new T this[int index]
         {
             get
             {
@@ -1014,12 +1004,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public string join(string separator = ",")
         {
-            var parts = new List<string>();
-            for (int i = 0; i < _values.Count; i++)
-            {
-                parts.Add(IsPresent(i) ? toJoinPart(_values[i]) : string.Empty);
-            }
-            return string.Join(separator, parts);
+            return string.Join(separator, _values.Select(toJoinPart));
         }
 
         /// <summary>
@@ -1372,9 +1357,11 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Create array from arguments
         /// </summary>
-        public static JSArray<T> of(params T[] items)
+        public static JSArray<T> of(params ReadOnlySpan<T> items)
         {
-            return new JSArray<T>(items);
+            var result = createWithCapacity(items.Length);
+            foreach (var item in items) result.push(item);
+            return result;
         }
 
         private void AddPresentRange(IEnumerable<T> items)
@@ -1463,7 +1450,7 @@ namespace Tsonic.CSharp.Js
 
         // ==================== IEnumerable Implementation ====================
 
-        public IEnumerator<T> GetEnumerator()
+        public new IEnumerator<T> GetEnumerator()
         {
             return values().GetEnumerator();
         }
