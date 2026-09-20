@@ -15,6 +15,28 @@ namespace Tsonic.CSharp.Js
     public class Map<K, V> : IEnumerable<(K key, V value)>
     {
         private readonly OrderedDictionary<CollectionKey<K>, V> _entries = new();
+        private List<Cursor>? _cursors;
+
+        private sealed class Cursor
+        {
+            internal int Next;
+        }
+
+        private IEnumerable<KeyValuePair<CollectionKey<K>, V>> Enumerate()
+        {
+            var cursor = new Cursor();
+            (_cursors ??= new List<Cursor>()).Add(cursor);
+            try
+            {
+                while (cursor.Next < _entries.Count)
+                    yield return _entries.GetAt(cursor.Next++);
+            }
+            finally
+            {
+                _cursors.Remove(cursor);
+                if (_cursors.Count == 0) _cursors = null;
+            }
+        }
 
         // ==================== Constructors ====================
 
@@ -89,7 +111,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(K key)
         {
-            return _entries.Remove(new CollectionKey<K>(key));
+            var index = _entries.IndexOf(new CollectionKey<K>(key));
+            if (index < 0) return false;
+            _entries.RemoveAt(index);
+            if (_cursors is not null)
+                foreach (var cursor in _cursors)
+                    if (index < cursor.Next) cursor.Next--;
+            return true;
         }
 
         /// <summary>
@@ -98,6 +126,8 @@ namespace Tsonic.CSharp.Js
         public void clear()
         {
             _entries.Clear();
+            if (_cursors is not null)
+                foreach (var cursor in _cursors) cursor.Next = 0;
         }
 
         // ==================== Iteration Methods ====================
@@ -107,7 +137,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<K> keys()
         {
-            foreach (var entry in _entries)
+            foreach (var entry in Enumerate())
             {
                 yield return entry.Key.Value;
             }
@@ -118,7 +148,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<V> values()
         {
-            foreach (var entry in _entries)
+            foreach (var entry in Enumerate())
             {
                 yield return entry.Value;
             }
@@ -129,7 +159,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<(K key, V value)> entries()
         {
-            foreach (var entry in _entries)
+            foreach (var entry in Enumerate())
             {
                 yield return (entry.Key.Value, entry.Value);
             }
@@ -140,7 +170,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<V, K, Map<K, V>> callback)
         {
-            foreach (var entry in _entries)
+            foreach (var entry in Enumerate())
             {
                 callback(entry.Value, entry.Key.Value, this);
             }
@@ -151,7 +181,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<V, K> callback)
         {
-            foreach (var entry in _entries)
+            foreach (var entry in Enumerate())
             {
                 callback(entry.Value, entry.Key.Value);
             }
@@ -162,7 +192,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<V> callback)
         {
-            foreach (var entry in _entries)
+            foreach (var entry in Enumerate())
             {
                 callback(entry.Value);
             }
@@ -175,7 +205,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerator<(K key, V value)> GetEnumerator()
         {
-            foreach (var entry in _entries)
+            foreach (var entry in Enumerate())
             {
                 yield return (entry.Key.Value, entry.Value);
             }

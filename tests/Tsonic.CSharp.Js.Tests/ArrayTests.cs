@@ -15,20 +15,16 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Constructor_Length_CreatesHoles()
+        public void Constructor_Length_InitializesNativeDefaults()
         {
-            var arr = new JSArray<int>(3);
-
-            Assert.Equal(3, arr.length);
-            Assert.False(arr.hasIndex(0));
-            Assert.False(arr.hasIndex(1));
-            Assert.False(arr.hasIndex(2));
-            Assert.Equal(0, arr[0]);
-            Assert.Equal("||", arr.join("|"));
-
-            var numericLength = new JSArray<string>(2.0);
-            Assert.Equal(2, numericLength.length);
-            Assert.False(numericLength.hasIndex(0));
+            var values = new JSArray<int>(3);
+            Assert.Equal(new[] { 0, 0, 0 }, values.ToArray());
+            Assert.True(values.hasIndex(0) && values.hasIndex(1) && values.hasIndex(2));
+            Assert.Equal("0|0|0", values.join("|"));
+            var references = new JSArray<string?>(2.0);
+            Assert.Equal(2, references.length);
+            Assert.True(references.hasIndex(0));
+            Assert.Null(references[0]);
         }
 
         [Fact]
@@ -42,31 +38,23 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void FromSparse_CreatesArrayWithExplicitHoles()
+        public void ExplicitOptionalValuesAreDense()
         {
-            var arr = JSArray<int>.fromSparse(3, (0, 1), (2, 3));
-
-            Assert.Equal(3, arr.length);
-            Assert.True(arr.hasIndex(0));
-            Assert.False(arr.hasIndex(1));
-            Assert.True(arr.hasIndex(2));
-            Assert.Equal(1, arr[0]);
-            Assert.Equal(0, arr[1]);
-            Assert.Equal(3, arr[2]);
-            Assert.Equal("1,,3", arr.join());
+            var values = new JSArray<int?>(new int?[] { 1, null, 3 });
+            Assert.Equal(3, values.length);
+            Assert.True(values.hasIndex(0) && values.hasIndex(1) && values.hasIndex(2));
+            Assert.Null(values[1]);
+            Assert.Equal("1,,3", values.join());
         }
 
         [Fact]
-        public void Indexer_SparseArray_SupportsHoles()
+        public void Indexer_RejectsGapsBeforeMutating()
         {
-            var arr = new JSArray<int>();
-            arr[10] = 42;
-
-            Assert.Equal(11, arr.length);
-            Assert.Equal(0, arr[0]); // Hole reads as undefined/default
-            Assert.False(arr.hasIndex(0));
-            Assert.True(arr.hasIndex(10));
-            Assert.Equal(42, arr[10]);
+            var values = new JSArray<int>();
+            Assert.Throws<TypeError>(() => values[10] = 42);
+            Assert.Equal(0, values.length);
+            values[0] = 42;
+            Assert.Equal(42, values[0]);
         }
 
         [Fact]
@@ -80,189 +68,93 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void length_SetToLargerValue_ExtendsArray()
+        public void length_RejectsUninitializedGrowth()
         {
-            var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            var result = arr.setLength(5);
-
-            Assert.Equal(5, result);
-            Assert.Equal(5, arr.length);
-            Assert.Equal(0, arr[4]); // New hole reads as undefined/default
-            Assert.False(arr.hasIndex(4));
+            var values = new JSArray<int>(new[] { 1, 2, 3 });
+            Assert.Throws<TypeError>(() => values.setLength(5));
+            Assert.Equal(new[] { 1, 2, 3 }, values.ToArray());
         }
 
         [Fact]
-        public void tryGetAt_DistinguishesPresentDefaultsFromHoles()
+        public void tryGetAt_DistinguishesDefaultsFromOutOfBounds()
         {
-            var numbers = new JSArray<int>();
-            numbers[0] = 0;
+            var numbers = new JSArray<int>(3);
             numbers[2] = 42;
-
-            Assert.True(numbers.tryGetAt(0, out var zero));
+            Assert.True(numbers.tryGetAt(1, out var zero));
             Assert.Equal(0, zero);
-            Assert.False(numbers.tryGetAt(1, out var holeNumber));
-            Assert.Equal(0, holeNumber);
-            Assert.False(numbers.tryGetAt(99, out var missingNumber));
-            Assert.Equal(0, missingNumber);
-
-            var booleans = new JSArray<bool>();
-            booleans[0] = false;
-            booleans.setLength(2);
-
-            Assert.True(booleans.tryGetAt(0, out var falseValue));
-            Assert.False(falseValue);
-            Assert.False(booleans.tryGetAt(1, out _));
-
-            var nullableStrings = new JSArray<string?>();
-            nullableStrings[0] = null;
-            nullableStrings.setLength(2);
-
-            Assert.True(nullableStrings.tryGetAt(0, out var nullValue));
-            Assert.Null(nullValue);
-            Assert.False(nullableStrings.tryGetAt(1, out _));
+            Assert.False(numbers.tryGetAt(99, out _));
+            var booleans = new JSArray<bool>(2);
+            Assert.True(booleans.tryGetAt(0, out var value));
+            Assert.False(value);
+            var references = new JSArray<string?>(2);
+            Assert.True(references.tryGetAt(0, out var absent));
+            Assert.Null(absent);
         }
 
         [Fact]
-        public void deleteAt_CreatesHoleWithoutChangingLength()
+        public void deleteAt_RejectsPresentElementsWithoutMutation()
         {
-            var arr = new JSArray<int>(new[] { 1, 0, 3 });
-
-            Assert.True(arr.deleteAt(1));
-
-            Assert.Equal(3, arr.length);
-            Assert.Equal(0, arr[1]);
-            Assert.False(arr.hasIndex(1));
-            Assert.False(arr.tryGetAt(1, out var deletedValue));
-            Assert.Equal(0, deletedValue);
-            Assert.Equal(-1, arr.indexOf(0));
-            Assert.Equal("1,,3", arr.join());
-            Assert.True(arr.deleteAt(99));
-            Assert.Equal(3, arr.length);
-
-            arr[1] = 0;
-
-            Assert.True(arr.hasIndex(1));
-            Assert.Equal(1, arr.indexOf(0));
+            var values = new JSArray<int>(new[] { 1, 0, 3 });
+            Assert.Throws<TypeError>(() => values.deleteAt(1));
+            Assert.Equal(new[] { 1, 0, 3 }, values.ToArray());
+            Assert.True(values.hasIndex(1));
+            Assert.Equal(1, values.indexOf(0));
+            Assert.Equal("1,0,3", values.join());
+            Assert.True(values.deleteAt(99));
         }
 
         [Fact]
-        public void setLength_ClearAndExtend_UsesHoles()
+        public void setLength_ClearThenPushInitializesNewValues()
         {
-            var arr = new JSArray<int>(new[] { 1, 2, 3 });
-
-            arr.setLength(0);
-
-            Assert.Equal(0, arr.length);
-            Assert.False(arr.hasIndex(0));
-
-            arr.setLength(3);
-
-            Assert.Equal(3, arr.length);
-            Assert.False(arr.hasIndex(0));
-            Assert.False(arr.hasIndex(1));
-            Assert.False(arr.hasIndex(2));
-
-            arr[1] = 5;
-            arr.push(7);
-
-            Assert.Equal(4, arr.length);
-            Assert.Equal(5, arr[1]);
-            Assert.Equal(7, arr[3]);
-            Assert.Equal(12, arr.reduce((sum, value) => sum + value, 0));
+            var values = new JSArray<int>(new[] { 1, 2, 3 });
+            values.setLength(0);
+            Assert.Equal(0, values.length);
+            Assert.False(values.hasIndex(0));
+            Assert.Throws<TypeError>(() => values.setLength(3));
+            values.push(5);
+            values.push(7);
+            Assert.Equal(new[] { 5, 7 }, values.ToArray());
+            Assert.Equal(12, values.reduce((sum, value) => sum + value, 0));
         }
 
         [Fact]
-        public void SparseCallbacks_SkipHolesAndMapPreservesHoles()
+        public void DenseCallbacksVisitInitializedDefaults()
         {
-            var arr = new JSArray<int>();
-            arr.setLength(5);
-            arr[1] = 2;
-            arr[3] = 4;
-
-            var mapIndices = new List<int>();
-            var mapped = arr.map((value, index, array) =>
-            {
-                mapIndices.Add(index);
-                return value * 10;
-            });
-
-            Assert.Equal(new[] { 1, 3 }, mapIndices);
-            Assert.Equal(5, mapped.length);
-            Assert.False(mapped.hasIndex(0));
-            Assert.True(mapped.hasIndex(1));
-            Assert.Equal(20, mapped[1]);
-            Assert.False(mapped.hasIndex(2));
-            Assert.True(mapped.hasIndex(3));
-            Assert.Equal(40, mapped[3]);
-            Assert.False(mapped.hasIndex(4));
-
-            var filterIndices = new List<int>();
-            var filtered = arr.filter((value, index, array) =>
-            {
-                filterIndices.Add(index);
-                return true;
-            });
-
-            Assert.Equal(new[] { 1, 3 }, filterIndices);
-            Assert.Equal(2, filtered.length);
-            Assert.Equal(2, filtered[0]);
-            Assert.Equal(4, filtered[1]);
-
-            var reduceIndices = new List<int>();
-            var sum = arr.reduce((accumulator, value, index, array) =>
-            {
-                reduceIndices.Add(index);
-                return accumulator + value;
-            }, 0);
-
-            Assert.Equal(6, sum);
-            Assert.Equal(new[] { 1, 3 }, reduceIndices);
-
-            var everyIndices = new List<int>();
-            Assert.True(arr.every((value, index, array) =>
-            {
-                everyIndices.Add(index);
-                return value % 2 == 0;
-            }));
-            Assert.Equal(new[] { 1, 3 }, everyIndices);
-
-            var someIndices = new List<int>();
-            Assert.True(arr.some((value, index, array) =>
-            {
-                someIndices.Add(index);
-                return value == 4;
-            }));
-            Assert.Equal(new[] { 1, 3 }, someIndices);
+            var values = new JSArray<int>(5);
+            values[1] = 2;
+            values[3] = 4;
+            var visited = new List<int>();
+            var mapped = values.map((value, index, array) => { Assert.Same(values, array); visited.Add(index); return value * 10; });
+            Assert.Equal(new[] { 0, 1, 2, 3, 4 }, visited);
+            Assert.Equal(new[] { 0, 20, 0, 40, 0 }, mapped.ToArray());
+            visited.Clear();
+            var filtered = values.filter((value, index, array) => { Assert.Same(values, array); visited.Add(index); return value > 0; });
+            Assert.Equal(new[] { 0, 1, 2, 3, 4 }, visited);
+            Assert.Equal(new[] { 2, 4 }, filtered.ToArray());
+            visited.Clear();
+            Assert.Equal(6, values.reduce((sum, value, index, array) => { Assert.Same(values, array); visited.Add(index); return sum + value; }, 0));
+            Assert.Equal(new[] { 0, 1, 2, 3, 4 }, visited);
+            visited.Clear();
+            Assert.True(values.every((value, index, array) => { visited.Add(index); return value % 2 == 0; }));
+            Assert.Equal(new[] { 0, 1, 2, 3, 4 }, visited);
+            visited.Clear();
+            Assert.True(values.some((value, index, array) => { visited.Add(index); return value == 4; }));
+            Assert.Equal(new[] { 0, 1, 2, 3 }, visited);
         }
 
         [Fact]
-        public void SparseSearch_DoesNotMatchHolesAsDefaultValues()
+        public void DenseSearchIncludesInitializedDefaults()
         {
-            var numbers = new JSArray<int>();
-            numbers.setLength(3);
-            numbers[1] = 0;
-
-            Assert.Equal(1, numbers.indexOf(0));
-            Assert.Equal(1, numbers.lastIndexOf(0));
+            var numbers = new JSArray<int>(3);
+            Assert.Equal(0, numbers.indexOf(0));
+            Assert.Equal(2, numbers.lastIndexOf(0));
             Assert.True(numbers.includes(0));
-
-            numbers.deleteAt(1);
-
-            Assert.Equal(-1, numbers.indexOf(0));
-            Assert.Equal(-1, numbers.lastIndexOf(0));
-            Assert.False(numbers.includes(0));
-
-            var nullableStrings = new JSArray<string?>();
-            nullableStrings.setLength(2);
-            nullableStrings[1] = null;
-
-            Assert.Equal(1, nullableStrings.indexOf(null));
-            Assert.True(nullableStrings.includes(null));
-
-            nullableStrings.deleteAt(1);
-
-            Assert.Equal(-1, nullableStrings.indexOf(null));
-            Assert.False(nullableStrings.includes(null));
+            Assert.Throws<TypeError>(() => numbers.deleteAt(1));
+            var references = new JSArray<string?>(2);
+            Assert.Equal(0, references.indexOf(null));
+            Assert.True(references.includes(null));
+            references.setLength(0);
+            Assert.False(references.includes(null));
         }
 
         [Fact]
@@ -277,8 +169,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, 0.0));
             Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, -0.0));
 
-            var sparseNumbers = new JSArray<double>();
-            sparseNumbers.setLength(3);
+            var sparseNumbers = new JSArray<double>(new[] { 1.0, 0.0, 0.0 });
             sparseNumbers[1] = double.NaN;
 
             Assert.Equal(-1, sparseNumbers.indexOf(double.NaN));
@@ -295,196 +186,70 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Includes_TreatsSparseHolesAsUndefinedButIndexOfSkipsThem()
+        public void IncludesAndIndexOfDistinguishExplicitUndefinedAndNull()
         {
-            var values = new JSArray<object?>();
-            values.setLength(2);
-            values[1] = null;
-
+            var values = new JSArray<object?>(new object?[] { null, Undefined.value });
             Assert.True(values.includes(Undefined.value));
             Assert.True(values.includes(TsValue.undefined()));
-            Assert.Equal(-1, values.indexOf(Undefined.value));
-            Assert.True(values.includes(null));
-            Assert.Equal(1, values.indexOf(null));
-
+            Assert.Equal(1, values.indexOf(Undefined.value));
+            Assert.Equal(0, values.indexOf(null));
             Assert.True(Tsonic.CSharp.Js.Array.includes(values, Undefined.value));
-            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(values, Undefined.value));
-
-            var explicitUndefined = new JSArray<object?>();
-            explicitUndefined.setLength(2);
-            explicitUndefined[1] = Undefined.value;
-
-            Assert.Same(Undefined.value, explicitUndefined.at(0));
-            Assert.Same(Undefined.value, explicitUndefined.at(1));
-            Assert.False(explicitUndefined.hasIndex(0));
-            Assert.True(explicitUndefined.hasIndex(1));
-            Assert.True(explicitUndefined.includes(Undefined.value));
-            Assert.True(explicitUndefined.includes(TsValue.undefined()));
-            Assert.Equal(1, explicitUndefined.indexOf(Undefined.value));
-            Assert.Equal(1, explicitUndefined.indexOf(TsValue.undefined()));
-
-            explicitUndefined.deleteAt(1);
-
-            Assert.True(explicitUndefined.includes(Undefined.value));
-            Assert.Equal(-1, explicitUndefined.indexOf(Undefined.value));
+            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(values, Undefined.value));
+            Assert.Null(values.at(0));
+            Assert.Same(Undefined.value, values.at(1));
+            Assert.True(values.hasIndex(0) && values.hasIndex(1));
+            Assert.Throws<TypeError>(() => values.deleteAt(1));
         }
 
         [Fact]
-        public void StaticHelpers_OnJSArray_PreserveHoleSemantics()
+        public void StaticHelpers_OnJSArray_PreserveNativeDefaults()
         {
-            var numbers = new JSArray<int>();
-            numbers.setLength(4);
-            numbers[1] = 0;
-            numbers[2] = 5;
-
-            Assert.Null(Tsonic.CSharp.Js.Array.atValue(numbers, 0));
-            Assert.Equal(0, Tsonic.CSharp.Js.Array.atValue(numbers, 1));
-            Assert.True(Tsonic.CSharp.Js.Array.includes(numbers, 0));
-            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(numbers, 0));
-            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(numbers, 9));
-
+            var values = new JSArray<int>(new[] { 0, 0, 5, 0 });
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.atValue(values, 0));
+            Assert.Null(Tsonic.CSharp.Js.Array.atValue(values, 4));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(values, 0));
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.indexOf(values, 0));
             var visited = new List<int>();
-            var mapped = Tsonic.CSharp.Js.Array.map(numbers, (int value, int index, JSArray<int> source) =>
-            {
-                visited.Add(index);
-                return value + source.length;
-            });
-
-            Assert.Equal(new[] { 1, 2 }, visited);
-            Assert.Equal(4, mapped.length);
-            Assert.False(mapped.hasIndex(0));
-            Assert.Equal(4, mapped[1]);
-            Assert.Equal(9, mapped[2]);
-            Assert.False(mapped.hasIndex(3));
-
-            Assert.Null(Tsonic.CSharp.Js.Array.popValue(numbers));
-            Assert.Equal(3, numbers.length);
-            Assert.Equal(5, Tsonic.CSharp.Js.Array.popValue(numbers));
-            Assert.Equal(2, numbers.length);
+            var mapped = Tsonic.CSharp.Js.Array.map(values, (int value, int index, JSArray<int> source) => { visited.Add(index); return value + source.length; });
+            Assert.Equal(new[] { 0, 1, 2, 3 }, visited);
+            Assert.Equal(new[] { 4, 4, 9, 4 }, mapped.ToArray());
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.popValue(values));
+            Assert.Equal(5, Tsonic.CSharp.Js.Array.popValue(values));
+            Assert.Equal(2, values.length);
         }
 
         [Fact]
-        public void SparseCopyingMethods_PreserveHoleState()
+        public void DenseCopyingMethods_PreserveExplicitNullsAndIndependence()
         {
-            var source = new JSArray<string>();
-            source.setLength(5);
-            source[1] = "b";
-            source[3] = "d";
-
-            var slice = source.slice(0, 4);
-            Assert.Equal(4, slice.length);
-            Assert.False(slice.hasIndex(0));
-            Assert.Equal("b", slice[1]);
-            Assert.False(slice.hasIndex(2));
-            Assert.Equal("d", slice[3]);
-
-            var concat = source.slice(0, 2).concat(source.slice(2, 4));
-            Assert.Equal(4, concat.length);
-            Assert.False(concat.hasIndex(0));
-            Assert.Equal("b", concat[1]);
-            Assert.False(concat.hasIndex(2));
-            Assert.Equal("d", concat[3]);
-
-            var objectConcat = new JSArray<object>().concat(source);
-            Assert.Equal(5, objectConcat.length);
-            Assert.False(objectConcat.hasIndex(0));
-            Assert.Equal("b", objectConcat[1]);
-            Assert.False(objectConcat.hasIndex(2));
-            Assert.Equal("d", objectConcat[3]);
-            Assert.False(objectConcat.hasIndex(4));
-
+            var source = new JSArray<string?>(new string?[] { null, "b", null, "d", null });
+            Assert.Equal(new string?[] { null, "b", null, "d" }, source.slice(0, 4).ToArray());
+            Assert.Equal(new string?[] { null, "b", null, "d" }, source.slice(0, 2).concat(source.slice(2, 4)).ToArray());
+            Assert.Equal(source.ToArray(), new JSArray<object?>().concat(source).ToArray());
             var copied = source.slice();
             copied.copyWithin(0, 1, 4);
-            Assert.Equal("b", copied[0]);
-            Assert.False(copied.hasIndex(1));
-            Assert.Equal("d", copied[2]);
-            Assert.Equal("d", copied[3]);
-            Assert.False(copied.hasIndex(4));
-
-            var reversed = source.toReversed();
-            Assert.False(reversed.hasIndex(0));
-            Assert.Equal("d", reversed[1]);
-            Assert.False(reversed.hasIndex(2));
-            Assert.Equal("b", reversed[3]);
-            Assert.False(reversed.hasIndex(4));
-
-            var sorted = source.toSorted();
-            Assert.Equal("b", sorted[0]);
-            Assert.Equal("d", sorted[1]);
-            Assert.False(sorted.hasIndex(2));
-            Assert.False(sorted.hasIndex(3));
-            Assert.False(sorted.hasIndex(4));
-
-            var spliced = source.toSpliced(1, 2, "x");
-            Assert.Equal(4, spliced.length);
-            Assert.False(spliced.hasIndex(0));
-            Assert.Equal("x", spliced[1]);
-            Assert.Equal("d", spliced[2]);
-            Assert.False(spliced.hasIndex(3));
-
-            var replaced = source.with(0, "a");
-            Assert.Equal("a", replaced[0]);
-            Assert.Equal("b", replaced[1]);
-            Assert.False(replaced.hasIndex(2));
+            Assert.Equal(new string?[] { "b", null, "d", "d", null }, copied.ToArray());
+            Assert.Equal(new string?[] { null, "d", null, "b", null }, source.toReversed().ToArray());
+            Assert.Equal(new string?[] { "b", "d", null, null, null }, source.toSorted().ToArray());
+            Assert.Equal(new string?[] { null, "x", "d", null }, source.toSpliced(1, 2, "x").ToArray());
+            Assert.Equal(new string?[] { "a", "b", null, "d", null }, source.with(0, "a").ToArray());
+            Assert.Equal(new string?[] { null, "b", null, "d", null }, source.ToArray());
         }
 
         [Fact]
-        public void SparseFlatAndFlatMap_SkipSourceAndNestedHoles()
+        public void DenseFlatAndFlatMapRetainExplicitValues()
         {
-            var inner = new JSArray<object>();
-            inner.setLength(3);
-            inner[1] = 2;
-
-            var outer = new JSArray<object>();
-            outer.setLength(4);
-            outer[0] = 1;
-            outer[2] = inner;
-            outer[3] = 3;
-
-            var flattened = outer.flat(1);
-
-            Assert.Equal(3, flattened.length);
-            Assert.Equal(1, flattened[0]);
-            Assert.Equal(2, flattened[1]);
-            Assert.Equal(3, flattened[2]);
-
+            var inner = new JSArray<object?>(new object?[] { null, 2, null });
+            var outer = new JSArray<object?>(new object?[] { 1, null, inner, 3 });
+            Assert.Equal(new object?[] { 1, null, null, 2, null, 3 }, outer.flat(1).ToArray());
             var nonArray = new List<int> { 4, 5 };
-            var nonArrayOuter = new JSArray<object>(new object[] { nonArray });
-            var nonArrayFlattened = nonArrayOuter.flat(1);
-
-            Assert.Equal(1, nonArrayFlattened.length);
-            Assert.Same(nonArray, nonArrayFlattened[0]);
-
-            var flatMapSource = new JSArray<int>();
-            flatMapSource.setLength(3);
-            flatMapSource[1] = 5;
-
-            var callbackIndices = new List<int>();
-            var flatMapped = flatMapSource.flatMap<int>((value, index, array) =>
-            {
-                callbackIndices.Add(index);
-                var result = new JSArray<int>();
-                result.setLength(3);
-                result[1] = value;
-                result[2] = value * 2;
-                return result;
-            });
-
-            Assert.Equal(new[] { 1 }, callbackIndices);
-            Assert.Equal(2, flatMapped.length);
-            Assert.Equal(5, flatMapped[0]);
-            Assert.Equal(10, flatMapped[1]);
-
-            var objectFlatMapped = flatMapSource.flatMap<object>((value, index, array) =>
-            {
-                var result = new JSArray<int>();
-                result.setLength(2);
-                result[1] = value;
-                return result;
-            });
-
-            Assert.Equal(1, objectFlatMapped.length);
-            Assert.Equal(5, objectFlatMapped[0]);
+            Assert.Same(nonArray, new JSArray<object>(new object[] { nonArray }).flat(1)[0]);
+            var source = new JSArray<int>(new[] { 0, 5, 0 });
+            var visited = new List<int>();
+            var mapped = source.flatMap<int>((value, index, array) => { visited.Add(index); return new JSArray<int>(new[] { 0, value, value * 2 }); });
+            Assert.Equal(new[] { 0, 1, 2 }, visited);
+            Assert.Equal(new[] { 0, 0, 0, 0, 5, 10, 0, 0, 0 }, mapped.ToArray());
+            var objects = source.flatMap<object>((value, index, array) => new JSArray<int>(new[] { 0, value }));
+            Assert.Equal(new object[] { 0, 0, 0, 5, 0, 0 }, objects.ToArray());
         }
     }
 }

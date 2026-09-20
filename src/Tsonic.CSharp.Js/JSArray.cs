@@ -364,8 +364,9 @@ namespace Tsonic.CSharp.Js
         public JSArray<TResult> map<TResult>(Func<T, TResult> callback)
         {
             var result = JSArray<TResult>.createWithCapacity(_values.Count);
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
+                if (!IsPresent(i)) throw new TypeError("Array.map cannot create holes after its source is shortened");
                 if (IsPresent(i))
                 {
                     result.push(callback(_values[i]));
@@ -380,8 +381,9 @@ namespace Tsonic.CSharp.Js
         public JSArray<TResult> map<TResult>(Func<T, int, TResult> callback)
         {
             var result = JSArray<TResult>.createWithCapacity(_values.Count);
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
+                if (!IsPresent(i)) throw new TypeError("Array.map cannot create holes after its source is shortened");
                 if (IsPresent(i))
                 {
                     result.push(callback(_values[i], i));
@@ -396,8 +398,9 @@ namespace Tsonic.CSharp.Js
         public JSArray<TResult> map<TResult>(Func<T, int, JSArray<T>, TResult> callback)
         {
             var result = JSArray<TResult>.createWithCapacity(_values.Count);
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
+                if (!IsPresent(i)) throw new TypeError("Array.map cannot create holes after its source is shortened");
                 if (IsPresent(i))
                 {
                     result.push(callback(_values[i], i, this));
@@ -987,8 +990,11 @@ namespace Tsonic.CSharp.Js
                     : compareFunc(values[left], values[right]);
                 return comparison < 0 ? -1 : comparison > 0 ? 1 : left.CompareTo(right);
             });
-            _values.Clear();
-            foreach (var index in order) _values.Add(values[index]);
+            for (var index = 0; index < order.Length; index++)
+            {
+                if (index < _values.Count) _values[index] = values[order[index]];
+                else _values.Add(values[order[index]]);
+            }
             return this;
         }
 

@@ -65,11 +65,11 @@ public class JSArrayNumericPropertyTests
     [Fact]
     public void ClosedWritesUseTheSameLengthAndNumericKeyContract()
     {
-        var values = new JSArray<double>();
+        var values = new JSArray<double>(3);
         var closed = TsValue.from(values);
-        closed.WriteDynamicSlot("length", 3d);
+        Assert.Throws<TypeError>(() => closed.WriteDynamicSlot("length", 4d));
         Assert.Equal(3, values.length);
-        Assert.True(closed.ReadDynamicSlot("1").isUndefined());
+        Assert.Equal(0d, closed.ReadDynamicSlot("1").unwrap());
         closed.WriteDynamicSlot("1", 4d);
         Assert.Equal(4, values[1]);
         closed.WriteDynamicSlot("1.5", 9d);
