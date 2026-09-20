@@ -57,6 +57,27 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void StringJoinAllocatesOnlyTheNativeResult()
+        {
+            var native = new List<string>(Enumerable.Repeat(new string('x', 32), 10));
+            var values = new JSArray<string>(native);
+            System.GC.KeepAlive(values.join("|"));
+            System.GC.KeepAlive(string.Join("|", System.Runtime.InteropServices.CollectionsMarshal.AsSpan(native)));
+            var start = System.GC.GetAllocatedBytesForCurrentThread();
+            for (var index = 0; index < 1000; index++) System.GC.KeepAlive(values.join("|"));
+            var actual = System.GC.GetAllocatedBytesForCurrentThread() - start;
+            start = System.GC.GetAllocatedBytesForCurrentThread();
+            for (var index = 0; index < 1000; index++) System.GC.KeepAlive(string.Join("|", System.Runtime.InteropServices.CollectionsMarshal.AsSpan(native)));
+            var expected = System.GC.GetAllocatedBytesForCurrentThread() - start;
+            Assert.Equal(expected, actual);
+            Assert.Equal("café||😀", JSArray<string?>.of(["café", null, "😀"]).join("|"));
+            Assert.Equal("", JSArray<string?>.of([null]).join("|"));
+            Assert.Equal(1, JSArray<string?>.of([null]).length);
+            Assert.Equal("", JSArray<string>.of([]).join());
+            Assert.Equal("café|😀", Tsonic.CSharp.Js.Array.join(new[] { "café", "😀" }, "|"));
+        }
+
+        [Fact]
         public void pop_RemovesAndReturnsLastItem()
         {
             var arr = new JSArray<string>(new[] { "a", "b", "c" });

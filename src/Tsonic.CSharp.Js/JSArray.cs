@@ -7,9 +7,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text;
 
 namespace Tsonic.CSharp.Js
 {
@@ -1005,13 +1003,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public string join(string separator = ",")
         {
-            var result = new StringBuilder();
-            for (var index = 0; index < _values.Count; index++)
-            {
-                if (index != 0) result.Append(separator);
-                result.Append(toJoinPart(_values[index]));
-            }
-            return result.ToString();
+            return Array.join((IReadOnlyList<T>)this, separator);
         }
 
         /// <summary>
@@ -1424,28 +1416,6 @@ namespace Tsonic.CSharp.Js
             }
 
             return (int)length;
-        }
-
-        private static string toJoinPart(object? value)
-        {
-            if (value is TsValue tsValue)
-            {
-                return toJoinPart(tsValue.unwrap());
-            }
-
-            if (value is null or Undefined)
-            {
-                return string.Empty;
-            }
-
-            if (value is bool boolValue)
-            {
-                return boolValue ? "true" : "false";
-            }
-
-            return value is IFormattable formattable
-                ? formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty
-                : value.ToString() ?? string.Empty;
         }
 
         private JSArray<T> CopyValues()

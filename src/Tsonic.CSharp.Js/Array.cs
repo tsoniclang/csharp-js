@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using SysMath = System.Math;
 
 namespace Tsonic.CSharp.Js
@@ -336,13 +338,15 @@ namespace Tsonic.CSharp.Js
 
         public static string join<T>(IReadOnlyList<T> array, string separator = ",")
         {
-            var parts = new string[array.Count];
+            if (array is string[] strings) return string.Join(separator, strings);
+            if (array is List<string> list) return string.Join(separator, CollectionsMarshal.AsSpan(list));
+            var result = new StringBuilder();
             for (var index = 0; index < array.Count; index++)
             {
-                parts[index] = toJoinPart(array[index]);
+                if (index != 0) result.Append(separator);
+                result.Append(toJoinPart(array[index]));
             }
-
-            return string.Join(separator, parts);
+            return result.ToString();
         }
 
         public static string join<T>(JSArray<T> array, string separator = ",")
