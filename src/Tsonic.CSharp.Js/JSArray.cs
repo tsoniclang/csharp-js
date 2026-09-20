@@ -129,7 +129,7 @@ namespace Tsonic.CSharp.Js
         }
 
         /// <summary>
-        /// Read a present array index without conflating holes with present default values.
+        /// Read an initialized array index, distinguishing it from an out-of-bounds index.
         /// </summary>
         public bool tryGetAt(int index, out T value)
         {
@@ -187,7 +187,7 @@ namespace Tsonic.CSharp.Js
         }
 
         /// <summary>
-        /// Delete an array index, leaving a hole and preserving length.
+        /// Reject deletion of an initialized element because dense arrays cannot contain holes.
         /// </summary>
         public bool deleteAt(int index)
         {
