@@ -8,6 +8,29 @@ namespace Tsonic.CSharp.Js.Tests
     public partial class ArrayTests
     {
         [Fact]
+        public void LiteralsUseOneListOwnerAndPreserveLiveEnumeration()
+        {
+            System.GC.KeepAlive(JSArray<int>.of(1, 2, 3));
+            var start = System.GC.GetAllocatedBytesForCurrentThread();
+            for (var index = 0; index < 1000; index++) System.GC.KeepAlive(JSArray<int>.of(1, 2, 3));
+            var arrayBytes = System.GC.GetAllocatedBytesForCurrentThread() - start;
+            start = System.GC.GetAllocatedBytesForCurrentThread();
+            for (var index = 0; index < 1000; index++) System.GC.KeepAlive(new List<int>(3) { 1, 2, 3 });
+            var listBytes = System.GC.GetAllocatedBytesForCurrentThread() - start;
+            Assert.True(arrayBytes <= listBytes + 32 * 1000, $"JSArray={arrayBytes}, List={listBytes}");
+            var values = JSArray<string>.of("café", "😀");
+            IEnumerable<string> enumerable = values;
+            using var iterator = enumerable.GetEnumerator();
+            Assert.True(iterator.MoveNext());
+            values.push("tail");
+            Assert.True(iterator.MoveNext());
+            Assert.Equal("😀", iterator.Current);
+            Assert.True(iterator.MoveNext());
+            Assert.Equal("tail", iterator.Current);
+            Assert.Equal("café|😀|tail", values.join("|"));
+        }
+
+        [Fact]
         public void push_AddsItemToEnd()
         {
             var arr = new JSArray<string>(new[] { "a", "b" });
