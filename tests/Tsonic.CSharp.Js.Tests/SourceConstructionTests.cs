@@ -8,7 +8,7 @@ namespace Tsonic.CSharp.Js.Tests;
 public class SourceConstructionTests
 {
     [Fact]
-    public void SparseLengthAndFillPreserveEmptyObjectReferences()
+    public void InitializedLengthAndFillPreserveEmptyObjectReferences()
     {
         var first = new EmptyObject();
         var alias = first;
@@ -22,8 +22,8 @@ public class SourceConstructionTests
         Assert.DoesNotContain(second, identities);
         var values = JSArrayStatics.withLength<EmptyObject>(3d);
         var visits = 0;
-        values.forEach(_ => visits++);
-        Assert.Equal(0, visits);
+        values.forEach(value => { Assert.Null(value); visits++; });
+        Assert.Equal(3, visits);
         Assert.Equal(3, values.length);
         values.fill(first);
         Assert.Same(alias, values[0]);

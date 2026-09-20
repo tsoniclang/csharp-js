@@ -12,7 +12,8 @@ namespace Tsonic.CSharp.Js
         public static int keyHash<T>(T value)
         {
             if (NativeValueKey<T>.Supported)
-                return value is null ? 0 : System.Collections.Generic.EqualityComparer<T>.Default.GetHashCode(value);
+                return typeof(T) == typeof(string) && value is null
+                    ? 0 : System.Collections.Generic.EqualityComparer<T>.Default.GetHashCode(value!);
             return boxedKeyHash(value);
         }
 
@@ -52,7 +53,19 @@ namespace Tsonic.CSharp.Js
 
         public static T canonicalizeKeyedCollectionKey<T>(T value)
         {
-            if (NativeValueKey<T>.Supported && typeof(T) != typeof(double) && typeof(T) != typeof(float))
+            if (typeof(T) == typeof(double))
+            {
+                ref var number = ref System.Runtime.CompilerServices.Unsafe.As<T, double>(ref value);
+                if (number == 0.0) number = 0.0;
+                return value;
+            }
+            if (typeof(T) == typeof(float))
+            {
+                ref var number = ref System.Runtime.CompilerServices.Unsafe.As<T, float>(ref value);
+                if (number == 0.0f) number = 0.0f;
+                return value;
+            }
+            if (NativeValueKey<T>.Supported)
                 return value;
             return value switch
             {

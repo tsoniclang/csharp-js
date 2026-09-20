@@ -67,7 +67,7 @@ public class JSArrayNumericPropertyTests
     {
         var values = new JSArray<double>(3);
         var closed = TsValue.from(values);
-        Assert.Throws<TypeError>(() => closed.WriteDynamicSlot("length", 4d));
+        Assert.Throws<RangeError>(() => closed.WriteDynamicSlot("length", 4d));
         Assert.Equal(3, values.length);
         Assert.Equal(0d, closed.ReadDynamicSlot("1").unwrap());
         closed.WriteDynamicSlot("1", 4d);

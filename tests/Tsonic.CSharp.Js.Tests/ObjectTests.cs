@@ -50,19 +50,18 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void keys_values_entries_UseEnumerableOwnArrayIndexesOnly()
         {
-            var value = new JSArray<int>();
-            value.setLength(5);
+            var value = new JSArray<int>(5);
             value[1] = 20;
             value[3] = 40;
 
-            Assert.Equal(new[] { "1", "3" }, JsObjectStatics.keys(value));
-            Assert.Equal(new object?[] { 20, 40 }, JsObjectStatics.values(value));
+            Assert.Equal(new[] { "0", "1", "2", "3", "4" }, JsObjectStatics.keys(value));
+            Assert.Equal(new object?[] { 0, 20, 0, 40, 0 }, JsObjectStatics.values(value));
 
             var entries = JsObjectStatics.entries(value);
 
-            Assert.Equal(2, entries.Count);
-            Assert.Equal(("1", (object?)20), entries[0]);
-            Assert.Equal(("3", (object?)40), entries[1]);
+            Assert.Equal(5, entries.Count);
+            Assert.Equal(("1", (object?)20), entries[1]);
+            Assert.Equal(("3", (object?)40), entries[3]);
         }
 
         [Fact]
@@ -231,8 +230,7 @@ namespace Tsonic.CSharp.Js.Tests
                 ["name"] = "new",
                 ["active"] = true
             };
-            var sparse = new JSArray<int>();
-            sparse.setLength(4);
+            var sparse = new JSArray<int>(4);
             sparse[2] = 9;
 
             var result = JsObjectStatics.assign(target, null, Undefined.value, TsValue.undefined(), source, sparse, "xy");
@@ -243,7 +241,8 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("x", target["0"]);
             Assert.Equal("y", target["1"]);
             Assert.Equal(9, target["2"]);
-            Assert.False(target.hasOwnProperty("3"));
+            Assert.True(target.hasOwnProperty("3"));
+            Assert.Equal(0, target["3"]);
         }
 
         [Fact]

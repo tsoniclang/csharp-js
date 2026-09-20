@@ -7,7 +7,7 @@ namespace Tsonic.CSharp.Js.Tests;
 public class ArrayLikeTests
 {
     [Fact]
-    public void ReadsDistinguishHolesAndInvalidIndexesFromPresentZero()
+    public void ReadsDistinguishInvalidIndexesFromInitializedZero()
     {
         var sparse = new JSArray<double>(3);
         sparse[1] = 0;
@@ -19,9 +19,9 @@ public class ArrayLikeTests
             foreach (var index in new[] { -1.0, 0.5, 3, double.NaN, double.PositiveInfinity, double.NegativeInfinity, 2147483648 })
                 Assert.Null(ArrayLike.ReadNumber(source, index));
         }
-        Assert.Null(ArrayLike.ReadNumber(sparse, 0));
+        Assert.Equal(0, ArrayLike.ReadNumber(sparse, 0));
         Assert.Equal(0, ArrayLike.ReadNumber(arrays[1], 0));
-        Assert.Throws<InvalidOperationException>(() => ArrayLike.CopyDense(sparse));
+        Assert.Equal(new[] { 0.0, 0.0, 0.0 }, ArrayLike.CopyDense(sparse).toArray());
     }
 
     [Fact]

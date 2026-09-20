@@ -129,10 +129,9 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void JsArrayElementAccess_UsesClosedSparseArrayCarrier()
+        public void JsArrayElementAccess_UsesClosedDenseArrayCarrier()
         {
-            var array = new JSArray<object?>();
-            array.setLength(3);
+            var array = new JSArray<object?>(new object?[] { Undefined.value, Undefined.value, Undefined.value });
             array[1] = "middle";
             var value = TsValue.from(array);
 

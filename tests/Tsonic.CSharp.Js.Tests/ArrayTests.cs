@@ -51,7 +51,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void Indexer_RejectsGapsBeforeMutating()
         {
             var values = new JSArray<int>();
-            Assert.Throws<TypeError>(() => values[10] = 42);
+            Assert.Throws<RangeError>(() => values[10] = 42);
             Assert.Equal(0, values.length);
             values[0] = 42;
             Assert.Equal(42, values[0]);
@@ -71,7 +71,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void length_RejectsUninitializedGrowth()
         {
             var values = new JSArray<int>(new[] { 1, 2, 3 });
-            Assert.Throws<TypeError>(() => values.setLength(5));
+            Assert.Throws<RangeError>(() => values.setLength(5));
             Assert.Equal(new[] { 1, 2, 3 }, values.ToArray());
         }
 
@@ -110,7 +110,7 @@ namespace Tsonic.CSharp.Js.Tests
             values.setLength(0);
             Assert.Equal(0, values.length);
             Assert.False(values.hasIndex(0));
-            Assert.Throws<TypeError>(() => values.setLength(3));
+            Assert.Throws<RangeError>(() => values.setLength(3));
             values.push(5);
             values.push(7);
             Assert.Equal(new[] { 5, 7 }, values.ToArray());
