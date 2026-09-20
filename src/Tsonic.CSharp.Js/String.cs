@@ -148,14 +148,9 @@ namespace Tsonic.CSharp.Js
                 return start;
             }
             int maxStart = System.Math.Min(start, str.Length - searchString.Length);
-            for (int index = maxStart; index >= 0; index--)
-            {
-                if (string.CompareOrdinal(str, index, searchString, 0, searchString.Length) == 0)
-                {
-                    return index;
-                }
-            }
-            return -1;
+            return maxStart < 0
+                ? -1
+                : str.AsSpan(0, maxStart + searchString.Length).LastIndexOf(searchString.AsSpan(), StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -422,7 +417,7 @@ namespace Tsonic.CSharp.Js
         public static string replace(this string str, RegExp pattern, ReplacementCallback replacer) =>
             RegExpProtocols.Replace(str, pattern, replacer);
 
-        public static JSArray<string> split(this string str, RegExp separator, double? limit = null) =>
+        public static JSArray<string?> split(this string str, RegExp separator, double? limit = null) =>
             RegExpProtocols.Split(str, separator, limit);
 
         /// <summary>

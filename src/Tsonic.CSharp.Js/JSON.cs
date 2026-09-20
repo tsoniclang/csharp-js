@@ -6,7 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
+using System.Buffers;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -23,57 +23,47 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static TsValue parse(string text)
         {
-            using var doc = JsonDocument.Parse(text);
-            return TsValue.from(ConvertJsonElement(doc.RootElement));
+            ArgumentNullException.ThrowIfNull(text);
+            var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(text));
+            if (!reader.Read()) throw new JsonException("JSON input is empty.");
+            var value = ReadValue(ref reader);
+            if (reader.Read()) throw new JsonException("JSON input contains trailing content.");
+            return TsValue.from(value);
         }
 
-        /// <summary>
-        /// Convert JsonElement to runtime objects
-        /// </summary>
-        private static object? ConvertJsonElement(JsonElement element)
+        private static object? ReadValue(ref Utf8JsonReader reader)
         {
-            return element.ValueKind switch
+            switch (reader.TokenType)
             {
-                JsonValueKind.Null => null,
-                JsonValueKind.True => true,
-                JsonValueKind.False => false,
-                JsonValueKind.Number => element.GetDouble(),
-                JsonValueKind.String => element.GetString(),
-                JsonValueKind.Array => ConvertJsonArray(element),
-                JsonValueKind.Object => ConvertJsonObject(element),
-                _ => null
-            };
-        }
-
-        /// <summary>
-        /// Convert JSON array to a closed JavaScript array carrier.
-        /// </summary>
-        private static object ConvertJsonArray(JsonElement element)
-        {
-            var items = new JSArray<object?>();
-            foreach (var item in element.EnumerateArray())
-            {
-                items.push(ConvertJsonElement(item));
+                case JsonTokenType.Null: return null;
+                case JsonTokenType.True: return true;
+                case JsonTokenType.False: return false;
+                case JsonTokenType.Number: return reader.GetDouble();
+                case JsonTokenType.String: return reader.GetString();
+                case JsonTokenType.StartArray:
+                    var items = new JSArray<object?>();
+                    while (reader.Read())
+                    {
+                        if (reader.TokenType == JsonTokenType.EndArray) return items;
+                        items.push(ReadValue(ref reader));
+                    }
+                    break;
+                case JsonTokenType.StartObject:
+                    var result = new JSObject();
+                    while (reader.Read())
+                    {
+                        if (reader.TokenType == JsonTokenType.EndObject) return result;
+                        if (reader.TokenType != JsonTokenType.PropertyName)
+                            throw new JsonException("Expected a JSON property name.");
+                        var name = reader.GetString()!;
+                        if (!reader.Read()) break;
+                        result[name] = ReadValue(ref reader);
+                    }
+                    break;
             }
-            return items;
+            throw new JsonException("Incomplete or invalid JSON value.");
         }
 
-        /// <summary>
-        /// Convert JSON object to JSObject
-        /// </summary>
-        private static object ConvertJsonObject(JsonElement element)
-        {
-            var obj = new JSObject();
-            foreach (var prop in element.EnumerateObject())
-            {
-                obj[prop.Name] = ConvertJsonElement(prop.Value);
-            }
-            return obj;
-        }
-
-        /// <summary>
-        /// Convert a closed JavaScript value carrier to JSON string.
-        /// </summary>
         public static string? stringify(object? value)
         {
             value = NormalizeDirectJsonValue(value);
@@ -81,11 +71,11 @@ namespace Tsonic.CSharp.Js
             {
                 return null;
             }
-            using var stream = new MemoryStream();
+            var stream = new ArrayBufferWriter<byte>();
             using var writer = new Utf8JsonWriter(stream);
             writeValue(writer, value, new JsonWriteContext(), "");
             writer.Flush();
-            return Encoding.UTF8.GetString(stream.ToArray());
+            return Encoding.UTF8.GetString(stream.WrittenSpan);
         }
 
         public static string? stringify(TsValue value)
@@ -121,20 +111,20 @@ namespace Tsonic.CSharp.Js
 
         public static string stringify<TValue>(IDictionary<string, TValue>? value)
         {
-            using var stream = new MemoryStream();
+            var stream = new ArrayBufferWriter<byte>();
             using var writer = new Utf8JsonWriter(stream);
             WriteObject(writer, value, new JsonWriteContext());
             writer.Flush();
-            return Encoding.UTF8.GetString(stream.ToArray());
+            return Encoding.UTF8.GetString(stream.WrittenSpan);
         }
 
         public static string stringify<TValue>(IReadOnlyDictionary<string, TValue>? value)
         {
-            using var stream = new MemoryStream();
+            var stream = new ArrayBufferWriter<byte>();
             using var writer = new Utf8JsonWriter(stream);
             WriteObject(writer, value, new JsonWriteContext());
             writer.Flush();
-            return Encoding.UTF8.GetString(stream.ToArray());
+            return Encoding.UTF8.GetString(stream.WrittenSpan);
         }
 
         /// <summary>
@@ -614,12 +604,12 @@ namespace Tsonic.CSharp.Js
             }
 
             using var document = JsonDocument.Parse(compact);
-            using var stream = new MemoryStream();
+            var stream = new ArrayBufferWriter<byte>();
             using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
             {
                 document.RootElement.WriteTo(writer);
             }
-            var rendered = Encoding.UTF8.GetString(stream.ToArray());
+            var rendered = Encoding.UTF8.GetString(stream.WrittenSpan);
             if (indentation == "  ")
             {
                 return rendered;

@@ -14,20 +14,7 @@ namespace Tsonic.CSharp.Js
     /// </summary>
     public class Map<K, V> : IEnumerable<(K key, V value)>
     {
-        private readonly List<Entry> _entries = new();
-
-        private struct Entry
-        {
-            public Entry(K key, V value)
-            {
-                Key = key;
-                Value = value;
-            }
-
-            public K Key { get; }
-
-            public V Value { get; set; }
-        }
+        private readonly OrderedDictionary<CollectionKey<K>, V> _entries = new();
 
         // ==================== Constructors ====================
 
@@ -72,20 +59,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public object? get(K key)
         {
-            var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
-            return index >= 0 ? _entries[index].Value : Undefined.value;
+            return _entries.TryGetValue(new CollectionKey<K>(key), out var value) ? value : Undefined.value;
         }
 
         public bool tryGet(K key, out V value)
         {
-            var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
-            if (index < 0)
-            {
-                value = default!;
-                return false;
-            }
-            value = _entries[index].Value;
-            return true;
+            return _entries.TryGetValue(new CollectionKey<K>(key), out value!);
         }
 
         /// <summary>
@@ -93,16 +72,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Map<K, V> set(K key, V value)
         {
-            var canonicalKey = JSKeyEquality.canonicalizeKeyedCollectionKey(key);
-            var index = indexOfKey(canonicalKey);
-            if (index >= 0)
-            {
-                _entries[index] = new Entry(_entries[index].Key, value);
-            }
-            else
-            {
-                _entries.Add(new Entry(canonicalKey, value));
-            }
+            _entries[new CollectionKey<K>(key)] = value;
             return this;
         }
 
@@ -111,7 +81,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool has(K key)
         {
-            return indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key)) >= 0;
+            return _entries.ContainsKey(new CollectionKey<K>(key));
         }
 
         /// <summary>
@@ -119,14 +89,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(K key)
         {
-            var index = indexOfKey(JSKeyEquality.canonicalizeKeyedCollectionKey(key));
-            if (index < 0)
-            {
-                return false;
-            }
-
-            _entries.RemoveAt(index);
-            return true;
+            return _entries.Remove(new CollectionKey<K>(key));
         }
 
         /// <summary>
@@ -146,7 +109,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var entry in _entries)
             {
-                yield return entry.Key;
+                yield return entry.Key.Value;
             }
         }
 
@@ -168,7 +131,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var entry in _entries)
             {
-                yield return (entry.Key, entry.Value);
+                yield return (entry.Key.Value, entry.Value);
             }
         }
 
@@ -179,7 +142,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var entry in _entries)
             {
-                callback(entry.Value, entry.Key, this);
+                callback(entry.Value, entry.Key.Value, this);
             }
         }
 
@@ -190,7 +153,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var entry in _entries)
             {
-                callback(entry.Value, entry.Key);
+                callback(entry.Value, entry.Key.Value);
             }
         }
 
@@ -214,7 +177,7 @@ namespace Tsonic.CSharp.Js
         {
             foreach (var entry in _entries)
             {
-                yield return (entry.Key, entry.Value);
+                yield return (entry.Key.Value, entry.Value);
             }
         }
 
@@ -223,18 +186,6 @@ namespace Tsonic.CSharp.Js
             return GetEnumerator();
         }
 
-        private int indexOfKey(K key)
-        {
-            for (var index = 0; index < _entries.Count; index++)
-            {
-                if (JSKeyEquality.sameValueZero(_entries[index].Key, key))
-                {
-                    return index;
-                }
-            }
-
-            return -1;
-        }
     }
 
     public static class Map

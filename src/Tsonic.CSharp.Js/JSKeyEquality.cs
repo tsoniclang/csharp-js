@@ -4,7 +4,40 @@ namespace Tsonic.CSharp.Js
     {
         public static bool sameValueZero<T>(T left, T right)
         {
+            if (NativeValueKey<T>.Supported)
+                return System.Collections.Generic.EqualityComparer<T>.Default.Equals(left, right);
             return sameValueZero((object?)left, (object?)right);
+        }
+
+        public static int keyHash<T>(T value)
+        {
+            if (NativeValueKey<T>.Supported)
+                return value is null ? 0 : System.Collections.Generic.EqualityComparer<T>.Default.GetHashCode(value);
+            return boxedKeyHash(value);
+        }
+
+        private static int boxedKeyHash(object? value)
+        {
+            if (value is TsValue wrapped) return boxedKeyHash(wrapped.unwrap());
+            if (value is null) return 0;
+            if (tryReadNumber(value, out var number)) return number.GetHashCode();
+            if (value is string text) return System.StringComparer.Ordinal.GetHashCode(text);
+            if (value is bool boolean) return boolean.GetHashCode();
+            return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
+        }
+
+        private static class NativeValueKey<T>
+        {
+            public static readonly bool Supported =
+                typeof(T) == typeof(byte) || typeof(T) == typeof(sbyte) ||
+                typeof(T) == typeof(short) || typeof(T) == typeof(ushort) ||
+                typeof(T) == typeof(int) || typeof(T) == typeof(uint) ||
+                typeof(T) == typeof(long) || typeof(T) == typeof(ulong) ||
+                typeof(T) == typeof(nint) || typeof(T) == typeof(nuint) ||
+                typeof(T) == typeof(float) || typeof(T) == typeof(double) ||
+                typeof(T) == typeof(decimal) || typeof(T) == typeof(bool) ||
+                typeof(T) == typeof(char) || typeof(T) == typeof(string) ||
+                typeof(T) == typeof(System.Numerics.BigInteger);
         }
 
         public static bool strictEquals<T>(T left, T right)
@@ -19,6 +52,8 @@ namespace Tsonic.CSharp.Js
 
         public static T canonicalizeKeyedCollectionKey<T>(T value)
         {
+            if (NativeValueKey<T>.Supported && typeof(T) != typeof(double) && typeof(T) != typeof(float))
+                return value;
             return value switch
             {
                 double typed when typed == 0.0 => (T)(object)0.0,

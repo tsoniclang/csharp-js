@@ -14,7 +14,9 @@ namespace Tsonic.CSharp.Js
     /// </summary>
     public class Set<T> : IEnumerable<T>
     {
-        private readonly List<T> _values = new();
+        private readonly Map<T, byte> _members = new();
+
+        private IEnumerable<T> _values => _members.keys();
 
         // ==================== Constructors ====================
 
@@ -39,7 +41,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Number of unique values in the Set
         /// </summary>
-        public int size => _values.Count;
+        public int size => _members.size;
 
         // ==================== Core Methods ====================
 
@@ -48,11 +50,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public Set<T> add(T value)
         {
-            var canonicalValue = JSKeyEquality.canonicalizeKeyedCollectionKey(value);
-            if (indexOfValue(canonicalValue) < 0)
-            {
-                _values.Add(canonicalValue);
-            }
+            _members.set(value, 0);
             return this;
         }
 
@@ -61,7 +59,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool has(T value)
         {
-            return indexOfValue(JSKeyEquality.canonicalizeKeyedCollectionKey(value)) >= 0;
+            return _members.has(value);
         }
 
         /// <summary>
@@ -69,14 +67,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(T value)
         {
-            var index = indexOfValue(JSKeyEquality.canonicalizeKeyedCollectionKey(value));
-            if (index < 0)
-            {
-                return false;
-            }
-
-            _values.RemoveAt(index);
-            return true;
+            return _members.delete(value);
         }
 
         /// <summary>
@@ -84,7 +75,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void clear()
         {
-            _values.Clear();
+            _members.clear();
         }
 
         // ==================== Iteration Methods ====================
@@ -272,17 +263,5 @@ namespace Tsonic.CSharp.Js
             return GetEnumerator();
         }
 
-        private int indexOfValue(T value)
-        {
-            for (var index = 0; index < _values.Count; index++)
-            {
-                if (JSKeyEquality.sameValueZero(_values[index], value))
-                {
-                    return index;
-                }
-            }
-
-            return -1;
-        }
     }
 }
