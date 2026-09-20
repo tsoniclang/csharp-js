@@ -5,7 +5,7 @@ namespace Tsonic.CSharp.Js.Tests
     public partial class ArrayTests
     {
         [Fact]
-        public void NumericArguments_PreserveHolesAndSnapshotValues()
+        public void NumericArguments_PreserveInitializedAndSnapshotValues()
         {
             var source = new JSArray<byte>(3);
             source[0] = 65;
@@ -19,9 +19,9 @@ namespace Tsonic.CSharp.Js.Tests
             source[0] = 99;
             Assert.Equal(3, snapshot.Length);
             Assert.Equal(65, snapshot[0]);
-            Assert.True(double.IsNaN(snapshot[1]));
+            Assert.Equal(0, snapshot[1]);
             Assert.Equal(255, snapshot[2]);
-            Assert.Equal(2, conversions);
+            Assert.Equal(3, conversions);
             Assert.Empty(Array.snapshotNumberArguments(new JSArray<double>(), value => value));
         }
 

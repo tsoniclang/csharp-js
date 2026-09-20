@@ -163,6 +163,14 @@ public class RegExp
 
     public virtual RegExpExecArray? exec(string input)
     {
+        var match = ExecuteMatch(input);
+        return match is null ? null : BuildResult(input, match);
+    }
+
+    public bool testNative(string input) => ExecuteMatch(input) is not null;
+
+    private EcmaRegExpMatch? ExecuteMatch(string input)
+    {
         ArgumentNullException.ThrowIfNull(input);
         var stateful = global || sticky;
         var start = stateful ? ToLength(_lastIndex) : 0;
@@ -178,7 +186,7 @@ public class RegExp
             return null;
         }
         if (stateful) _lastIndex = match.End;
-        return BuildResult(input, match);
+        return match;
     }
 
     public bool test(string input) => exec(input) is not null;
@@ -189,7 +197,7 @@ public class RegExp
     public string replace(string input, string replacement) => RegExpProtocols.Replace(input, this, replacement);
     public string replace(string input, ReplacementCallback replacer) => RegExpProtocols.Replace(input, this, replacer);
     public double search(string input) => RegExpProtocols.Search(input, this);
-    public JSArray<string> split(string input, double? limit = null) => RegExpProtocols.Split(input, this, limit);
+    public JSArray<string?> split(string input, double? limit = null) => RegExpProtocols.Split(input, this, limit);
 
     public override string ToString() => toString();
     public string toString() => "/" + source + "/" + flags;

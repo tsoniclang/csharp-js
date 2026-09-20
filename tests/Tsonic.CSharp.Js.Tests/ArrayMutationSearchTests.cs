@@ -173,9 +173,9 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void join_SparseArray_HandlesHoles()
+        public void join_DenseArray_HandlesNulls()
         {
-            var arr = new JSArray<string>();
+            var arr = new JSArray<string?>(3);
             arr[0] = "a";
             arr[2] = "c";
 
@@ -183,10 +183,9 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void join_TreatsHolesUndefinedAndNullAsEmptyStrings()
+        public void join_TreatsUndefinedAndNullAsEmptyStrings()
         {
-            var values = new JSArray<object?>();
-            values.setLength(4);
+            var values = new JSArray<object?>(4);
             values[1] = Undefined.value;
             values[2] = null;
             values[3] = "x";
@@ -225,16 +224,16 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void toArray_SparseArray_FillsHolesWithDefault()
+        public void toArray_DenseArray_PreservesInitializedValues()
         {
-            var arr = new JSArray<int>();
+            var arr = new JSArray<int>(3);
             arr[0] = 1;
             arr[2] = 3;
 
             var native = arr.toArray();
             Assert.Equal(3, native.Length);
             Assert.Equal(1, native[0]);
-            Assert.Equal(0, native[1]); // Hole filled with default
+            Assert.Equal(0, native[1]);
             Assert.Equal(3, native[2]);
         }
 
@@ -253,16 +252,16 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void GetEnumerator_SparseArray_IncludesDefaultForHoles()
+        public void GetEnumerator_DenseArray_IncludesInitializedValues()
         {
-            var arr = new JSArray<int>();
+            var arr = new JSArray<int>(3);
             arr[0] = 1;
             arr[2] = 3;
 
             var items = arr.toList();
             Assert.Equal(3, items.Count);
             Assert.Equal(1, items[0]);
-            Assert.Equal(0, items[1]); // Hole yields default
+            Assert.Equal(0, items[1]);
             Assert.Equal(3, items[2]);
         }
     }

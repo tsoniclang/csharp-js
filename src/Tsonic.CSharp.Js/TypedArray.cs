@@ -123,6 +123,14 @@ namespace Tsonic.CSharp.Js
                 throw new RangeError("Typed array set offset is outside the target view.");
             }
 
+            if (source is TypedArray<TArray, TElement> typed)
+            {
+                if (typed.ElementCount > ElementCount - selectedOffset)
+                    throw new RangeError("Typed array set source exceeds the target view.");
+                typed.Elements.CopyTo(Elements[selectedOffset..]);
+                return;
+            }
+
             var values = source.ToArray();
             if (values.Length > ElementCount - selectedOffset)
             {
@@ -147,12 +155,10 @@ namespace Tsonic.CSharp.Js
         public TArray slice(double begin = 0, double? end = null)
         {
             var range = NormalizeRange(begin, end);
-            var values = new double[range.End - range.Start];
-            for (var index = range.Start; index < range.End; index++)
-            {
-                values[index - range.Start] = FromElement(Elements[index]);
-            }
-            return CreateCopy(values);
+            var count = range.End - range.Start;
+            var result = CreateView(new ArrayBuffer(checked(count * ElementSize)), 0, count);
+            Elements[range.Start..range.End].CopyTo(result.Elements);
+            return result;
         }
 
         public double indexOf(double value, double fromIndex = 0)

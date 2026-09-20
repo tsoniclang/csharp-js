@@ -30,7 +30,7 @@ public partial class JSArray<T>
     {
         if (IsArrayIndex(index))
         {
-            if (index < _slots.Count) return tryGetAt((int)index, out value);
+            if (index < _values.Count) return tryGetAt((int)index, out value);
         }
         else
         {
@@ -51,7 +51,7 @@ public partial class JSArray<T>
     {
         if (IsArrayIndex(index))
         {
-            if (index < _slots.Count) return deleteAt((int)index);
+            if (index < _values.Count) return deleteAt((int)index);
         }
         else
         {
@@ -68,7 +68,7 @@ public partial class JSArray<T>
 
     IEnumerable<KeyValuePair<string, object?>> IDynamicArray.Entries()
     {
-        for (var index = 0; index < _slots.Count; index++)
+        for (var index = 0; index < _values.Count; index++)
         {
             if (tryGetAt(index, out var value))
                 yield return new(index.ToString(CultureInfo.InvariantCulture), value);

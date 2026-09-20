@@ -5,7 +5,7 @@ public interface IArrayLike<T>
 {
     /// <summary>The current number of array slots.</summary>
     double Length { get; }
-    /// <summary>Reads a present integer index without conflating a hole with a default value.</summary>
+    /// <summary>Reads an initialized integer index, distinguishing it from an invalid index.</summary>
     bool TryGet(double index, out T value);
 }
 

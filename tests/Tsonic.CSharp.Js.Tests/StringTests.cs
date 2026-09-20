@@ -8,6 +8,27 @@ namespace Tsonic.CSharp.Js.Tests
 {
     public class StringTests
     {
+        [Theory]
+        [InlineData("banana", "ana", 3, 3)]
+        [InlineData("banana", "ana", 2, 1)]
+        [InlineData("abc", "abcd", 3, -1)]
+        [InlineData("abc", "", 100, 3)]
+        [InlineData("😀x😀", "😀", 2, 0)]
+        [InlineData("😀x😀", "😀", 3, 3)]
+        public void ReverseSearchUsesNativeOrdinalRanges(string text, string search, int position, int expected)
+        {
+            Assert.Equal(expected, text.lastIndexOf(search, position));
+        }
+
+        [Fact]
+        public void ReverseSearchHandlesLongRepeatedPrefixesWithoutTemporaryStrings()
+        {
+            var text = new string('a', 1_000_000) + "b";
+            var search = new string('a', 10_000) + "b";
+            Assert.Equal(990_000, text.lastIndexOf(search));
+            Assert.Equal(-1, text.lastIndexOf(search, 989_999));
+        }
+
         [Fact]
         public void RepetitionAndPaddingHaveNoProductSizeCap()
         {

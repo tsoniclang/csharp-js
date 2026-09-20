@@ -284,12 +284,14 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        public string format(double value) => string.Concat(formatToParts(value).Select(part => part.value));
-        public string formatInteger(long value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
-        public string formatInteger(ulong value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
-        public string formatInteger(Int128 value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
-        public string formatInteger(UInt128 value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
-        public string formatInteger(BigInteger value) => string.Concat(formatToPartsInteger(value).Select(part => part.value));
+        public string format(double value) => double.IsFinite(value)
+            ? FormatText(Number.toString(System.Math.Abs(value)), double.IsNegative(value))
+            : double.IsNaN(value) ? "NaN" : double.IsNegative(value) ? "-∞" : "∞";
+        public string formatInteger(long value) => FormatText(BigInteger.Abs(new BigInteger(value)).ToString(CultureInfo.InvariantCulture), value < 0);
+        public string formatInteger(ulong value) => FormatText(value.ToString(CultureInfo.InvariantCulture), false);
+        public string formatInteger(Int128 value) => formatInteger((BigInteger)value);
+        public string formatInteger(UInt128 value) => formatInteger((BigInteger)value);
+        public string formatInteger(BigInteger value) => FormatText(BigInteger.Abs(value).ToString(CultureInfo.InvariantCulture), value.Sign < 0);
         public JSArray<IntlNumberFormatPart> formatToPartsInteger(long value) => FormatExact(BigInteger.Abs(new BigInteger(value)).ToString(CultureInfo.InvariantCulture), value < 0);
         public JSArray<IntlNumberFormatPart> formatToPartsInteger(ulong value) => FormatExact(value.ToString(CultureInfo.InvariantCulture), false);
         public JSArray<IntlNumberFormatPart> formatToPartsInteger(Int128 value) => formatToPartsInteger((BigInteger)value);
@@ -318,41 +320,76 @@ namespace Tsonic.CSharp.Js
 
         private JSArray<IntlNumberFormatPart> FormatExact(string magnitude, bool negative)
         {
+            var output = new NumberParts();
+            FormatExact(magnitude, negative, ref output);
+            return new JSArray<IntlNumberFormatPart>(output.Parts);
+        }
+
+        private string FormatText(string magnitude, bool negative)
+        {
+            var output = new NumberText();
+            FormatExact(magnitude, negative, ref output);
+            return output.Text.ToString();
+        }
+
+        private interface INumberOutput
+        {
+            void Add(string type, ReadOnlySpan<char> value);
+        }
+
+        private readonly struct NumberText : INumberOutput
+        {
+            public readonly StringBuilder Text;
+            public NumberText() => Text = new StringBuilder();
+            public void Add(string type, ReadOnlySpan<char> value) => Text.Append(value);
+        }
+
+        private readonly struct NumberParts : INumberOutput
+        {
+            public readonly List<IntlNumberFormatPart> Parts;
+            public NumberParts() => Parts = new List<IntlNumberFormatPart>();
+            public void Add(string type, ReadOnlySpan<char> value) => Parts.Add(new IntlNumberFormatPart(type, value.ToString()));
+        }
+
+        private void FormatExact<TOutput>(string magnitude, bool negative, ref TOutput output)
+            where TOutput : struct, INumberOutput
+        {
             var (integer, fraction) = _precision.Format(magnitude, _style == "percent");
 
-            var parts = new List<IntlNumberFormatPart>();
             if (negative)
             {
-                parts.Add(new IntlNumberFormatPart("minusSign", "-"));
+                output.Add("minusSign", "-");
             }
             if (_style == "currency")
             {
-                parts.Add(new IntlNumberFormatPart("currency", IntlRuntime.Currency(_currency!, _currencyDisplay)));
+                output.Add("currency", IntlRuntime.Currency(_currency!, _currencyDisplay));
                 if (_currencyDisplay is "code" or "name")
                 {
-                    parts.Add(new IntlNumberFormatPart("literal", "\u00a0"));
+                    output.Add("literal", "\u00a0");
                 }
             }
 
-            var groups = IntlRuntime.GroupInteger(integer, _useGrouping is not null && (_useGrouping != "min2" || integer.Length > 4));
-            for (var index = 0; index < groups.Count; index++)
+            if (_useGrouping is not null && (_useGrouping != "min2" || integer.Length > 4))
             {
-                if (index > 0)
+                var first = integer.Length % 3;
+                if (first == 0) first = 3;
+                output.Add("integer", integer.AsSpan(0, first));
+                for (var index = first; index < integer.Length; index += 3)
                 {
-                    parts.Add(new IntlNumberFormatPart("group", ","));
+                    output.Add("group", ",");
+                    output.Add("integer", integer.AsSpan(index, 3));
                 }
-                parts.Add(new IntlNumberFormatPart("integer", groups[index]));
             }
+            else output.Add("integer", integer);
             if (fraction.Length > 0)
             {
-                parts.Add(new IntlNumberFormatPart("decimal", "."));
-                parts.Add(new IntlNumberFormatPart("fraction", fraction));
+                output.Add("decimal", ".");
+                output.Add("fraction", fraction);
             }
             if (_style == "percent")
             {
-                parts.Add(new IntlNumberFormatPart("percentSign", "%"));
+                output.Add("percentSign", "%");
             }
-            return new JSArray<IntlNumberFormatPart>(parts);
         }
 
         public IntlResolvedNumberFormatOptions resolvedOptions() => new()

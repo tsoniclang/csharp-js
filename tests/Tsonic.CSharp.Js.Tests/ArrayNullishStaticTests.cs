@@ -31,11 +31,9 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void at_DistinguishesSparseUndefinedFromPresentNull()
+        public void at_DistinguishesExplicitUndefinedFromPresentNull()
         {
-            var arr = new JSArray<object?>();
-            arr.setLength(2);
-            arr[1] = null;
+            var arr = new JSArray<object?>(new object?[] { Undefined.value, null });
 
             Assert.Same(Undefined.value, arr.at(0));
             Assert.Null(arr.at(1));
@@ -78,12 +76,10 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("b", Tsonic.CSharp.Js.Array.atReference(strings, 1.8));
             Assert.Null(Tsonic.CSharp.Js.Array.atReference(strings, double.NegativeInfinity));
 
-            var sparse = new JSArray<object?>();
-            sparse.setLength(2);
-            sparse[1] = "present";
-            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(sparse, double.NaN));
-            Assert.Equal("present", Tsonic.CSharp.Js.Array.at(sparse, 1.8));
-            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(sparse, double.PositiveInfinity));
+            var values = new JSArray<object?>(new object?[] { Undefined.value, "present" });
+            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(values, double.NaN));
+            Assert.Equal("present", Tsonic.CSharp.Js.Array.at(values, 1.8));
+            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(values, double.PositiveInfinity));
         }
 
         [Fact]

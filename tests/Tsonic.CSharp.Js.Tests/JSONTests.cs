@@ -152,10 +152,9 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void stringify_SerializesJsArrayHolesAsNull()
+        public void stringify_SerializesExplicitNullArrayValues()
         {
-            var value = new JSArray<object?>();
-            value.setLength(4);
+            var value = new JSArray<object?>(4);
             value[1] = 2;
             value[3] = null;
 

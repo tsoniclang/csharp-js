@@ -491,25 +491,25 @@ namespace Tsonic.CSharp.Js
         }
 
         public static string String<T1, T2>(Tsonic.CSharp.Runtime.Union<T1, T2>? value)
-            => value is null ? "null" : value.Match<string>(String, String);
+            => value is null ? "null" : value.Value.Match<string>(String, String);
 
         public static string String<T1, T2, T3>(Tsonic.CSharp.Runtime.Union<T1, T2, T3>? value)
-            => value is null ? "null" : value.Match<string>(String, String, String);
+            => value is null ? "null" : value.Value.Match<string>(String, String, String);
 
         public static string String<T1, T2, T3, T4>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4>? value)
-            => value is null ? "null" : value.Match<string>(String, String, String, String);
+            => value is null ? "null" : value.Value.Match<string>(String, String, String, String);
 
         public static string String<T1, T2, T3, T4, T5>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5>? value)
-            => value is null ? "null" : value.Match<string>(String, String, String, String, String);
+            => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String);
 
         public static string String<T1, T2, T3, T4, T5, T6>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6>? value)
-            => value is null ? "null" : value.Match<string>(String, String, String, String, String, String);
+            => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String, String);
 
         public static string String<T1, T2, T3, T4, T5, T6, T7>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6, T7>? value)
-            => value is null ? "null" : value.Match<string>(String, String, String, String, String, String, String);
+            => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String, String, String);
 
         public static string String<T1, T2, T3, T4, T5, T6, T7, T8>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6, T7, T8>? value)
-            => value is null ? "null" : value.Match<string>(String, String, String, String, String, String, String, String);
+            => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String, String, String, String);
 
         public static string String<TValue>(TValue input)
         {

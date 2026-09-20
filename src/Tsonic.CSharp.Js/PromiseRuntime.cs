@@ -209,7 +209,6 @@ namespace Tsonic.CSharp.Js
 
             void Resolve(Union<T, Task<T>> value)
             {
-                ArgumentNullException.ThrowIfNull(value);
                 if (value.Is1())
                 {
                     completion.TrySetResult(value.As1());

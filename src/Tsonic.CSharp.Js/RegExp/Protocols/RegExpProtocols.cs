@@ -72,12 +72,12 @@ internal static class RegExpProtocols
         }
     }
 
-    public static JSArray<string> Split(string input, RegExp expression, double? limit)
+    public static JSArray<string?> Split(string input, RegExp expression, double? limit)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(expression);
         var maximum = ToUint32(limit ?? uint.MaxValue);
-        var output = new JSArray<string>();
+        var output = new JSArray<string?>();
         if (maximum == 0) return output;
         if (input.Length == 0)
         {
@@ -111,7 +111,7 @@ internal static class RegExpProtocols
             if ((uint)output.length >= maximum) return output;
             for (var index = 1; index < match.length; index += 1)
             {
-                output.push(match[index]!);
+                output.push(match[index]);
                 if ((uint)output.length >= maximum) return output;
             }
             segmentStart = end;

@@ -62,9 +62,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public WeakMap<K, V> set(K key, V value)
         {
-            // Remove existing if present, then add new
-            _table.Remove(key);
-            _table.Add(key, new StrongBox<V>(value));
+            _table.GetValue(key, static _ => new StrongBox<V>()).Value = value;
             return this;
         }
 
