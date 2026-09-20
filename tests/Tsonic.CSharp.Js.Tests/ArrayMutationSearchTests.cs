@@ -12,12 +12,12 @@ namespace Tsonic.CSharp.Js.Tests
         {
             System.GC.KeepAlive(JSArray<int>.of(1, 2, 3));
             var start = System.GC.GetAllocatedBytesForCurrentThread();
-            for (var index = 0; index < 1000; index++) System.GC.KeepAlive(JSArray<int>.of(1, 2, 3));
+            for (var index = 0; index < 1000; index++) System.GC.KeepAlive(JSArray<int>.of(index, 2, 3));
             var arrayBytes = System.GC.GetAllocatedBytesForCurrentThread() - start;
             start = System.GC.GetAllocatedBytesForCurrentThread();
-            for (var index = 0; index < 1000; index++) System.GC.KeepAlive(new List<int>(3) { 1, 2, 3 });
+            for (var index = 0; index < 1000; index++) System.GC.KeepAlive(new List<int>(3) { index, 2, 3 });
             var listBytes = System.GC.GetAllocatedBytesForCurrentThread() - start;
-            Assert.True(arrayBytes <= listBytes + 32 * 1000, $"JSArray={arrayBytes}, List={listBytes}");
+            Assert.True(arrayBytes <= listBytes + System.IntPtr.Size * 1000, $"JSArray={arrayBytes}, List={listBytes}");
             var values = JSArray<string>.of("café", "😀");
             IEnumerable<string> enumerable = values;
             using var iterator = enumerable.GetEnumerator();
@@ -38,6 +38,22 @@ namespace Tsonic.CSharp.Js.Tests
 
             Assert.Equal(3, arr.length);
             Assert.Equal("c", arr[2]);
+        }
+
+        [Fact]
+        public void JoinObservesLiveStorageWhenFormattingAnElement()
+        {
+            var values = new JSArray<object>();
+            values.push(new JoinMutation(() => { values.push("tail"); return "first"; }));
+            Assert.Equal("first|tail", values.join("|"));
+            var failure = new System.InvalidOperationException("format failure");
+            values[0] = new JoinMutation(() => throw failure);
+            Assert.Same(failure, Assert.Throws<System.InvalidOperationException>(() => values.join()));
+        }
+
+        private sealed class JoinMutation(System.Func<string> format)
+        {
+            public override string ToString() => format();
         }
 
         [Fact]

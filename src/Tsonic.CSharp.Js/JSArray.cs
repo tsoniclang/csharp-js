@@ -9,6 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 
 namespace Tsonic.CSharp.Js
 {
@@ -1004,7 +1005,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public string join(string separator = ",")
         {
-            return string.Join(separator, _values.Select(toJoinPart));
+            var result = new StringBuilder();
+            for (var index = 0; index < _values.Count; index++)
+            {
+                if (index != 0) result.Append(separator);
+                result.Append(toJoinPart(_values[index]));
+            }
+            return result.ToString();
         }
 
         /// <summary>
