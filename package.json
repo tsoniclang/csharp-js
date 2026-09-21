@@ -1,6 +1,6 @@
 {
   "name": "@tsonic/csharp-js",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "C# JavaScript surface runtime source for Tsonic",
   "license": "MIT",
   "repository": {
@@ -22,7 +22,7 @@
     "./runtime.props": "./Directory.Build.props"
   },
   "dependencies": {
-    "@tsonic/csharp-runtime": "0.1.1"
+    "@tsonic/csharp-runtime": "0.1.2"
   },
   "engines": {
     "node": ">=22.18.0"
