@@ -700,7 +700,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Static method: Create string from character codes
         /// </summary>
-        public static string fromCharCode(params double[] codes)
+        public static string fromCharCode<T>(params ReadOnlySpan<T> codes) where T : System.Numerics.INumber<T>
         {
             var chars = new char[codes.Length];
             for (int index = 0; index < codes.Length; index++)
@@ -713,16 +713,18 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Static method: Create string from code points
         /// </summary>
-        public static string fromCodePoint(params double[] codePoints)
+        public static string fromCodePoint<T>(params ReadOnlySpan<T> codePoints) where T : System.Numerics.INumber<T>
         {
             var result = new System.Text.StringBuilder();
-            foreach (double codePoint in codePoints)
+            foreach (var value in codePoints)
             {
-                if (!double.IsFinite(codePoint) || codePoint != System.Math.Truncate(codePoint) ||
-                    codePoint < 0 || codePoint > 0x10FFFF)
+                if (!T.IsInteger(value) || value < T.Zero)
                 {
                     throw new RangeError("Invalid code point.");
                 }
+
+                var codePoint = uint.CreateSaturating(value);
+                if (codePoint > 0x10FFFF) throw new RangeError("Invalid code point.");
 
                 if (codePoint <= 0xFFFF)
                 {

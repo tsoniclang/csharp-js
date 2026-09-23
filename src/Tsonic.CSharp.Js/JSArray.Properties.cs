@@ -124,7 +124,7 @@ public partial class JSArray<T>
     }
 
     private static bool IsArrayIndex(double index) =>
-        double.IsFinite(index) && index >= 0 && index <= uint.MaxValue - 1d &&
+        double.IsFinite(index) && index >= 0 &&
         index == System.Math.Truncate(index);
 
     private static bool TryNumericKey(string key, out double index) =>

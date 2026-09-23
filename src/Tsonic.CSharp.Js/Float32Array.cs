@@ -7,6 +7,14 @@ namespace Tsonic.CSharp.Js
     {
         public Float32Array(double length) : base(length) { }
         public Float32Array(int length) : base(length) { }
+        public static Float32Array From<TSource>(IReadOnlyList<TSource> source)
+            where TSource : INumberBase<TSource>
+        {
+            System.ArgumentNullException.ThrowIfNull(source);
+            var result = new Float32Array(source.Count);
+            result.set(source);
+            return result;
+        }
         public static Float32Array From<TSourceArray, TSource>(TypedArray<TSourceArray, TSource> source)
             where TSourceArray : TypedArray<TSourceArray, TSource>
             where TSource : unmanaged, INumberBase<TSource>

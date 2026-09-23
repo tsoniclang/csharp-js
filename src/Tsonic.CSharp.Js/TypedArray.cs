@@ -174,6 +174,33 @@ namespace Tsonic.CSharp.Js
             }
         }
 
+        public void set<TSource>(IReadOnlyList<TSource> source, double offset = 0)
+            where TSource : INumberBase<TSource>
+        {
+            ArgumentNullException.ThrowIfNull(source);
+            var destination = NativeDestination(source.Count, offset);
+            if (source is TSource[] array)
+            {
+                CopyValues(array, destination);
+            }
+            else if (source is List<TSource> list)
+            {
+                CopyValues(CollectionsMarshal.AsSpan(list), destination);
+            }
+            else
+            {
+                for (var index = 0; index < destination.Length; index++)
+                    destination[index] = ToElement(source[index]);
+            }
+        }
+
+        private void CopyValues<TSource>(ReadOnlySpan<TSource> source, Span<TElement> destination)
+            where TSource : INumberBase<TSource>
+        {
+            for (var index = 0; index < source.Length; index++)
+                destination[index] = ToElement(source[index]);
+        }
+
         public TArray subarray(double begin = 0, double? end = null)
         {
             var range = NormalizeRange(begin, end);

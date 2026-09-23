@@ -7,6 +7,32 @@ namespace Tsonic.CSharp.Js.Tests;
 public sealed class NativeTypedArrayCopyTests
 {
     [Fact]
+    public void OrdinaryNumericArraysPreserveExactNativeElementsWithoutTemporaryStorage()
+    {
+        ulong[] values = [9_007_199_254_740_993, ulong.MaxValue];
+        var bytes = Uint8Array.From(values);
+        Assert.Equal(new byte[] { 1, 255 }, bytes);
+        Assert.Equal(new uint[] { 1, uint.MaxValue }, Uint32Array.From(values));
+        Assert.Equal(new byte[] { 255, 255 }, Uint8ClampedArray.From(values));
+        var list = new JSArray<ulong>(values);
+        bytes.set(list);
+        values[0] = 7;
+        Assert.Equal((byte)1, bytes.Get(0));
+        Assert.Throws<RangeError>(() => bytes.set(values, 1));
+        Assert.Equal(new byte[] { 1, 255 }, bytes);
+        for (var count = 0; count < 1000; count++) bytes.set(list);
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var count = 0; count < 1000; count++)
+        {
+            bytes.set(values);
+            bytes.set(list);
+        }
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(0, allocated);
+        Assert.Equal(new byte[] { 1, 255 }, bytes);
+    }
+
+    [Fact]
     public void EveryElementPairSupportsNativeConstructionAndSet()
     {
         var values = new[] { 0d, 1d, 127d };

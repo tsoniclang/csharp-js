@@ -7,6 +7,14 @@ namespace Tsonic.CSharp.Js
     {
         public Int8Array(double length) : base(length) { }
         public Int8Array(int length) : base(length) { }
+        public static Int8Array From<TSource>(IReadOnlyList<TSource> source)
+            where TSource : INumberBase<TSource>
+        {
+            System.ArgumentNullException.ThrowIfNull(source);
+            var result = new Int8Array(source.Count);
+            result.set(source);
+            return result;
+        }
         public static Int8Array From<TSourceArray, TSource>(TypedArray<TSourceArray, TSource> source)
             where TSourceArray : TypedArray<TSourceArray, TSource>
             where TSource : unmanaged, INumberBase<TSource>
