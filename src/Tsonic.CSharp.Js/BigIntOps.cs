@@ -5,6 +5,29 @@ namespace Tsonic.CSharp.Js;
 
 public static class BigIntOps
 {
+    public static Int128 AsIntNative<T>(double bits, T value) where T : IBinaryInteger<T>
+    {
+        var width = NativeWidth(bits);
+        if (width == 0) return 0;
+        var mask = NativeMask(width);
+        var truncated = UInt128.CreateTruncating(value) & mask;
+        return Int128.CreateTruncating((truncated & ((UInt128)1 << (width - 1))) != 0
+            ? truncated | ~mask : truncated);
+    }
+
+    public static UInt128 AsUintNative<T>(double bits, T value) where T : IBinaryInteger<T> =>
+        UInt128.CreateTruncating(value) & NativeMask(NativeWidth(bits));
+
+    private static int NativeWidth(double bits)
+    {
+        if (!double.IsFinite(bits) || bits < 0 || bits > 128 || bits != System.Math.Truncate(bits))
+            throw new RangeError("BigInt bit width must be an integer within the selected native result");
+        return (int)bits;
+    }
+
+    private static UInt128 NativeMask(int width) =>
+        width == 128 ? UInt128.MaxValue : ((UInt128)1 << width) - 1;
+
     public static BigInteger asIntN<T>(double bits, T value) where T : IBinaryInteger<T> =>
         TruncateBits(bits, value, true);
 
@@ -13,9 +36,9 @@ public static class BigIntOps
 
     private static BigInteger TruncateBits<T>(double bits, T value, bool signed) where T : IBinaryInteger<T>
     {
-        var width = double.IsNaN(bits) ? 0 : System.Math.Truncate(bits);
-        if (width < 0 || width > 9007199254740991d)
-            throw new RangeError("BigInt bit width is outside the index range");
+        if (!double.IsFinite(bits) || bits < 0 || bits >= 18446744073709551616d || bits != System.Math.Truncate(bits))
+            throw new RangeError("BigInt bit width must be a non-negative native integer");
+        var width = (ulong)bits;
         if (width == 0) return BigInteger.Zero;
         if (width <= 128)
         {
@@ -27,7 +50,7 @@ public static class BigIntOps
                 : BigInteger.CreateChecked(truncated);
         }
         var integer = BigInteger.CreateChecked(value);
-        if ((signed || integer.Sign >= 0) && width > integer.GetBitLength()) return integer;
+        if ((signed || integer.Sign >= 0) && width > (ulong)integer.GetBitLength()) return integer;
         if (width > int.MaxValue) throw new RangeError("BigInt result exceeds addressable storage");
         var modulus = BigInteger.One << (int)width;
         var result = integer & (modulus - BigInteger.One);

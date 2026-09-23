@@ -8,7 +8,7 @@ public class BigIntTruncationTests
 {
     [Theory]
     [InlineData(0, "-17", "0", "0")]
-    [InlineData(1.9, "3", "-1", "1")]
+    [InlineData(1, "3", "-1", "1")]
     [InlineData(7, "64", "-64", "64")]
     [InlineData(8, "-129", "127", "127")]
     [InlineData(9, "256", "-256", "256")]
@@ -49,15 +49,14 @@ public class BigIntTruncationTests
         Assert.Equal(value, BigIntOps.asUintN(202, value));
         Assert.Equal(-1, BigIntOps.asIntN(200, -1));
         Assert.Equal(BigInteger.One << 64, BigIntOps.asUintN(64, ulong.MaxValue) + 1);
-        Assert.Equal(9, BigIntOps.asIntN(9007199254740991d, 9));
-        Assert.Equal(9, BigIntOps.asUintN(9007199254740991d, 9));
+        Assert.Equal(9, BigIntOps.asIntN(9007199254740992d, 9));
+        Assert.Equal(9, BigIntOps.asUintN(9007199254740992d, 9));
     }
 
     [Theory]
-    [InlineData(double.NaN)]
-    [InlineData(-0.5)]
+    [InlineData(0.0)]
     [InlineData(-0.0)]
-    public void IndexCoercionPreservesZero(double bits)
+    public void ZeroWidthProducesZero(double bits)
     {
         Assert.Equal(BigInteger.Zero, BigIntOps.asIntN(bits, 9));
         Assert.Equal(BigInteger.Zero, BigIntOps.asUintN(bits, 9));
@@ -65,12 +64,27 @@ public class BigIntTruncationTests
 
     [Theory]
     [InlineData(-1)]
+    [InlineData(double.NaN)]
+    [InlineData(-0.5)]
+    [InlineData(1.9)]
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
-    [InlineData(9007199254740992d)]
+    [InlineData(18446744073709551616d)]
     public void InvalidWidthsRejectBeforeTruncation(double bits)
     {
         Assert.Throws<RangeError>(() => BigIntOps.asIntN(bits, 9));
         Assert.Throws<RangeError>(() => BigIntOps.asUintN(bits, 9));
+    }
+
+    [Fact]
+    public void NativeResultsRemainFixedWidthAndExact()
+    {
+        Assert.Equal((Int128)9007199254740993L, BigIntOps.AsIntNative(64, 9007199254740993L));
+        Assert.Equal((UInt128)ulong.MaxValue, BigIntOps.AsUintNative(64, -1L));
+        Assert.Equal(Int128.MinValue, BigIntOps.AsIntNative(128, (UInt128)1 << 127));
+        Assert.Equal(UInt128.MaxValue, BigIntOps.AsUintNative(128, (Int128)(-1)));
+        Assert.Throws<RangeError>(() => BigIntOps.AsIntNative(129, 0));
+        Assert.Throws<RangeError>(() => BigIntOps.AsUintNative(double.NaN, 0));
+        Assert.Throws<RangeError>(() => BigIntOps.AsIntNative(1.5, 0));
     }
 }

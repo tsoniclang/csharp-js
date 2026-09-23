@@ -42,128 +42,29 @@ namespace Tsonic.CSharp.Js
             return Globals.parseFloat(str);
         }
 
-        /// <summary>
-        /// Check if value is NaN.
-        /// Unlike global isNaN, this does NOT convert the argument.
-        /// </summary>
-        public static bool isNaN(double value)
-        {
-            return double.IsNaN(value);
-        }
+        public static bool isNaN<T>(T value) where T : System.Numerics.INumberBase<T> =>
+            T.IsNaN(value);
 
-        public static bool isNaN(int value)
-        {
-            return false;
-        }
+        public static bool isNaN<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue && T.IsNaN(value.Value);
 
-        public static bool isNaN(int? value)
-        {
-            return value.HasValue && isNaN(value.Value);
-        }
+        public static bool isFinite<T>(T value) where T : System.Numerics.INumberBase<T> =>
+            T.IsFinite(value);
 
-        public static bool isNaN(long value)
-        {
-            return false;
-        }
+        public static bool isFinite<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue && T.IsFinite(value.Value);
 
-        public static bool isNaN(long? value)
-        {
-            return value.HasValue && isNaN(value.Value);
-        }
+        public static bool isInteger<T>(T value) where T : System.Numerics.INumberBase<T> =>
+            T.IsInteger(value);
 
-        /// <summary>
-        /// Check if value is finite (not infinite or NaN).
-        /// Unlike global isFinite, this does NOT convert the argument.
-        /// </summary>
-        public static bool isFinite(double value)
-        {
-            return !double.IsInfinity(value) && !double.IsNaN(value);
-        }
+        public static bool isInteger<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue && T.IsInteger(value.Value);
 
-        public static bool isFinite(int value)
-        {
-            return true;
-        }
+        public static bool isSafeInteger<T>(T value) where T : System.Numerics.INumberBase<T> =>
+            T.IsInteger(value);
 
-        public static bool isFinite(int? value)
-        {
-            return value.HasValue;
-        }
-
-        public static bool isFinite(long value)
-        {
-            return true;
-        }
-
-        public static bool isFinite(long? value)
-        {
-            return value.HasValue;
-        }
-
-        /// <summary>
-        /// Check if value is an integer (no fractional part).
-        /// </summary>
-        public static bool isInteger(double value)
-        {
-            if (double.IsInfinity(value) || double.IsNaN(value))
-            {
-                return false;
-            }
-            return System.Math.Floor(value) == value;
-        }
-
-        public static bool isInteger(int value)
-        {
-            return true;
-        }
-
-        public static bool isInteger(int? value)
-        {
-            return value.HasValue;
-        }
-
-        public static bool isInteger(long value)
-        {
-            return true;
-        }
-
-        public static bool isInteger(long? value)
-        {
-            return value.HasValue;
-        }
-
-        /// <summary>
-        /// Check if value is a safe integer (can be exactly represented).
-        /// Safe integers are integers in the range -(2^53-1) to 2^53-1.
-        /// </summary>
-        public static bool isSafeInteger(double value)
-        {
-            if (!isInteger(value))
-            {
-                return false;
-            }
-            return value >= MIN_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
-        }
-
-        public static bool isSafeInteger(int value)
-        {
-            return true;
-        }
-
-        public static bool isSafeInteger(int? value)
-        {
-            return value.HasValue;
-        }
-
-        public static bool isSafeInteger(long value)
-        {
-            return value >= MIN_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
-        }
-
-        public static bool isSafeInteger(long? value)
-        {
-            return value.HasValue && isSafeInteger(value.Value);
-        }
+        public static bool isSafeInteger<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue && T.IsInteger(value.Value);
 
         /// <summary>
         /// Convert a number to its JavaScript string form.

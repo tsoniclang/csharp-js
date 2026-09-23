@@ -21,9 +21,9 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public ArrayBuffer(double byteLength)
         {
-            if (!double.IsFinite(byteLength) || byteLength < 0 || byteLength > int.MaxValue)
+            if (!double.IsFinite(byteLength) || byteLength < 0 || byteLength > int.MaxValue || byteLength != System.Math.Truncate(byteLength))
                 throw new RangeError("ArrayBuffer byteLength is outside the supported range.");
-            _buffer = new byte[checked((int)System.Math.Truncate(byteLength))];
+            _buffer = new byte[checked((int)byteLength)];
         }
 
         /// <summary>
