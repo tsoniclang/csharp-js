@@ -404,11 +404,11 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Date_UTC_NormalizesComponentsWithoutChangingTheYear()
+        public void Date_UTC_NormalizesComponentsAndTwoDigitYears()
         {
             Assert.Equal(Date.UTC(2024, 0, 1), Date.UTC(2023, 12, 1));
             Assert.Equal(Date.UTC(2022, 11, 31), Date.UTC(2023, 0, 0));
-            Assert.Equal(99, new Date(Date.UTC(99, 0, 1)).getUTCFullYear());
+            Assert.Equal(1999, new Date(Date.UTC(99, 0, 1)).getUTCFullYear());
         }
 
         [Fact]

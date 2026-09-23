@@ -295,7 +295,7 @@ namespace Tsonic.CSharp.Js
 
             if (value is string str)
             {
-                return Tsonic.CSharp.Js.Number.parseFloat(str);
+                return Tsonic.CSharp.Js.Number.ParseNumericString(str);
             }
 
             return double.NaN;
@@ -342,9 +342,9 @@ namespace Tsonic.CSharp.Js
         public static string String(nuint value) => value.ToString(CultureInfo.InvariantCulture);
         public static string String(Int128 value) => value.ToString(CultureInfo.InvariantCulture);
         public static string String(UInt128 value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(Half value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(float value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(double value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(Half value) => Tsonic.CSharp.Js.Number.toString(value);
+        public static string String(float value) => Tsonic.CSharp.Js.Number.toString(value);
+        public static string String(double value) => Tsonic.CSharp.Js.Number.toString(value);
         public static string String(decimal value) => value.ToString(CultureInfo.InvariantCulture);
         public static string String(System.Numerics.BigInteger value) => value.ToString(CultureInfo.InvariantCulture);
 

@@ -21,7 +21,7 @@ namespace Tsonic.CSharp.Js
             where TSource : unmanaged, INumberBase<TSource>
         {
             System.ArgumentNullException.ThrowIfNull(source);
-            TypedArrayCopy.Checked<TSource, double>(source.NativeElements, NativeDestination(source.NativeLength, offset));
+            TypedArrayCopy.Copy<TSource, double>(source.NativeElements, NativeDestination(source.NativeLength, offset));
         }
         public Float64Array(IEnumerable<double> values) : base(values) { }
         public Float64Array(ArrayBuffer buffer, double byteOffset = 0, double? length = null) : base(buffer, byteOffset, length) { }

@@ -6,43 +6,64 @@ namespace Tsonic.CSharp.Js.Tests;
 public sealed class NativeNumericBoundaryTests
 {
     [Fact]
-    public void SplitAndStorageSizesRejectNonNativeLengths()
+    public void SurfaceLimitsNormalizeWithoutChangingNativeStorageBounds()
     {
         var expression = new RegExp(",");
-        foreach (var invalid in new[] { -1d, 1.5, double.NaN, double.PositiveInfinity, (double)int.MaxValue + 1 })
+        foreach (var (limit, length) in new[] { (-1d, 3), (1.5, 1), (double.NaN, 0), (double.PositiveInfinity, 0), (4294967296d, 0), (4294967297d, 1) })
         {
-            Assert.Throws<RangeError>(() => "a,b,c".split(",", invalid));
-            Assert.Throws<RangeError>(() => "a,b,c".split(expression, invalid));
+            Assert.Equal(length, "a,b,c".split(",", limit).Count);
+            Assert.Equal(length, "a,b,c".split(expression, limit).Count);
+        }
+        foreach (var invalid in new[] { -1d, double.PositiveInfinity, (double)int.MaxValue + 1 })
+        {
             Assert.Throws<RangeError>(() => new ArrayBuffer(invalid));
             Assert.Throws<RangeError>(() => new Uint8Array(invalid));
         }
-        Assert.Equal(3, "a,b,c".split(expression, int.MaxValue).Count);
+        Assert.Equal(0, new ArrayBuffer(double.NaN).byteLength);
+        Assert.Equal(1, new Uint8Array(1.9).length);
     }
 
     [Fact]
-    public void IntegerElementsUseCheckedNativeClrConversions()
+    public void ExplicitIntegerApiConversionMatchesModuloBits()
     {
-        foreach (var value in new[] { 0d, 1.9, 127d })
+        var view = new DataView(new ArrayBuffer(4));
+        for (var exponent = -1074; exponent <= 1024; exponent++)
         {
-            Assert.Equal(checked((sbyte)value), new Int8Array(new[] { value })[0]);
-            Assert.Equal(checked((byte)value), new Uint8Array(new[] { value })[0]);
-            Assert.Equal(checked((short)value), new Int16Array(new[] { value })[0]);
-            Assert.Equal(checked((ushort)value), new Uint16Array(new[] { value })[0]);
-            Assert.Equal(checked((int)value), new Int32Array(new[] { value })[0]);
-            Assert.Equal(checked((uint)value), new Uint32Array(new[] { value })[0]);
+            foreach (var sign in new[] { -1d, 1d })
+            {
+                var value = sign * double.ScaleB(1.23456789, exponent);
+                var remainder = double.IsFinite(value) ? System.Math.Truncate(value) % 4294967296d : 0;
+                var expected = (uint)(remainder < 0 ? remainder + 4294967296d : remainder);
+                view.setUint32(0, value);
+                Assert.Equal(expected, view.getUint32(0));
+                Assert.Equal(unchecked((int)expected), Math.imul(value, 1));
+                Assert.Equal(System.Numerics.BitOperations.LeadingZeroCount(expected), Math.clz32(value));
+            }
         }
-        foreach (var value in new[] { -1d, 256d, double.NaN, double.PositiveInfinity })
-            Assert.Throws<OverflowException>(() => new Uint8Array(new[] { value }));
+        Assert.Equal(1, Math.imul(9007199254740993L, 1));
+        Assert.Equal(0, Math.clz32(ulong.MaxValue));
     }
 
     [Fact]
-    public void GlobalPredicatesRetainExactNativeIntegerCarriers()
+    public void NativePredicatesAndTextRetainExactCarriers()
     {
         Assert.True(Globals.isFinite(long.MaxValue));
         Assert.True(Globals.isFinite(UInt128.MaxValue));
         Assert.False(Globals.isNaN(long.MinValue));
-        Assert.False(Globals.isNaN(UInt128.MaxValue));
-        Assert.True(Globals.isNaN(double.NaN));
-        Assert.False(Globals.isFinite(double.PositiveInfinity));
+        Assert.False(Number.isSafeInteger(9007199254740993L));
+        Assert.True(Number.isInteger(9007199254740993L));
+        Assert.True(Number.isSafeInteger(16777216f));
+        Assert.False(Number.isSafeInteger(9007199254740992f));
+        Assert.Equal("9007199254740993", 9007199254740993L.toString());
+        Assert.Equal("9007199254740993.00", 9007199254740993L.toFixed(2));
+        Assert.Equal("-80000000000000000000000000000000", Int128.MinValue.toString(16));
+        Assert.Equal("ffffffffffffffffffffffffffffffff", UInt128.MaxValue.toString(16));
+        Assert.Equal("1.3e+1", 12.5.toExponential(1));
+        Assert.Equal("1.3", 1.25.toPrecision(2));
+        Assert.Equal("0", (-0d).toFixed());
+        Assert.Equal(0, Globals.Number(""));
+        Assert.Equal(16, Globals.Number("0x10"));
+        Assert.True(double.IsNaN(Globals.Number("12suffix")));
+        Assert.Equal(12, Number.parseFloat("12suffix"));
     }
 }

@@ -301,7 +301,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static JSArray<string> split(this string str, string separator, double? limit = null)
         {
-            var maximum = limit.HasValue ? NativeInteger.Length(limit.Value) : int.MaxValue;
+            var maximum = (int)System.Math.Min(NativeInteger.SplitLimit(limit), int.MaxValue);
             if (maximum == 0)
             {
                 return new JSArray<string>();
@@ -705,10 +705,7 @@ namespace Tsonic.CSharp.Js
             var chars = new char[codes.Length];
             for (int index = 0; index < codes.Length; index++)
             {
-                var code = codes[index];
-                if (!double.IsInteger(code) || code < char.MinValue || code > char.MaxValue)
-                    throw new RangeError("Character code must be a native UTF-16 code unit.");
-                chars[index] = (char)code;
+                chars[index] = unchecked((char)NativeInteger.Bits32(codes[index]));
             }
             return new string(chars);
         }

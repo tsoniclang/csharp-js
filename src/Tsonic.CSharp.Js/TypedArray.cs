@@ -281,7 +281,7 @@ namespace Tsonic.CSharp.Js
 
         protected static int CheckedLength(double value)
         {
-            return NativeInteger.Length(value);
+            return NativeInteger.IndexLength(value);
         }
     }
 

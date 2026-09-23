@@ -187,7 +187,8 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static double UTC(int year, int month, int day = 1, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds = 0)
         {
-            return MakeUtcMilliseconds(year, month, day, hours, minutes, seconds, milliseconds);
+            var normalizedYear = year >= 0 && year <= 99 ? year + 1900 : year;
+            return MakeUtcMilliseconds(normalizedYear, month, day, hours, minutes, seconds, milliseconds);
         }
 
         public static string call() => new Date().ToString();
@@ -557,7 +558,7 @@ namespace Tsonic.CSharp.Js
         {
             if (!double.IsFinite(value) || value < long.MinValue || value >= -(double)long.MinValue)
                 return double.NaN;
-            return System.Math.Truncate(value);
+            return value == 0 ? 0 : System.Math.Truncate(value);
         }
 
         private static long DaysFromCivil(long year, int month, int day)

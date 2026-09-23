@@ -20,7 +20,7 @@ namespace Tsonic.CSharp.Js
         /// Create ArrayBuffer with specified byte length
         /// </summary>
         public ArrayBuffer(double byteLength)
-            : this(NativeInteger.Length(byteLength))
+            : this(NativeInteger.IndexLength(byteLength))
         {
         }
 

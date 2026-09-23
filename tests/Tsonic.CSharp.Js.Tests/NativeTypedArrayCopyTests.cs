@@ -50,17 +50,19 @@ public sealed class NativeTypedArrayCopyTests
     }
 
     [Fact]
-    public void CheckedNarrowingAndExplicitClampingRemainDifferentOperations()
+    public void TruncatingNarrowingAndExplicitClampingRemainDifferentOperations()
     {
         var source = new Int16Array(new[] { -1d, 256d });
-        Assert.Throws<OverflowException>(() => Uint8Array.From(source));
-        Assert.Throws<OverflowException>(() => new Uint8Array(2).set(source));
+        Assert.Equal(new[] { 255d, 0d }, Uint8Array.From(source));
+        var destination = new Uint8Array(2);
+        destination.set(source);
+        Assert.Equal(new[] { 255d, 0d }, destination);
         Assert.Equal(new[] { 0d, 255d }, Uint8ClampedArray.From(source));
         var fractions = new Float64Array(new[] { 0.5, 1.5, 254.5, double.NaN, double.PositiveInfinity });
         Assert.Equal(new[] { 0d, 2d, 254d, 0d, 255d }, Uint8ClampedArray.From(fractions));
         var wide = new Uint32Array(new[] { (double)uint.MaxValue });
         Assert.Equal((double)uint.MaxValue, Float64Array.From(wide)[0]);
-        Assert.Throws<OverflowException>(() => Int32Array.From(wide));
+        Assert.Equal(-1, Int32Array.From(wide)[0]);
     }
 
     [Theory]

@@ -287,13 +287,15 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void split_UsesNativeIntegerLimits()
+        public void split_WithZeroOrNegativeLimit_MatchesJavaScript()
         {
             Assert.Empty("a,b,c".split(",", 0));
 
-            foreach (var invalid in new[] { -1d, 1.5, double.NaN, double.PositiveInfinity, (double)int.MaxValue + 1 })
-                Assert.Throws<RangeError>(() => "a,b,c".split(",", invalid));
-            Assert.Equal(new[] { "a", "b", "c" }, "a,b,c".split(",", int.MaxValue));
+            var negative = "a,b,c".split(",", -1);
+            Assert.Equal(3, negative.Count);
+            Assert.Equal("a", negative[0]);
+            Assert.Equal("b", negative[1]);
+            Assert.Equal("c", negative[2]);
 
             var emptySeparator = "abc".split("", 2);
             Assert.Equal(new[] { "a", "b" }, emptySeparator);
@@ -487,7 +489,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void fromCharCode_CreatesStringFromCharCodes()
         {
             Assert.Equal("ABC", String.fromCharCode(65, 66, 67));
-            Assert.Equal("\u0000\uffff", String.fromCharCode(0, 65535));
+            Assert.Equal("\u0000\uffff", String.fromCharCode(0x110000, -1));
         }
 
         [Fact]
@@ -495,9 +497,9 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("", String.fromCharCode());
             Assert.Equal("", String.fromCodePoint());
-            Assert.Equal("AB", String.fromCharCode(65, 66));
-            foreach (double invalid in new[] { 65.9, -1d, 65536d, double.NaN, double.PositiveInfinity, double.NegativeInfinity })
-                Assert.Throws<RangeError>(() => String.fromCharCode(invalid));
+            Assert.Equal("AB", String.fromCharCode(65.9, 66.1));
+            Assert.Equal("\uffff\u0001\u0000", String.fromCharCode(-1.9, 4_294_967_297d, -0.9));
+            Assert.Equal("\u0000\u0000\u0000", String.fromCharCode(double.NaN, double.PositiveInfinity, double.NegativeInfinity));
             Assert.Equal("😀", String.fromCharCode(0xD83D, 0xDE00));
             Assert.Equal("\u0000\uffff😀", String.fromCodePoint(-0d, 0xFFFF, 0x1F600));
             foreach (double invalid in new[] { 65.9, -0.9, double.NaN, double.PositiveInfinity, double.NegativeInfinity, 1_114_112d })

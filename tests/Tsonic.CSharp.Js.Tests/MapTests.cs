@@ -287,32 +287,32 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void NativeNumberKeys_RetainTheOriginalSignedZero()
+        public void SameValueZero_NumberKeys_CanonicalizeNegativeZeroForIteration()
         {
             var map = new Map<double, string>();
             map.set(-0.0, "negative-zero");
 
             var key = Assert.Single(map.keys());
 
-            Assert.Equal(double.NegativeInfinity, 1.0 / key);
+            Assert.Equal(double.PositiveInfinity, 1.0 / key);
             Assert.Equal("negative-zero", map.get(0.0));
 
             map.set(0.0, "positive-zero");
 
             Assert.Equal(1, map.size);
-            Assert.Equal(double.NegativeInfinity, 1.0 / Assert.Single(map.keys()));
+            Assert.Equal(double.PositiveInfinity, 1.0 / Assert.Single(map.keys()));
             Assert.Equal("positive-zero", map.get(-0.0));
         }
 
         [Fact]
-        public void NativeObjectKeys_RetainBoxedSignedZero()
+        public void SameValueZero_ObjectCarrier_CanonicalizesBoxedNegativeZero()
         {
             var map = new Map<object?, string>();
             map.set((object)(-0.0), "negative-zero");
 
             var key = Assert.IsType<double>(Assert.Single(map.keys()));
 
-            Assert.Equal(double.NegativeInfinity, 1.0 / key);
+            Assert.Equal(double.PositiveInfinity, 1.0 / key);
             Assert.True(map.has((object)0.0));
             Assert.Equal("negative-zero", map.get((object)0.0));
         }
@@ -342,14 +342,13 @@ namespace Tsonic.CSharp.Js.Tests
             map.set((object)1, 4);
             map.set((object)1.0, 5);
 
-            Assert.Equal(4, map.size);
+            Assert.Equal(3, map.size);
             Assert.True(map.has(null));
             Assert.True(map.has(Undefined.value));
             Assert.True(map.has(TsValue.undefined()));
             Assert.Equal(1, map.get(null));
             Assert.Equal(3, map.get(Undefined.value));
-            Assert.Equal(4, map.get(1));
-            Assert.Equal(5, map.get(1.0));
+            Assert.Equal(5, map.get(1));
         }
 
         // ==================== forEach Tests ====================

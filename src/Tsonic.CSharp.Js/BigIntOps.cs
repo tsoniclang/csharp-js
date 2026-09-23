@@ -79,6 +79,7 @@ public static class BigIntOps
 
     private static BigInteger TruncateBits<T>(double bits, T value, bool signed) where T : IBinaryInteger<T>
     {
+        bits = double.IsNaN(bits) ? 0 : System.Math.Truncate(bits);
         if (!double.IsFinite(bits) || bits < 0 || bits >= 18446744073709551616d || bits != System.Math.Truncate(bits))
             throw new RangeError("BigInt bit width must be a non-negative native integer");
         var width = (ulong)bits;
@@ -160,8 +161,8 @@ public static class BigIntOps
 
     private static BigInteger FromString(string source)
     {
-        var text = source.AsSpan().Trim();
-        if (text.IsEmpty) throw new SyntaxError("Cannot convert the string to a BigInt");
+        var text = Number.TrimWhitespace(source.AsSpan());
+        if (text.IsEmpty) return BigInteger.Zero;
         var radix = 10;
         if (text.Length >= 2 && text[0] == '0')
         {

@@ -56,7 +56,7 @@ public class BigIntTruncationTests
     [Fact]
     public void ZeroWidthProducesZero()
     {
-        foreach (var bits in new[] { 0.0, -0.0 })
+        foreach (var bits in new[] { 0.0, -0.0, double.NaN, -0.5 })
         {
             Assert.Equal(BigInteger.Zero, BigIntOps.asIntN(bits, 9));
             Assert.Equal(BigInteger.Zero, BigIntOps.asUintN(bits, 9));
@@ -65,9 +65,6 @@ public class BigIntTruncationTests
 
     [Theory]
     [InlineData(-1)]
-    [InlineData(double.NaN)]
-    [InlineData(-0.5)]
-    [InlineData(1.9)]
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
     [InlineData(18446744073709551616d)]

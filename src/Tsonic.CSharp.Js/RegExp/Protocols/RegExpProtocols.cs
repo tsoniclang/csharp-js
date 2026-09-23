@@ -76,7 +76,7 @@ internal static class RegExpProtocols
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(expression);
-        var maximum = limit.HasValue ? NativeInteger.Length(limit.Value) : int.MaxValue;
+        var maximum = NativeInteger.SplitLimit(limit);
         var output = new JSArray<string?>();
         if (maximum == 0) return output;
         if (input.Length == 0)

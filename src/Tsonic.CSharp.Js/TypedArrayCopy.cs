@@ -6,7 +6,7 @@ namespace Tsonic.CSharp.Js;
 
 internal static class TypedArrayCopy
 {
-    public static void Checked<TSource, TDestination>(ReadOnlySpan<TSource> source, Span<TDestination> destination)
+    public static void Copy<TSource, TDestination>(ReadOnlySpan<TSource> source, Span<TDestination> destination)
         where TSource : unmanaged, INumberBase<TSource>
         where TDestination : unmanaged, INumberBase<TDestination>
     {
@@ -18,8 +18,16 @@ internal static class TypedArrayCopy
         }
         source = SnapshotOverlap(source, destination);
         for (var index = 0; index < source.Length; index++)
-            destination[index] = TDestination.CreateChecked(source[index]);
+            destination[index] = Convert<TSource, TDestination>(source[index]);
     }
+
+    private static TDestination Convert<TSource, TDestination>(TSource value)
+        where TSource : unmanaged, INumberBase<TSource>
+        where TDestination : unmanaged, INumberBase<TDestination> =>
+        (typeof(TSource) == typeof(float) || typeof(TSource) == typeof(double)) &&
+        typeof(TDestination) != typeof(float) && typeof(TDestination) != typeof(double)
+            ? TDestination.CreateTruncating(NativeInteger.Bits32(double.CreateChecked(value)))
+            : TDestination.CreateTruncating(value);
 
     public static void Clamped<TSource>(ReadOnlySpan<TSource> source, Span<byte> destination)
         where TSource : unmanaged, INumberBase<TSource>

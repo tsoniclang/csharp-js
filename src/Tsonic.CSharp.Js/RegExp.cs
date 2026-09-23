@@ -173,8 +173,7 @@ public class RegExp
     {
         ArgumentNullException.ThrowIfNull(input);
         var stateful = global || sticky;
-        var start = stateful ? checked((int)_lastIndex) : 0;
-        ArgumentOutOfRangeException.ThrowIfNegative(start);
+        var start = stateful ? (int)System.Math.Clamp(NativeInteger.Index(_lastIndex), 0, int.MaxValue) : 0;
         if (start > input.Length)
         {
             if (stateful) _lastIndex = 0;
@@ -211,7 +210,7 @@ public class RegExp
 
     internal void AdvanceAfterEmptyMatch(string input)
     {
-        var current = checked((int)_lastIndex);
+        var current = (int)System.Math.Clamp(NativeInteger.Index(_lastIndex), 0, int.MaxValue);
         _lastIndex = AdvanceStringIndex(input, current, _flags.FullUnicode);
     }
 

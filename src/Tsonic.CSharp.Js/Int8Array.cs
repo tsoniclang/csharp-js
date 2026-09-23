@@ -21,11 +21,11 @@ namespace Tsonic.CSharp.Js
             where TSource : unmanaged, INumberBase<TSource>
         {
             System.ArgumentNullException.ThrowIfNull(source);
-            TypedArrayCopy.Checked<TSource, sbyte>(source.NativeElements, NativeDestination(source.NativeLength, offset));
+            TypedArrayCopy.Copy<TSource, sbyte>(source.NativeElements, NativeDestination(source.NativeLength, offset));
         }
         public Int8Array(IEnumerable<double> values) : base(values) { }
         public Int8Array(ArrayBuffer buffer, double byteOffset = 0, double? length = null) : base(buffer, byteOffset, length) { }
-        protected override sbyte ToElement(double value) => checked((sbyte)value);
+        protected override sbyte ToElement(double value) => unchecked((sbyte)NativeInteger.Bits32(value));
         protected override double FromElement(sbyte value) => value;
         protected override Int8Array CreateView(ArrayBuffer buffer, double byteOffset, double length) => new(buffer, byteOffset, length);
         protected override Int8Array CreateCopy(IEnumerable<double> values) => new(values);

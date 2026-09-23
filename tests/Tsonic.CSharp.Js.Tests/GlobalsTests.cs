@@ -11,8 +11,9 @@ namespace Tsonic.CSharp.Js.Tests
         [InlineData("FF", 16, 255d)]
         [InlineData("77", 8, 63d)]
         [InlineData("  42  ", 10, 42d)]
-        [InlineData("-10", null, -10d)]
-        [InlineData("+10", 16, 16d)]
+        [InlineData("123abc", 10, 123d)]
+        [InlineData("-0x10", null, -16d)]
+        [InlineData("+0x10", 16, 16d)]
         public void parseInt_ValidInput_ReturnsCorrectValue(string input, int? radix, double expected)
         {
             var result = Globals.parseInt(input, radix);
@@ -23,11 +24,6 @@ namespace Tsonic.CSharp.Js.Tests
         [InlineData("", null)]
         [InlineData("   ", null)]
         [InlineData("abc", 10)]
-        [InlineData("123abc", 10)]
-        [InlineData("-0x10", null)]
-        [InlineData("+0x10", 16)]
-        [InlineData("170141183460469231731687303715884105728", 10)]
-        [InlineData("-170141183460469231731687303715884105729", 10)]
         [InlineData("123", 1)]  // Invalid radix
         [InlineData("123", 37)] // Invalid radix
         public void parseInt_InvalidInput_ReturnsNaN(string input, int? radix)
@@ -58,9 +54,6 @@ namespace Tsonic.CSharp.Js.Tests
         [InlineData("")]
         [InlineData("   ")]
         [InlineData("abc")]
-        [InlineData("3.14x")]
-        [InlineData("1e+")]
-        [InlineData("Infinitysuffix")]
         public void parseFloat_InvalidInput_ReturnsNaN(string input)
         {
             var result = Globals.parseFloat(input);
@@ -212,10 +205,10 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Number_EmptyString_HasNoNumericValue()
+        public void Number_EmptyString_ReturnsZero()
         {
-            Assert.True(double.IsNaN(Globals.Number("")));
-            Assert.True(double.IsNaN(Globals.Number("   ")));
+            Assert.Equal(0, Globals.Number(""));
+            Assert.Equal(0, Globals.Number("   "));
         }
 
         [Fact]
@@ -303,15 +296,15 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void String_UsesNativeInvariantFormattingAcrossCultureAndClosedUnions()
+        public void String_UsesExactSourceFormattingAcrossCultureAndClosedUnions()
         {
             var previous = System.Globalization.CultureInfo.CurrentCulture;
             try
             {
                 System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("fr-FR");
                 Assert.Equal("1.5", Globals.String(1.5));
-                Assert.Equal("-0", Globals.String(-0d));
-                Assert.Equal("1E+21", Globals.String(1e21));
+                Assert.Equal("0", Globals.String(-0d));
+                Assert.Equal("1e+21", Globals.String(1e21));
                 Assert.Equal("9007199254740993", Globals.String(9007199254740993L));
                 var integer = System.Numerics.BigInteger.Parse("18446744073709551617");
                 Assert.Equal("18446744073709551617", Globals.String(integer));
