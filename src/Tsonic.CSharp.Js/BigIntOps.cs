@@ -171,7 +171,8 @@ public static class BigIntOps
         }
         if (radix == 10)
         {
-            return BigInteger.TryParse(text, System.Globalization.NumberStyles.Integer,
+            return text[^1] is >= '0' and <= '9' &&
+                BigInteger.TryParse(text, System.Globalization.NumberStyles.AllowLeadingSign,
                 System.Globalization.CultureInfo.InvariantCulture, out var integer)
                 ? integer
                 : throw new SyntaxError("Cannot convert the string to a BigInt");

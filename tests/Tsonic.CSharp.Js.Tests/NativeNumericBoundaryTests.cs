@@ -5,6 +5,19 @@ namespace Tsonic.CSharp.Js.Tests;
 
 public sealed class NativeNumericBoundaryTests
 {
+    [Theory]
+    [InlineData("1\0")]
+    [InlineData("1\0\0")]
+    [InlineData("1\0" + "2")]
+    [InlineData("+1\0")]
+    [InlineData("1 2")]
+    [InlineData("+-1")]
+    [InlineData("1e3")]
+    public void BigIntParsingRejectsMalformedWholeTokens(string text)
+    {
+        Assert.Throws<SyntaxError>(() => BigIntOps.from(text));
+    }
+
     [Fact]
     public void NumericFormattingAllocatesOnlyTheResultString()
     {
