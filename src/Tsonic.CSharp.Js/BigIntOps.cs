@@ -5,6 +5,35 @@ namespace Tsonic.CSharp.Js;
 
 public static class BigIntOps
 {
+    public static BigInteger asIntN<T>(double bits, T value) where T : IBinaryInteger<T> =>
+        TruncateBits(bits, value, true);
+
+    public static BigInteger asUintN<T>(double bits, T value) where T : IBinaryInteger<T> =>
+        TruncateBits(bits, value, false);
+
+    private static BigInteger TruncateBits<T>(double bits, T value, bool signed) where T : IBinaryInteger<T>
+    {
+        var width = double.IsNaN(bits) ? 0 : System.Math.Truncate(bits);
+        if (width < 0 || width > 9007199254740991d)
+            throw new RangeError("BigInt bit width is outside the index range");
+        if (width == 0) return BigInteger.Zero;
+        if (width <= 128)
+        {
+            var count = (int)width;
+            var mask = count == 128 ? UInt128.MaxValue : ((UInt128)1 << count) - 1;
+            var truncated = UInt128.CreateTruncating(value) & mask;
+            return signed && (truncated & ((UInt128)1 << (count - 1))) != 0
+                ? BigInteger.CreateChecked(Int128.CreateTruncating(truncated | ~mask))
+                : BigInteger.CreateChecked(truncated);
+        }
+        var integer = BigInteger.CreateChecked(value);
+        if ((signed || integer.Sign >= 0) && width > integer.GetBitLength()) return integer;
+        if (width > int.MaxValue) throw new RangeError("BigInt result exceeds addressable storage");
+        var modulus = BigInteger.One << (int)width;
+        var result = integer & (modulus - BigInteger.One);
+        return signed && result >= (modulus >> 1) ? result - modulus : result;
+    }
+
     public static BigInteger from(object? value)
     {
         return value switch
