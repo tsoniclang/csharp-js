@@ -129,5 +129,5 @@ public partial class JSArray<T>
 
     private static bool TryNumericKey(string key, out double index) =>
         double.TryParse(key, NumberStyles.Float, CultureInfo.InvariantCulture, out index) &&
-        (index == 0 ? key == "0" : Number.toString(index) == key);
+        Number.toString(index) == key;
 }

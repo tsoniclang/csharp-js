@@ -117,12 +117,6 @@ namespace Tsonic.CSharp.Js
             return buffer.Bytes.AsSpan(_byteOffset + selected, width);
         }
 
-        private void Write(double offset, ReadOnlySpan<byte> value)
-        {
-            var selected = ValidateRange(offset, value.Length);
-            value.CopyTo(buffer.Bytes.AsSpan(_byteOffset + selected, value.Length));
-        }
-
         private Span<byte> Writable(double offset, int width)
         {
             var selected = ValidateRange(offset, width);

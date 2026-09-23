@@ -34,7 +34,8 @@ public static partial class Number
         var count = ReadDigits(source[..length], digits, out var exponent, out var negative);
         if (precision.HasValue && IsFloating<T>())
         {
-            var format = $"E{precision.Value - 1}";
+            Span<char> formatBuffer = stackalloc char[4];
+            var format = PrecisionFormat('E', precision.Value - 1, formatBuffer);
             var increment = DecimalHalfRoundsDown(value, precision.Value - 1 - exponent);
             if (!value.TryFormat(source, out length, format, CultureInfo.InvariantCulture))
                 throw new InvalidOperationException("Significant formatting exceeded its bounded buffer.");
@@ -60,6 +61,14 @@ public static partial class Number
         }
         return RenderDigits(digits[..count], exponent, negative,
             exponential || exponent < -6 || exponent >= count);
+    }
+
+    private static ReadOnlySpan<char> PrecisionFormat(char kind, int precision, Span<char> buffer)
+    {
+        buffer[0] = kind;
+        if (!precision.TryFormat(buffer[1..], out var length, default, CultureInfo.InvariantCulture))
+            throw new InvalidOperationException("Numeric precision exceeded its bounded format buffer.");
+        return buffer[..(length + 1)];
     }
 
     private static bool DecimalHalfRoundsDown<T>(T value, int decimals) where T : INumberBase<T>

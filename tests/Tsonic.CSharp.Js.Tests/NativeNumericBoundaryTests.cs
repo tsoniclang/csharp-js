@@ -6,6 +6,31 @@ namespace Tsonic.CSharp.Js.Tests;
 public sealed class NativeNumericBoundaryTests
 {
     [Fact]
+    public void NumericFormattingAllocatesOnlyTheResultString()
+    {
+        Func<string>[] formats = [
+            () => 1.25.toFixed(1),
+            () => 1.25.toExponential(1),
+            () => 1.25.toPrecision(2),
+            () => 9007199254740993L.toFixed(100),
+            () => UInt128.MaxValue.toPrecision(100)
+        ];
+        foreach (var format in formats)
+        {
+            var length = format().Length;
+            Assert.Equal(Measure(() => new string('x', length)), Measure(format));
+        }
+    }
+
+    private static long Measure(Func<string> format)
+    {
+        for (var iteration = 0; iteration < 1000; iteration++) GC.KeepAlive(format());
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var iteration = 0; iteration < 1000; iteration++) GC.KeepAlive(format());
+        return GC.GetAllocatedBytesForCurrentThread() - before;
+    }
+
+    [Fact]
     public void SurfaceLimitsNormalizeWithoutChangingNativeStorageBounds()
     {
         var expression = new RegExp(",");

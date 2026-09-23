@@ -215,8 +215,9 @@ namespace Tsonic.CSharp.Js
             if (IsFloating<T>() && (!T.IsFinite(value) || System.Math.Abs(double.CreateChecked(value)) >= 1e21))
                 return FormatDecimal(value);
             Span<char> output = stackalloc char[160];
+            Span<char> format = stackalloc char[4];
             if (T.IsZero(value)) value = T.Zero;
-            if (!value.TryFormat(output, out var length, $"F{count}", CultureInfo.InvariantCulture))
+            if (!value.TryFormat(output, out var length, PrecisionFormat('F', count, format), CultureInfo.InvariantCulture))
                 throw new InvalidOperationException("Fixed numeric formatting exceeded its bounded buffer.");
             if (DecimalHalfRoundsDown(value, count)) output[length - 1]++;
             return new string(output[..length]);
