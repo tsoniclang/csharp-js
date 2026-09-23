@@ -108,7 +108,7 @@ namespace Tsonic.CSharp.Js
 
         private void SetFromMilliseconds(double milliseconds)
         {
-            _milliseconds = TimeClip(milliseconds);
+            _milliseconds = NativeTimestamp(milliseconds);
             if (!double.IsFinite(_milliseconds))
             {
                 _value = DateTimeOffset.MinValue;
@@ -134,7 +134,7 @@ namespace Tsonic.CSharp.Js
             if (DateTimeOffset.TryParse(dateString, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
             {
                 _value = parsed;
-                _milliseconds = TimeClip((parsed.ToUniversalTime() - Epoch).TotalMilliseconds);
+                _milliseconds = NativeTimestamp((parsed.ToUniversalTime() - Epoch).TotalMilliseconds);
                 _hasLocalValue = true;
             }
             else
@@ -489,7 +489,7 @@ namespace Tsonic.CSharp.Js
 
         private void SyncMillisecondsFromValue()
         {
-            _milliseconds = TimeClip((_value.ToUniversalTime() - Epoch).TotalMilliseconds);
+            _milliseconds = NativeTimestamp((_value.ToUniversalTime() - Epoch).TotalMilliseconds);
             _hasLocalValue = true;
         }
 
@@ -545,7 +545,7 @@ namespace Tsonic.CSharp.Js
                 return double.NaN;
             var civilMonth = checked((int)Modulo(totalMonths, 12) + 1);
             var dayNumber = DaysFromCivil(civilYear, civilMonth, 1);
-            return TimeClip(
+            return NativeTimestamp(
                 (dayNumber + System.Math.Truncate(day) - 1) * MillisecondsPerDay
                 + System.Math.Truncate(hours) * 3_600_000
                 + System.Math.Truncate(minutes) * 60_000
@@ -553,7 +553,7 @@ namespace Tsonic.CSharp.Js
                 + System.Math.Truncate(milliseconds));
         }
 
-        private static double TimeClip(double value)
+        private static double NativeTimestamp(double value)
         {
             if (!double.IsFinite(value) || value < long.MinValue || value >= -(double)long.MinValue)
                 return double.NaN;

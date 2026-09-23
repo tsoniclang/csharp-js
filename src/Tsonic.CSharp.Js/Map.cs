@@ -1,6 +1,6 @@
 /**
  * Closed JavaScript Map carrier.
- * Uses explicit SameValueZero key matching and insertion-order storage instead of native collection key semantics.
+ * Uses native numeric key equality and insertion-order storage.
  */
 
 using System;

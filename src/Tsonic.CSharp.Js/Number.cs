@@ -68,11 +68,17 @@ namespace Tsonic.CSharp.Js
         public static bool isInteger<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
             value.HasValue && T.IsInteger(value.Value);
 
-        public static bool isSafeInteger<T>(T value) where T : System.Numerics.INumberBase<T> =>
-            T.IsInteger(value);
+        public static bool isSafeInteger<T>(T value) where T : System.Numerics.INumberBase<T>
+        {
+            if (!T.IsInteger(value)) return false;
+            if (typeof(T) == typeof(double)) return System.Math.Abs(double.CreateChecked(value)) <= MAX_SAFE_INTEGER;
+            if (typeof(T) == typeof(float)) return System.MathF.Abs(float.CreateChecked(value)) <= 16777215f;
+            if (typeof(T) == typeof(Half)) return Half.Abs(Half.CreateChecked(value)) <= (Half)2047;
+            return true;
+        }
 
         public static bool isSafeInteger<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
-            value.HasValue && T.IsInteger(value.Value);
+            value.HasValue && isSafeInteger(value.Value);
 
 
         public static string toString<T>(this T value) where T : INumberBase<T> =>

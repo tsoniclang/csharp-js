@@ -158,11 +158,11 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Search_UsesStrictEqualityForIndexOfAndSameValueZeroForIncludes()
+        public void Search_UsesNativeNumericValueEquality()
         {
             var denseNumbers = new List<double> { double.NaN, 0.0, -0.0 };
-            Assert.Equal(-1, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, double.NaN));
-            Assert.Equal(-1, Tsonic.CSharp.Js.Array.lastIndexOf(denseNumbers, double.NaN));
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.indexOf(denseNumbers, double.NaN));
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.lastIndexOf(denseNumbers, double.NaN));
             Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, double.NaN));
             Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, 0.0));
             Assert.True(Tsonic.CSharp.Js.Array.includes(denseNumbers, -0.0));
@@ -172,8 +172,8 @@ namespace Tsonic.CSharp.Js.Tests
             var sparseNumbers = new JSArray<double>(new[] { 1.0, 0.0, 0.0 });
             sparseNumbers[1] = double.NaN;
 
-            Assert.Equal(-1, sparseNumbers.indexOf(double.NaN));
-            Assert.Equal(-1, sparseNumbers.lastIndexOf(double.NaN));
+            Assert.Equal(1, sparseNumbers.indexOf(double.NaN));
+            Assert.Equal(1, sparseNumbers.lastIndexOf(double.NaN));
             Assert.True(sparseNumbers.includes(double.NaN));
             Assert.True(sparseNumbers.includes(double.NaN, -2));
 

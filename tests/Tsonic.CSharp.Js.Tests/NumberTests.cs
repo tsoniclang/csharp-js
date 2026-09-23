@@ -149,6 +149,13 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.True(Number.isSafeInteger(long.MaxValue));
             Assert.True(Number.isSafeInteger(System.Int128.MinValue));
             Assert.True(Number.isSafeInteger(System.UInt128.MaxValue));
+            Assert.True(Number.isSafeInteger(9007199254740991d));
+            Assert.False(Number.isSafeInteger(9007199254740992d));
+            Assert.True(Number.isSafeInteger(16777215f));
+            Assert.False(Number.isSafeInteger(16777216f));
+            Assert.True(Number.isSafeInteger((Half)2047));
+            Assert.False(Number.isSafeInteger((Half)2048));
+            Assert.True(Number.isSafeInteger(decimal.MaxValue));
             Assert.False(Number.isSafeInteger(0.5));
             Assert.False(Number.isSafeInteger(double.NaN));
             Assert.True(Number.isSafeInteger((long?)9));

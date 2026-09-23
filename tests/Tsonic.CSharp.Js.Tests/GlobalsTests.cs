@@ -303,15 +303,15 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void String_UsesExactSourceFormattingAcrossCultureAndClosedUnions()
+        public void String_UsesNativeInvariantFormattingAcrossCultureAndClosedUnions()
         {
             var previous = System.Globalization.CultureInfo.CurrentCulture;
             try
             {
                 System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("fr-FR");
                 Assert.Equal("1.5", Globals.String(1.5));
-                Assert.Equal("0", Globals.String(-0d));
-                Assert.Equal("1e+21", Globals.String(1e21));
+                Assert.Equal("-0", Globals.String(-0d));
+                Assert.Equal("1E+21", Globals.String(1e21));
                 Assert.Equal("9007199254740993", Globals.String(9007199254740993L));
                 var integer = System.Numerics.BigInteger.Parse("18446744073709551617");
                 Assert.Equal("18446744073709551617", Globals.String(integer));

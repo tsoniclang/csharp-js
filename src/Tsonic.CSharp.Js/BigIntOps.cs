@@ -5,6 +5,31 @@ namespace Tsonic.CSharp.Js;
 
 public static class BigIntOps
 {
+    public static BigInteger from(sbyte value) => FromNumeric(value);
+    public static BigInteger from(byte value) => FromNumeric(value);
+    public static BigInteger from(short value) => FromNumeric(value);
+    public static BigInteger from(ushort value) => FromNumeric(value);
+    public static BigInteger from(int value) => FromNumeric(value);
+    public static BigInteger from(uint value) => FromNumeric(value);
+    public static BigInteger from(long value) => FromNumeric(value);
+    public static BigInteger from(ulong value) => FromNumeric(value);
+    public static BigInteger from(nint value) => FromNumeric(value);
+    public static BigInteger from(nuint value) => FromNumeric(value);
+    public static BigInteger from(Int128 value) => FromNumeric(value);
+    public static BigInteger from(UInt128 value) => FromNumeric(value);
+    public static BigInteger from(Half value) => FromNumeric(value);
+    public static BigInteger from(float value) => FromNumeric(value);
+    public static BigInteger from(double value) => FromNumeric(value);
+    public static BigInteger from(decimal value) => FromNumeric(value);
+    public static BigInteger from(BigInteger value) => FromNumeric(value);
+    public static BigInteger from(bool value) => value ? BigInteger.One : BigInteger.Zero;
+    public static BigInteger from(string value) => value is null
+        ? throw new TypeError("BigInt requires a numeric, boolean or string value") : FromString(value);
+
+    private static BigInteger FromNumeric<T>(T value) where T : INumberBase<T> =>
+        T.IsInteger(value) ? BigInteger.CreateChecked(value)
+            : throw new RangeError("The number cannot be converted to a BigInt because it is not an integer");
+
     public static string toString(BigInteger value, int radix = 10)
     {
         if (radix < 2 || radix > 36) throw new RangeError("BigInt radix must be between 2 and 36.");

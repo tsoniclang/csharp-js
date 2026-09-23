@@ -8,7 +8,7 @@ internal readonly struct CollectionKey<T> : IEquatable<CollectionKey<T>>
 {
     public CollectionKey(T value)
     {
-        Value = JSKeyEquality.canonicalizeKeyedCollectionKey(value);
+        Value = value;
     }
 
     public T Value { get; }

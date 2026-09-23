@@ -1,213 +1,51 @@
-namespace Tsonic.CSharp.Js
+namespace Tsonic.CSharp.Js;
+
+internal static class JSKeyEquality
 {
-    internal static class JSKeyEquality
+    public static bool sameValueZero<T>(T left, T right) =>
+        NativeValueKey<T>.Supported
+            ? System.Collections.Generic.EqualityComparer<T>.Default.Equals(left, right)
+            : BoxedEqual(left, right);
+
+    public static bool sameValueZeroUndefined<T>(T value) => BoxedEqual(Undefined.value, value);
+
+    public static int keyHash<T>(T value) => NativeValueKey<T>.Supported
+        ? value is null ? 0 : System.Collections.Generic.EqualityComparer<T>.Default.GetHashCode(value)
+        : BoxedHash(value);
+
+    private static bool BoxedEqual(object? left, object? right)
     {
-        public static bool sameValueZero<T>(T left, T right)
-        {
-            if (NativeValueKey<T>.Supported)
-                return System.Collections.Generic.EqualityComparer<T>.Default.Equals(left, right);
-            return sameValueZero((object?)left, (object?)right);
-        }
+        if (left is TsValue leftValue) return BoxedEqual(leftValue.unwrap(), right);
+        if (right is TsValue rightValue) return BoxedEqual(left, rightValue.unwrap());
+        if (ReferenceEquals(left, right)) return true;
+        return left is not null && IsNativeValue(left) && left.Equals(right);
+    }
 
-        public static int keyHash<T>(T value)
-        {
-            if (NativeValueKey<T>.Supported)
-                return typeof(T) == typeof(string) && value is null
-                    ? 0 : System.Collections.Generic.EqualityComparer<T>.Default.GetHashCode(value!);
-            return boxedKeyHash(value);
-        }
+    private static int BoxedHash(object? value)
+    {
+        if (value is TsValue wrapped) return BoxedHash(wrapped.unwrap());
+        if (value is null) return 0;
+        return IsNativeValue(value) ? value.GetHashCode()
+            : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
+    }
 
-        private static int boxedKeyHash(object? value)
-        {
-            if (value is TsValue wrapped) return boxedKeyHash(wrapped.unwrap());
-            if (value is null) return 0;
-            if (tryReadNumber(value, out var number)) return number.GetHashCode();
-            if (value is string text) return System.StringComparer.Ordinal.GetHashCode(text);
-            if (value is bool boolean) return boolean.GetHashCode();
-            return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
-        }
+    private static bool IsNativeValue(object value) => value is
+        byte or sbyte or short or ushort or int or uint or long or ulong or nint or nuint or
+        System.Int128 or System.UInt128 or System.Half or float or double or decimal or bool or char or string or
+        System.Numerics.BigInteger;
 
-        private static class NativeValueKey<T>
-        {
-            public static readonly bool Supported =
-                typeof(T) == typeof(byte) || typeof(T) == typeof(sbyte) ||
-                typeof(T) == typeof(short) || typeof(T) == typeof(ushort) ||
-                typeof(T) == typeof(int) || typeof(T) == typeof(uint) ||
-                typeof(T) == typeof(long) || typeof(T) == typeof(ulong) ||
-                typeof(T) == typeof(nint) || typeof(T) == typeof(nuint) ||
-                typeof(T) == typeof(float) || typeof(T) == typeof(double) ||
-                typeof(T) == typeof(decimal) || typeof(T) == typeof(bool) ||
-                typeof(T) == typeof(char) || typeof(T) == typeof(string) ||
-                typeof(T) == typeof(System.Numerics.BigInteger);
-        }
-
-        public static bool strictEquals<T>(T left, T right)
-        {
-            return strictEquals((object?)left, (object?)right);
-        }
-
-        public static bool sameValueZeroUndefined<T>(T value)
-        {
-            return sameValueZero(Undefined.value, (object?)value);
-        }
-
-        public static T canonicalizeKeyedCollectionKey<T>(T value)
-        {
-            if (typeof(T) == typeof(double))
-            {
-                ref var number = ref System.Runtime.CompilerServices.Unsafe.As<T, double>(ref value);
-                if (number == 0.0) number = 0.0;
-                return value;
-            }
-            if (typeof(T) == typeof(float))
-            {
-                ref var number = ref System.Runtime.CompilerServices.Unsafe.As<T, float>(ref value);
-                if (number == 0.0f) number = 0.0f;
-                return value;
-            }
-            if (NativeValueKey<T>.Supported)
-                return value;
-            return value switch
-            {
-                double typed when typed == 0.0 => (T)(object)0.0,
-                float typed when typed == 0.0f => (T)(object)0.0f,
-                TsValue typed => (T)(object)TsValue.from(canonicalizeKeyedCollectionKey(typed.unwrap())),
-                object boxed => (T)canonicalizeBoxedKeyedCollectionKey(boxed),
-                _ => value
-            };
-        }
-
-        private static bool strictEquals(object? left, object? right)
-        {
-            if (ReferenceEquals(left, right))
-            {
-                return true;
-            }
-
-            if (left is TsValue leftValue)
-            {
-                return strictEquals(leftValue.unwrap(), right);
-            }
-
-            if (right is TsValue rightValue)
-            {
-                return strictEquals(left, rightValue.unwrap());
-            }
-
-            if (left is null || right is null)
-            {
-                return false;
-            }
-
-            if (tryReadNumber(left, out var leftNumber) && tryReadNumber(right, out var rightNumber))
-            {
-                return !double.IsNaN(leftNumber) && !double.IsNaN(rightNumber) && leftNumber.Equals(rightNumber);
-            }
-
-            if (left is string leftString && right is string rightString)
-            {
-                return string.Equals(leftString, rightString, System.StringComparison.Ordinal);
-            }
-
-            if (left is bool leftBool && right is bool rightBool)
-            {
-                return leftBool == rightBool;
-            }
-
-            return false;
-        }
-
-        private static bool sameValueZero(object? left, object? right)
-        {
-            if (ReferenceEquals(left, right))
-            {
-                return true;
-            }
-
-            if (left is TsValue leftValue)
-            {
-                return sameValueZero(leftValue.unwrap(), right);
-            }
-
-            if (right is TsValue rightValue)
-            {
-                return sameValueZero(left, rightValue.unwrap());
-            }
-
-            if (left is null || right is null)
-            {
-                return false;
-            }
-
-            if (tryReadNumber(left, out var leftNumber) && tryReadNumber(right, out var rightNumber))
-            {
-                return double.IsNaN(leftNumber) && double.IsNaN(rightNumber) || leftNumber.Equals(rightNumber);
-            }
-
-            if (left is string leftString && right is string rightString)
-            {
-                return string.Equals(leftString, rightString, System.StringComparison.Ordinal);
-            }
-
-            if (left is bool leftBool && right is bool rightBool)
-            {
-                return leftBool == rightBool;
-            }
-
-            return false;
-        }
-
-        private static bool tryReadNumber(object value, out double number)
-        {
-            switch (value)
-            {
-                case byte typed:
-                    number = typed;
-                    return true;
-                case sbyte typed:
-                    number = typed;
-                    return true;
-                case short typed:
-                    number = typed;
-                    return true;
-                case ushort typed:
-                    number = typed;
-                    return true;
-                case int typed:
-                    number = typed;
-                    return true;
-                case uint typed:
-                    number = typed;
-                    return true;
-                case long typed:
-                    number = typed;
-                    return true;
-                case ulong typed:
-                    number = typed;
-                    return true;
-                case float typed:
-                    number = typed;
-                    return true;
-                case double typed:
-                    number = typed;
-                    return true;
-                case decimal typed:
-                    number = (double)typed;
-                    return true;
-                default:
-                    number = 0;
-                    return false;
-            }
-        }
-
-        private static object canonicalizeBoxedKeyedCollectionKey(object value)
-        {
-            return value switch
-            {
-                double typed when typed == 0.0 => 0.0,
-                float typed when typed == 0.0f => 0.0f,
-                _ => value
-            };
-        }
+    private static class NativeValueKey<T>
+    {
+        public static readonly bool Supported =
+            typeof(T) == typeof(byte) || typeof(T) == typeof(sbyte) ||
+            typeof(T) == typeof(short) || typeof(T) == typeof(ushort) ||
+            typeof(T) == typeof(int) || typeof(T) == typeof(uint) ||
+            typeof(T) == typeof(long) || typeof(T) == typeof(ulong) ||
+            typeof(T) == typeof(nint) || typeof(T) == typeof(nuint) ||
+            typeof(T) == typeof(System.Int128) || typeof(T) == typeof(System.UInt128) ||
+            typeof(T) == typeof(System.Half) || typeof(T) == typeof(float) || typeof(T) == typeof(double) ||
+            typeof(T) == typeof(decimal) || typeof(T) == typeof(bool) ||
+            typeof(T) == typeof(char) || typeof(T) == typeof(string) ||
+            typeof(T) == typeof(System.Numerics.BigInteger);
     }
 }

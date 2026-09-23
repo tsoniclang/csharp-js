@@ -234,7 +234,7 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void SameValueZero_NumberValues_CanonicalizeNegativeZeroForIteration()
+        public void NativeNumberValues_RetainTheOriginalSignedZero()
         {
             var set = new Set<double>();
             set.add(-0.0).add(0.0);
@@ -242,13 +242,13 @@ namespace Tsonic.CSharp.Js.Tests
             var value = Assert.Single(set.values());
 
             Assert.Equal(1, set.size);
-            Assert.Equal(double.PositiveInfinity, 1.0 / value);
+            Assert.Equal(double.NegativeInfinity, 1.0 / value);
             Assert.True(set.has(-0.0));
             Assert.True(set.has(0.0));
         }
 
         [Fact]
-        public void SameValueZero_ObjectCarrier_CanonicalizesBoxedNegativeZero()
+        public void NativeObjectValues_RetainBoxedSignedZero()
         {
             var set = new Set<object?>();
             set.add((object)(-0.0)).add((object)0.0);
@@ -256,7 +256,7 @@ namespace Tsonic.CSharp.Js.Tests
             var value = Assert.IsType<double>(Assert.Single(set.values()));
 
             Assert.Equal(1, set.size);
-            Assert.Equal(double.PositiveInfinity, 1.0 / value);
+            Assert.Equal(double.NegativeInfinity, 1.0 / value);
             Assert.True(set.has((object)(-0.0)));
             Assert.True(set.has((object)0.0));
         }
@@ -281,7 +281,7 @@ namespace Tsonic.CSharp.Js.Tests
             var set = new Set<object?>();
             set.add(null).add(Undefined.value).add(TsValue.undefined()).add(1).add(1.0);
 
-            Assert.Equal(3, set.size);
+            Assert.Equal(4, set.size);
             Assert.True(set.has(null));
             Assert.True(set.has(Undefined.value));
             Assert.True(set.has(TsValue.undefined()));

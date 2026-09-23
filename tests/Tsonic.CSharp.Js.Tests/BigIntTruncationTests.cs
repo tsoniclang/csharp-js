@@ -53,13 +53,14 @@ public class BigIntTruncationTests
         Assert.Equal(9, BigIntOps.asUintN(9007199254740992d, 9));
     }
 
-    [Theory]
-    [InlineData(0.0)]
-    [InlineData(-0.0)]
-    public void ZeroWidthProducesZero(double bits)
+    [Fact]
+    public void ZeroWidthProducesZero()
     {
-        Assert.Equal(BigInteger.Zero, BigIntOps.asIntN(bits, 9));
-        Assert.Equal(BigInteger.Zero, BigIntOps.asUintN(bits, 9));
+        foreach (var bits in new[] { 0.0, -0.0 })
+        {
+            Assert.Equal(BigInteger.Zero, BigIntOps.asIntN(bits, 9));
+            Assert.Equal(BigInteger.Zero, BigIntOps.asUintN(bits, 9));
+        }
     }
 
     [Theory]

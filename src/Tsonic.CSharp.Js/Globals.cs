@@ -20,20 +20,20 @@ namespace Tsonic.CSharp.Js
         public const double NaN = double.NaN;
         public static readonly object undefined = Undefined.value;
 
-        public static double parseInt(string str, int? radix = null) => Number.parseInt(str, radix);
+        public static double parseInt(string str, int? radix = null) => Tsonic.CSharp.Js.Number.parseInt(str, radix);
 
-        public static double parseFloat(string str) => Number.parseFloat(str);
+        public static double parseFloat(string str) => Tsonic.CSharp.Js.Number.parseFloat(str);
 
         /// <summary>
         /// Check if value is NaN
         /// </summary>
-        public static bool isNaN<T>(T value) where T : System.Numerics.INumberBase<T> => Number.isNaN(value);
+        public static bool isNaN<T>(T value) where T : System.Numerics.INumberBase<T> => Tsonic.CSharp.Js.Number.isNaN(value);
 
-        public static bool isNaN<T>(T? value) where T : struct, System.Numerics.INumberBase<T> => Number.isNaN(value);
+        public static bool isNaN<T>(T? value) where T : struct, System.Numerics.INumberBase<T> => Tsonic.CSharp.Js.Number.isNaN(value);
 
-        public static bool isFinite<T>(T value) where T : System.Numerics.INumberBase<T> => Number.isFinite(value);
+        public static bool isFinite<T>(T value) where T : System.Numerics.INumberBase<T> => Tsonic.CSharp.Js.Number.isFinite(value);
 
-        public static bool isFinite<T>(T? value) where T : struct, System.Numerics.INumberBase<T> => Number.isFinite(value);
+        public static bool isFinite<T>(T? value) where T : struct, System.Numerics.INumberBase<T> => Tsonic.CSharp.Js.Number.isFinite(value);
 
         /// <summary>
         /// Helper method to percent-encode a rune (Unicode scalar value)
@@ -248,6 +248,25 @@ namespace Tsonic.CSharp.Js
         public static double Number<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh, TEighth>(Union<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh, TEighth> value) =>
             value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
 
+        public static double Number(sbyte value) => (double)value;
+        public static double Number(byte value) => (double)value;
+        public static double Number(short value) => (double)value;
+        public static double Number(ushort value) => (double)value;
+        public static double Number(int value) => (double)value;
+        public static double Number(uint value) => (double)value;
+        public static double Number(long value) => (double)value;
+        public static double Number(ulong value) => (double)value;
+        public static double Number(nint value) => (double)value;
+        public static double Number(nuint value) => (double)value;
+        public static double Number(Int128 value) => (double)value;
+        public static double Number(UInt128 value) => (double)value;
+        public static double Number(Half value) => (double)value;
+        public static double Number(float value) => (double)value;
+        public static double Number(double value) => (double)value;
+        public static double Number(decimal value) => (double)value;
+        public static double Number(System.Numerics.BigInteger value) => (double)value;
+        public static double Number(bool value) => value ? 1 : 0;
+
         public static double Number(object? value = null)
         {
             value = unwrapClosedValue(value);
@@ -264,6 +283,14 @@ namespace Tsonic.CSharp.Js
             if (value is ulong unsignedInteger) return unsignedInteger;
             if (value is Int128 wideInteger) return (double)wideInteger;
             if (value is UInt128 wideUnsignedInteger) return (double)wideUnsignedInteger;
+            if (value is sbyte signedByte) return signedByte;
+            if (value is byte unsignedByte) return unsignedByte;
+            if (value is short signedShort) return signedShort;
+            if (value is ushort unsignedShort) return unsignedShort;
+            if (value is uint unsignedWord) return unsignedWord;
+            if (value is nint signedNative) return signedNative;
+            if (value is nuint unsignedNative) return unsignedNative;
+            if (value is Half half) return (double)half;
             if (value is bool b) return b ? 1 : 0;
 
             if (value is string str)
@@ -302,6 +329,24 @@ namespace Tsonic.CSharp.Js
 
         public static string String<T1, T2, T3, T4, T5, T6, T7, T8>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6, T7, T8>? value)
             => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String, String, String, String);
+
+        public static string String(sbyte value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(byte value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(short value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(ushort value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(int value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(uint value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(long value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(ulong value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(nint value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(nuint value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(Int128 value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(UInt128 value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(Half value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(float value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(double value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(decimal value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(System.Numerics.BigInteger value) => value.ToString(CultureInfo.InvariantCulture);
 
         public static string String<TValue>(TValue input)
         {

@@ -294,9 +294,9 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ApplyDynamicBinary_UsesClosedPrimitiveOperatorSemantics()
         {
-            Assert.Equal(3d, TsValue.ApplyDynamicBinary(1, "+", 2).unwrap());
+            Assert.Equal(3, Assert.IsType<int>(TsValue.ApplyDynamicBinary(1, "+", 2).unwrap()));
             Assert.Equal("hello2", TsValue.ApplyDynamicBinary("hello", "+", 2).unwrap());
-            Assert.Equal(3d, TsValue.ApplyDynamicBinary("5", "-", 2).unwrap());
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinary("5", "-", 2));
         }
 
         [Fact]
@@ -320,11 +320,11 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ApplyDynamicBinaryBoolean_UsesClosedPrimitiveComparisonSemantics()
         {
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean("2", "==", 2));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean("2", "==", 2));
             Assert.False(TsValue.ApplyDynamicBinaryBoolean("2", "===", 2));
             Assert.True(TsValue.ApplyDynamicBinaryBoolean(2, "===", 2d));
             Assert.True(TsValue.ApplyDynamicBinaryBoolean("a", "<", "b"));
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean(4, ">=", "4"));
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(4, ">=", "4"));
         }
 
         [Fact]
@@ -335,24 +335,26 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "==", false));
             Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, "==", false));
             Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "==", 0));
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean(false, "==", 0));
+            Assert.False(TsValue.ApplyDynamicBinaryBoolean(false, "==", 0));
         }
 
         [Fact]
-        public void ApplyDynamicBinaryBoolean_UndefinedRelationalComparisonsAreFalse()
+        public void ApplyDynamicBinaryBoolean_RelationalComparisonsRequireNativeOperands()
         {
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, "<", 0));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, "<=", 0));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, ">", 0));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(Undefined.value, ">=", 0));
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean(null, "<=", 0));
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(Undefined.value, "<", 0));
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(Undefined.value, "<=", 0));
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(Undefined.value, ">", 0));
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(Undefined.value, ">=", 0));
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(null, "<=", 0));
         }
 
         [Fact]
         public void ApplyDynamicUnary_UsesClosedPrimitiveOperatorSemantics()
         {
-            Assert.Equal(7d, TsValue.ApplyDynamicUnary("7", "+").unwrap());
-            Assert.Equal(-7d, TsValue.ApplyDynamicUnary("7", "-").unwrap());
+            Assert.Equal(7, Assert.IsType<int>(TsValue.ApplyDynamicUnary(7, "+").unwrap()));
+            Assert.Equal(-7, Assert.IsType<int>(TsValue.ApplyDynamicUnary(7, "-").unwrap()));
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicUnary("7", "+"));
+            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicUnary("7", "-"));
             Assert.Equal(~7, TsValue.ApplyDynamicUnary(7, "~").unwrap());
             Assert.True(TsValue.ApplyDynamicUnaryBoolean(0, "!"));
             Assert.False(TsValue.ApplyDynamicUnaryBoolean("value", "!"));
