@@ -11,9 +11,8 @@ namespace Tsonic.CSharp.Js.Tests
         [InlineData("FF", 16, 255d)]
         [InlineData("77", 8, 63d)]
         [InlineData("  42  ", 10, 42d)]
-        [InlineData("123abc", 10, 123d)]
-        [InlineData("-0x10", null, -16d)]
-        [InlineData("+0x10", 16, 16d)]
+        [InlineData("-10", null, -10d)]
+        [InlineData("+10", 16, 16d)]
         public void parseInt_ValidInput_ReturnsCorrectValue(string input, int? radix, double expected)
         {
             var result = Globals.parseInt(input, radix);
@@ -24,6 +23,11 @@ namespace Tsonic.CSharp.Js.Tests
         [InlineData("", null)]
         [InlineData("   ", null)]
         [InlineData("abc", 10)]
+        [InlineData("123abc", 10)]
+        [InlineData("-0x10", null)]
+        [InlineData("+0x10", 16)]
+        [InlineData("170141183460469231731687303715884105728", 10)]
+        [InlineData("-170141183460469231731687303715884105729", 10)]
         [InlineData("123", 1)]  // Invalid radix
         [InlineData("123", 37)] // Invalid radix
         public void parseInt_InvalidInput_ReturnsNaN(string input, int? radix)
@@ -54,6 +58,9 @@ namespace Tsonic.CSharp.Js.Tests
         [InlineData("")]
         [InlineData("   ")]
         [InlineData("abc")]
+        [InlineData("3.14x")]
+        [InlineData("1e+")]
+        [InlineData("Infinitysuffix")]
         public void parseFloat_InvalidInput_ReturnsNaN(string input)
         {
             var result = Globals.parseFloat(input);
@@ -205,10 +212,10 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Number_EmptyString_ReturnsZero()
+        public void Number_EmptyString_HasNoNumericValue()
         {
-            Assert.Equal(0, Globals.Number(""));
-            Assert.Equal(0, Globals.Number("   "));
+            Assert.True(double.IsNaN(Globals.Number("")));
+            Assert.True(double.IsNaN(Globals.Number("   ")));
         }
 
         [Fact]

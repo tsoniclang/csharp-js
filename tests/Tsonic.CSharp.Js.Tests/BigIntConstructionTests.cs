@@ -22,8 +22,7 @@ public class BigIntConstructionTests
     }
 
     [Theory]
-    [InlineData("", "0")]
-    [InlineData("\ufeff\u2000\r\n", "0")]
+    [InlineData("\u00851", "1")]
     [InlineData("\u00a0-00042\u3000", "-42")]
     [InlineData("+42", "42")]
     [InlineData("0Xff", "255")]
@@ -36,6 +35,8 @@ public class BigIntConstructionTests
     }
 
     [Theory]
+    [InlineData("")]
+    [InlineData("\ufeff\u2000\r\n")]
     [InlineData("1.0")]
     [InlineData("1e3")]
     [InlineData("0x")]
@@ -43,7 +44,6 @@ public class BigIntConstructionTests
     [InlineData("-0b1")]
     [InlineData("1n")]
     [InlineData("1_000")]
-    [InlineData("\u00851")]
     [InlineData("Infinity")]
     public void InvalidStringsThrowSyntaxError(string source)
     {

@@ -2,20 +2,29 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Tsonic.CSharp.Js
 {
     public abstract class TypedArray<TArray, TElement> : IEnumerable<double>, IArrayLike<double>
         where TArray : TypedArray<TArray, TElement>
-        where TElement : unmanaged
+        where TElement : unmanaged, INumberBase<TElement>
     {
         private readonly ArrayBuffer _buffer;
         private readonly int _byteOffset;
 
         protected TypedArray(double length)
-            : this(new ArrayBuffer(checked(CheckedLength(length) * ElementSize)), 0, length)
+            : this(CheckedLength(length))
         {
+        }
+
+        protected TypedArray(int length)
+        {
+            if (length < 0) throw new RangeError("Typed array length must be non-negative.");
+            _buffer = new ArrayBuffer(checked(length * ElementSize));
+            _byteOffset = 0;
+            ElementCount = length;
         }
 
         protected TypedArray(IEnumerable<double> values)
@@ -59,6 +68,18 @@ namespace Tsonic.CSharp.Js
 
         protected int ElementCount { get; }
 
+        internal ReadOnlySpan<TElement> NativeElements => Elements;
+
+        internal int NativeLength => ElementCount;
+
+        protected Span<TElement> NativeDestination(int sourceLength, double offset)
+        {
+            var selectedOffset = CheckedLength(offset);
+            if (selectedOffset > ElementCount || sourceLength > ElementCount - selectedOffset)
+                throw new RangeError("Typed array set source exceeds the target view.");
+            return Elements.Slice(selectedOffset, sourceLength);
+        }
+
         public ArrayBuffer buffer => _buffer;
 
         public double byteOffset => _byteOffset;
@@ -97,8 +118,8 @@ namespace Tsonic.CSharp.Js
 
         public double? at(double index)
         {
-            var selected = TypedArrayNumbers.IntegerOrInfinity(index);
-            if (selected < 0 && selected != long.MinValue)
+            var selected = NativeInteger.Index(index);
+            if (selected < 0)
             {
                 selected += ElementCount;
             }
@@ -244,15 +265,7 @@ namespace Tsonic.CSharp.Js
 
         private int NormalizeStart(double index)
         {
-            var integer = TypedArrayNumbers.IntegerOrInfinity(index);
-            if (integer == long.MaxValue)
-            {
-                return ElementCount;
-            }
-            if (integer == long.MinValue)
-            {
-                return 0;
-            }
+            var integer = NativeInteger.Index(index);
             var selected = integer < 0 ? ElementCount + integer : integer;
             return checked((int)System.Math.Clamp(selected, 0, ElementCount));
         }
@@ -268,62 +281,12 @@ namespace Tsonic.CSharp.Js
 
         protected static int CheckedLength(double value)
         {
-            if (!double.IsFinite(value))
-            {
-                throw new RangeError("Typed array length or offset must be finite.");
-            }
-            var integer = System.Math.Truncate(value);
-            if (integer < 0 || integer > int.MaxValue)
-            {
-                throw new RangeError("Typed array length or offset is outside the supported range.");
-            }
-            return checked((int)integer);
+            return NativeInteger.Length(value);
         }
     }
 
     internal static class TypedArrayNumbers
     {
-        public static long IntegerOrInfinity(double value)
-        {
-            if (double.IsNaN(value) || value == 0)
-            {
-                return 0;
-            }
-            if (double.IsPositiveInfinity(value) || value >= long.MaxValue)
-            {
-                return long.MaxValue;
-            }
-            if (double.IsNegativeInfinity(value) || value <= long.MinValue)
-            {
-                return long.MinValue;
-            }
-            return checked((long)System.Math.Truncate(value));
-        }
-
-        public static ulong ToUnsigned(double value, int width)
-        {
-            if (!double.IsFinite(value) || value == 0)
-            {
-                return 0;
-            }
-            var modulus = System.Math.Pow(2, width);
-            var remainder = System.Math.Truncate(value) % modulus;
-            if (remainder < 0)
-            {
-                remainder += modulus;
-            }
-            return checked((ulong)remainder);
-        }
-
-        public static long ToSigned(double value, int width)
-        {
-            var unsigned = ToUnsigned(value, width);
-            var sign = 1UL << (width - 1);
-            var modulus = 1UL << width;
-            return unsigned >= sign
-                ? checked((long)unsigned) - checked((long)modulus)
-                : checked((long)unsigned);
-        }
 
         public static byte ToUint8Clamp(double value)
         {

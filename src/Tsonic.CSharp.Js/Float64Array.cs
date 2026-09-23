@@ -1,10 +1,28 @@
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace Tsonic.CSharp.Js
 {
     public sealed class Float64Array : TypedArray<Float64Array, double>
     {
         public Float64Array(double length) : base(length) { }
+        public Float64Array(int length) : base(length) { }
+        public static Float64Array From<TSourceArray, TSource>(TypedArray<TSourceArray, TSource> source)
+            where TSourceArray : TypedArray<TSourceArray, TSource>
+            where TSource : unmanaged, INumberBase<TSource>
+        {
+            System.ArgumentNullException.ThrowIfNull(source);
+            var result = new Float64Array(source.NativeLength);
+            result.set(source);
+            return result;
+        }
+        public void set<TSourceArray, TSource>(TypedArray<TSourceArray, TSource> source, double offset = 0)
+            where TSourceArray : TypedArray<TSourceArray, TSource>
+            where TSource : unmanaged, INumberBase<TSource>
+        {
+            System.ArgumentNullException.ThrowIfNull(source);
+            TypedArrayCopy.Checked<TSource, double>(source.NativeElements, NativeDestination(source.NativeLength, offset));
+        }
         public Float64Array(IEnumerable<double> values) : base(values) { }
         public Float64Array(ArrayBuffer buffer, double byteOffset = 0, double? length = null) : base(buffer, byteOffset, length) { }
         protected override double ToElement(double value) => value;

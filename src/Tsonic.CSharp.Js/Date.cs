@@ -1,6 +1,6 @@
 /**
  * JavaScript Date implementation
- * Retains the ECMAScript epoch-millisecond scalar and uses DateTimeOffset only
+ * Retains an epoch-millisecond scalar and uses DateTimeOffset only
  * for representable local-time operations.
  */
 
@@ -20,7 +20,6 @@ namespace Tsonic.CSharp.Js
 
         private static readonly DateTimeOffset Epoch = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
         private const long MillisecondsPerDay = 86_400_000;
-        private const double MaximumTimeMilliseconds = 8_640_000_000_000_000.0;
         private static readonly string[] Weekdays = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
         private static readonly string[] Months = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
@@ -188,8 +187,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static double UTC(int year, int month, int day = 1, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds = 0)
         {
-            var normalizedYear = year >= 0 && year <= 99 ? year + 1900 : year;
-            return MakeUtcMilliseconds(normalizedYear, month, day, hours, minutes, seconds, milliseconds);
+            return MakeUtcMilliseconds(year, month, day, hours, minutes, seconds, milliseconds);
         }
 
         public static string call() => new Date().ToString();
@@ -538,12 +536,12 @@ namespace Tsonic.CSharp.Js
 
             year = System.Math.Truncate(year);
             month = System.Math.Truncate(month);
-            if (System.Math.Abs(year) > 1_000_000 || System.Math.Abs(month) > 10_000_000)
+            if (year < int.MinValue || year > int.MaxValue || month < int.MinValue || month > int.MaxValue)
                 return double.NaN;
 
             var totalMonths = checked((long)year * 12 + (long)month);
             var civilYear = FloorDiv(totalMonths, 12);
-            if (System.Math.Abs(civilYear) > 1_000_000)
+            if (civilYear < int.MinValue || civilYear > int.MaxValue)
                 return double.NaN;
             var civilMonth = checked((int)Modulo(totalMonths, 12) + 1);
             var dayNumber = DaysFromCivil(civilYear, civilMonth, 1);
@@ -557,9 +555,9 @@ namespace Tsonic.CSharp.Js
 
         private static double TimeClip(double value)
         {
-            if (!double.IsFinite(value) || System.Math.Abs(value) > MaximumTimeMilliseconds)
+            if (!double.IsFinite(value) || value < long.MinValue || value >= -(double)long.MinValue)
                 return double.NaN;
-            return value == 0 ? 0 : System.Math.Truncate(value);
+            return System.Math.Truncate(value);
         }
 
         private static long DaysFromCivil(long year, int month, int day)

@@ -5,6 +5,24 @@ namespace Tsonic.CSharp.Js;
 
 public static class BigIntOps
 {
+    public static string toString(BigInteger value, int radix = 10)
+    {
+        if (radix < 2 || radix > 36) throw new RangeError("BigInt radix must be between 2 and 36.");
+        if (radix == 10 || value.IsZero) return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var negative = value.Sign < 0;
+        value = BigInteger.Abs(value);
+        var digits = new System.Collections.Generic.List<char>();
+        const string alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
+        while (!value.IsZero)
+        {
+            value = BigInteger.DivRem(value, radix, out var remainder);
+            digits.Add(alphabet[(int)remainder]);
+        }
+        if (negative) digits.Add('-');
+        digits.Reverse();
+        return new string(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(digits));
+    }
+
     public static Int128 AsIntNative<T>(double bits, T value) where T : IBinaryInteger<T>
     {
         var width = NativeWidth(bits);
@@ -117,23 +135,20 @@ public static class BigIntOps
 
     private static BigInteger FromString(string source)
     {
-        var start = 0;
-        var end = source.Length;
-        while (start < end && IsWhitespace(source[start])) start++;
-        while (end > start && IsWhitespace(source[end - 1])) end--;
-        var text = source.AsSpan(start, end - start);
-        if (text.IsEmpty) return BigInteger.Zero;
+        var text = source.AsSpan().Trim();
+        if (text.IsEmpty) throw new SyntaxError("Cannot convert the string to a BigInt");
         var radix = 10;
         if (text.Length >= 2 && text[0] == '0')
         {
             radix = text[1] switch { 'x' or 'X' => 16, 'o' or 'O' => 8, 'b' or 'B' => 2, _ => 10 };
             if (radix != 10) text = text[2..];
         }
-        var negative = false;
-        if (radix == 10 && !text.IsEmpty && text[0] is '+' or '-')
+        if (radix == 10)
         {
-            negative = text[0] == '-';
-            text = text[1..];
+            return BigInteger.TryParse(text, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out var integer)
+                ? integer
+                : throw new SyntaxError("Cannot convert the string to a BigInt");
         }
         if (text.IsEmpty) throw new SyntaxError("Cannot convert the string to a BigInt");
         var result = BigInteger.Zero;
@@ -149,11 +164,6 @@ public static class BigIntOps
             if (digit < 0 || digit >= radix) throw new SyntaxError("Cannot convert the string to a BigInt");
             result = result * radix + digit;
         }
-        return negative ? -result : result;
+        return result;
     }
-
-    private static bool IsWhitespace(char value) => value is
-        '\u0009' or '\u000b' or '\u000c' or '\u0020' or '\u00a0' or '\ufeff' or
-        '\u000a' or '\u000d' or '\u2028' or '\u2029' or '\u1680' or
-        >= '\u2000' and <= '\u200a' or '\u202f' or '\u205f' or '\u3000';
 }

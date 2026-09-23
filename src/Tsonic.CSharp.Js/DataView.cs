@@ -59,14 +59,14 @@ namespace Tsonic.CSharp.Js
                 ? BinaryPrimitives.ReadInt64LittleEndian(Read(offset, 8))
                 : BinaryPrimitives.ReadInt64BigEndian(Read(offset, 8)));
 
-        public void setInt8(double offset, double value) => Write(offset, new[] { unchecked((byte)TypedArrayNumbers.ToSigned(value, 8)) });
+        public void setInt8(double offset, double value) => Write(offset, new[] { unchecked((byte)checked((sbyte)value)) });
 
-        public void setUint8(double offset, double value) => Write(offset, new[] { checked((byte)TypedArrayNumbers.ToUnsigned(value, 8)) });
+        public void setUint8(double offset, double value) => Write(offset, new[] { checked((byte)value) });
 
         public void setInt16(double offset, double value, bool littleEndian = false)
         {
             var span = Writable(offset, 2);
-            var converted = checked((short)TypedArrayNumbers.ToSigned(value, 16));
+            var converted = checked((short)value);
             if (littleEndian) BinaryPrimitives.WriteInt16LittleEndian(span, converted);
             else BinaryPrimitives.WriteInt16BigEndian(span, converted);
         }
@@ -74,7 +74,7 @@ namespace Tsonic.CSharp.Js
         public void setUint16(double offset, double value, bool littleEndian = false)
         {
             var span = Writable(offset, 2);
-            var converted = checked((ushort)TypedArrayNumbers.ToUnsigned(value, 16));
+            var converted = checked((ushort)value);
             if (littleEndian) BinaryPrimitives.WriteUInt16LittleEndian(span, converted);
             else BinaryPrimitives.WriteUInt16BigEndian(span, converted);
         }
@@ -82,7 +82,7 @@ namespace Tsonic.CSharp.Js
         public void setInt32(double offset, double value, bool littleEndian = false)
         {
             var span = Writable(offset, 4);
-            var converted = checked((int)TypedArrayNumbers.ToSigned(value, 32));
+            var converted = checked((int)value);
             if (littleEndian) BinaryPrimitives.WriteInt32LittleEndian(span, converted);
             else BinaryPrimitives.WriteInt32BigEndian(span, converted);
         }
@@ -90,7 +90,7 @@ namespace Tsonic.CSharp.Js
         public void setUint32(double offset, double value, bool littleEndian = false)
         {
             var span = Writable(offset, 4);
-            var converted = checked((uint)TypedArrayNumbers.ToUnsigned(value, 32));
+            var converted = checked((uint)value);
             if (littleEndian) BinaryPrimitives.WriteUInt32LittleEndian(span, converted);
             else BinaryPrimitives.WriteUInt32BigEndian(span, converted);
         }

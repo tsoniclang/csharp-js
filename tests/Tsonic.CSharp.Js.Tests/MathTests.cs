@@ -49,14 +49,14 @@ namespace Tsonic.CSharp.Js.Tests
         [InlineData(3.1, 3)]
         [InlineData(3.5, 4)]
         [InlineData(3.9, 4)]
-        [InlineData(-3.5, -3)]
+        [InlineData(-3.5, -4)]
         public void round_RoundsToNearest(double input, double expected)
         {
             Assert.Equal(expected, Math.round(input));
         }
 
         [Fact]
-        public void round_PreservesJavaScriptSpecialValues()
+        public void round_UsesNativeClrRounding()
         {
             Assert.True(double.IsNegative(Math.round(-0.1)));
             Assert.Equal(double.PositiveInfinity, Math.round(double.PositiveInfinity));

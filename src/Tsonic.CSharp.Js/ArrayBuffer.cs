@@ -20,10 +20,14 @@ namespace Tsonic.CSharp.Js
         /// Create ArrayBuffer with specified byte length
         /// </summary>
         public ArrayBuffer(double byteLength)
+            : this(NativeInteger.Length(byteLength))
         {
-            if (!double.IsFinite(byteLength) || byteLength < 0 || byteLength > int.MaxValue || byteLength != System.Math.Truncate(byteLength))
-                throw new RangeError("ArrayBuffer byteLength is outside the supported range.");
-            _buffer = new byte[checked((int)byteLength)];
+        }
+
+        internal ArrayBuffer(int byteLength)
+        {
+            if (byteLength < 0) throw new RangeError("ArrayBuffer length must be non-negative.");
+            _buffer = new byte[byteLength];
         }
 
         /// <summary>
@@ -49,9 +53,7 @@ namespace Tsonic.CSharp.Js
 
         private int NormalizeIndex(double value)
         {
-            var integer = TypedArrayNumbers.IntegerOrInfinity(value);
-            if (integer == long.MaxValue) return _buffer.Length;
-            if (integer == long.MinValue) return 0;
+            var integer = NativeInteger.Index(value);
             var resolved = integer < 0 ? _buffer.Length + integer : integer;
             return checked((int)System.Math.Clamp(resolved, 0, _buffer.Length));
         }

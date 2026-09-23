@@ -301,7 +301,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static JSArray<string> split(this string str, string separator, double? limit = null)
         {
-            var maximum = toUint32(limit ?? uint.MaxValue);
+            var maximum = limit.HasValue ? NativeInteger.Length(limit.Value) : int.MaxValue;
             if (maximum == 0)
             {
                 return new JSArray<string>();
@@ -319,27 +319,11 @@ namespace Tsonic.CSharp.Js
 
         private static JSArray<string> applySplitLimit(
             IEnumerable<string> parts,
-            uint maximum)
+            int maximum)
         {
             return maximum >= int.MaxValue
                 ? JSArray<string>.from(parts)
-                : JSArray<string>.from(parts.Take((int)maximum));
-        }
-
-        private static uint toUint32(double value)
-        {
-            if (!double.IsFinite(value) || value == 0)
-            {
-                return 0;
-            }
-            const double modulus = 4_294_967_296d;
-            var integer = System.Math.Truncate(value);
-            var result = integer % modulus;
-            if (result < 0)
-            {
-                result += modulus;
-            }
-            return (uint)result;
+                : JSArray<string>.from(parts.Take(maximum));
         }
 
         /// <summary>
@@ -721,7 +705,10 @@ namespace Tsonic.CSharp.Js
             var chars = new char[codes.Length];
             for (int index = 0; index < codes.Length; index++)
             {
-                chars[index] = (char)(toUint32(codes[index]) & 0xFFFF);
+                var code = codes[index];
+                if (!double.IsInteger(code) || code < char.MinValue || code > char.MaxValue)
+                    throw new RangeError("Character code must be a native UTF-16 code unit.");
+                chars[index] = (char)code;
             }
             return new string(chars);
         }

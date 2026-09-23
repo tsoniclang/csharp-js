@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using Tsonic.CSharp.Js;
 using Xunit;
 
@@ -6,7 +8,7 @@ namespace Tsonic.CSharp.Js.Tests
     public class NumberTests
     {
         [Fact]
-        public void Constants_MatchJavaScriptNumberValues()
+        public void Constants_DescribeTheBinary64Carrier()
         {
             Assert.Equal(double.MaxValue, Number.MAX_VALUE);
             Assert.Equal(double.Epsilon, Number.MIN_VALUE);
@@ -23,7 +25,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.Equal("42", 42d.toString());
             Assert.Equal("3.5", 3.5d.toString());
-            Assert.Equal("0", (-0.0d).toString());
+            Assert.Equal((-0.0d).ToString(CultureInfo.InvariantCulture), (-0.0d).toString());
             Assert.Equal("NaN", double.NaN.toString());
             Assert.Equal("Infinity", double.PositiveInfinity.toString());
             Assert.Equal("-Infinity", double.NegativeInfinity.toString());
@@ -48,19 +50,19 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Theory]
-        [InlineData(1e-7, "1e-7")]
-        [InlineData(-1e-7, "-1e-7")]
-        [InlineData(1e-6, "0.000001")]
-        [InlineData(-1.234e-6, "-0.000001234")]
-        [InlineData(1e20, "100000000000000000000")]
-        [InlineData(-1.2345678901234568e20, "-123456789012345680000")]
-        [InlineData(1e21, "1e+21")]
-        [InlineData(-1e21, "-1e+21")]
-        [InlineData(double.Epsilon, "5e-324")]
-        [InlineData(double.MaxValue, "1.7976931348623157e+308")]
-        public void toString_PreservesShortestDigitsWithSourceDecimalNotation(double value, string expected)
+        [InlineData(1e-7)]
+        [InlineData(-1e-7)]
+        [InlineData(1e-6)]
+        [InlineData(-1.234e-6)]
+        [InlineData(1e20)]
+        [InlineData(-1.2345678901234568e20)]
+        [InlineData(1e21)]
+        [InlineData(-1e21)]
+        [InlineData(double.Epsilon)]
+        [InlineData(double.MaxValue)]
+        public void toString_UsesNativeInvariantNotation(double value)
         {
-            Assert.Equal(expected, value.toString());
+            Assert.Equal(value.ToString(CultureInfo.InvariantCulture), value.toString());
         }
 
         [Fact]
@@ -71,25 +73,40 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void FormattingMethods_UseJavaScriptNumberShapes()
+        public void FormattingMethods_UseNativeNumericFormatters()
         {
-            Assert.Equal("12.35", 12.345d.toFixed(2));
-            Assert.Equal("12", 12.345d.toFixed());
-            Assert.Equal("1.23e+4", 12345d.toExponential(2));
-            Assert.Equal("1e+4", 12345d.toPrecision(1));
-            Assert.Equal("12345", 12345d.toLocaleString());
-            Assert.Equal("NaN", double.NaN.toFixed(2));
-            Assert.Equal("Infinity", double.PositiveInfinity.toExponential(2));
+            var culture = CultureInfo.InvariantCulture;
+            foreach (var value in new[] { -0d, 12.5, 12.345, 1e21, double.Epsilon, double.MaxValue,
+                double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+            {
+                Assert.Equal(value.ToString("F0", culture), value.toFixed());
+                Assert.Equal(value.ToString("E", culture), value.toExponential());
+                Assert.Equal(value.ToString("G", culture), value.toPrecision());
+                foreach (var digits in new[] { 0, 1, 2, 100, 101 })
+                {
+                    Assert.Equal(value.ToString($"F{digits}", culture), value.toFixed(digits));
+                    Assert.Equal(value.ToString($"E{digits}", culture), value.toExponential(digits));
+                    Assert.Equal(value.ToString($"G{digits + 1}", culture), value.toPrecision(digits + 1));
+                }
+            }
+            Assert.Equal(0.1f.ToString(culture), 0.1f.toString());
+            Assert.Equal("9007199254740993", 9007199254740993L.toString());
+            Assert.Equal("9007199254740993.00", 9007199254740993L.toFixed(2));
+            Assert.Equal(Int128.MinValue.ToString(culture), Int128.MinValue.toString());
+            Assert.Equal(UInt128.MaxValue.ToString(culture), UInt128.MaxValue.toString());
+            Assert.Equal("-80000000000000000000000000000000", Int128.MinValue.toString(16));
+            Assert.Equal("ffffffffffffffffffffffffffffffff", UInt128.MaxValue.toString(16));
         }
 
         [Fact]
-        public void FormattingMethods_RejectInvalidPrecision()
+        public void FormattingMethods_RejectInvalidNativeFormatCounts()
         {
             Assert.Throws<RangeError>(() => 1d.toFixed(-1));
-            Assert.Throws<RangeError>(() => 1d.toFixed(101));
             Assert.Throws<RangeError>(() => 1d.toExponential(-1));
             Assert.Throws<RangeError>(() => 1d.toPrecision(0));
-            Assert.Throws<RangeError>(() => 1d.toPrecision(101));
+            Assert.Throws<FormatException>(() => 1d.toFixed(int.MaxValue));
+            Assert.Throws<FormatException>(() => 1d.toExponential(int.MaxValue));
+            Assert.Throws<FormatException>(() => 1d.toPrecision(int.MaxValue));
         }
 
         [Fact]

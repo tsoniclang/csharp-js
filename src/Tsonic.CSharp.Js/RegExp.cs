@@ -173,7 +173,8 @@ public class RegExp
     {
         ArgumentNullException.ThrowIfNull(input);
         var stateful = global || sticky;
-        var start = stateful ? ToLength(_lastIndex) : 0;
+        var start = stateful ? checked((int)_lastIndex) : 0;
+        ArgumentOutOfRangeException.ThrowIfNegative(start);
         if (start > input.Length)
         {
             if (stateful) _lastIndex = 0;
@@ -210,7 +211,7 @@ public class RegExp
 
     internal void AdvanceAfterEmptyMatch(string input)
     {
-        var current = ToLength(_lastIndex);
+        var current = checked((int)_lastIndex);
         _lastIndex = AdvanceStringIndex(input, current, _flags.FullUnicode);
     }
 
@@ -290,13 +291,6 @@ public class RegExp
                 indexPairs,
                 namedIndices is null ? null : new RegExpNamedIndices(namedIndices));
         return new RegExpExecArray(values, match.Start, input, groups, indices);
-    }
-
-    private static int ToLength(double value)
-    {
-        if (double.IsNaN(value) || value <= 0) return 0;
-        if (double.IsPositiveInfinity(value) || value >= int.MaxValue) return int.MaxValue;
-        return (int)System.Math.Floor(value);
     }
 
     private static string EscapeSource(string pattern)
