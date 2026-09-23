@@ -52,15 +52,15 @@ public sealed class NativeResultCarrierTests
     {
         var clamped = new Js.Uint8ClampedArray(1);
         clamped.Set(0, 255);
-        Assert.Equal(256, clamped.Update<int>(0, true, true));
+        Assert.Equal(256, clamped.Update<int, int>(0, true, true));
         Assert.Equal((byte)255, clamped.Get(0));
-        Assert.Equal(255, clamped.Update<int>(0, false, false));
+        Assert.Equal(255, clamped.Update<int, int>(0, false, false));
         Assert.Equal((byte)254, clamped.Get(0));
         var words = new Js.Uint32Array(1);
         words.Set(0, uint.MaxValue);
-        Assert.Equal(uint.MaxValue, words.Update<uint>(0, true, false));
+        Assert.Equal(uint.MaxValue, words.Update<uint, int>(0, true, false));
         Assert.Equal(0u, words.Get(0));
-        Assert.Equal(1u, words.Update<uint>(-1, true, true));
+        Assert.Equal(1u, words.Update<uint, int>(-1, true, true));
         Assert.Equal(0u, words.Get(0));
     }
 

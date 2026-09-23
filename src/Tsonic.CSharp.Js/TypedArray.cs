@@ -112,20 +112,24 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        public TValue Set<TValue>(double index, TValue value) where TValue : INumberBase<TValue>
+        public TValue Set<TIndex, TValue>(TIndex index, TValue value)
+            where TIndex : INumberBase<TIndex>
+            where TValue : INumberBase<TValue>
         {
             var selected = ElementIndex(index);
             if (selected >= 0) Elements[selected] = ToElement(value);
             return value;
         }
 
-        public TElement Get(double index)
+        public TElement Get<TIndex>(TIndex index) where TIndex : INumberBase<TIndex>
         {
             var selected = ElementIndex(index);
             return selected < 0 ? default : Elements[selected];
         }
 
-        public TResult Update<TResult>(double index, bool increment, bool prefix) where TResult : INumberBase<TResult>
+        public TResult Update<TResult, TIndex>(TIndex index, bool increment, bool prefix)
+            where TResult : INumberBase<TResult>
+            where TIndex : INumberBase<TIndex>
         {
             var selected = ElementIndex(index);
             var before = selected < 0 ? TResult.Zero : TResult.CreateChecked(Elements[selected]);
@@ -308,13 +312,11 @@ namespace Tsonic.CSharp.Js
             return checked((int)System.Math.Clamp(selected, 0, ElementCount));
         }
 
-        private int ElementIndex(double index)
+        private int ElementIndex<TIndex>(TIndex index) where TIndex : INumberBase<TIndex>
         {
-            if (!double.IsFinite(index) || System.Math.Truncate(index) != index || index < 0 || index >= ElementCount)
-            {
-                return -1;
-            }
-            return checked((int)index);
+            if (!TIndex.IsInteger(index) || TIndex.IsNegative(index) && !TIndex.IsZero(index)) return -1;
+            var selected = int.CreateSaturating(index);
+            return selected < ElementCount ? selected : -1;
         }
 
         protected static int CheckedLength(double value)
