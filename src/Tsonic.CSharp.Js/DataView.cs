@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using System.Numerics;
 
 namespace Tsonic.CSharp.Js
 {
@@ -59,11 +60,11 @@ namespace Tsonic.CSharp.Js
                 ? BinaryPrimitives.ReadInt64LittleEndian(Read(offset, 8))
                 : BinaryPrimitives.ReadInt64BigEndian(Read(offset, 8)));
 
-        public void setInt8(double offset, double value) => Writable(offset, 1)[0] = unchecked((byte)NativeInteger.Bits32(value));
+        public void setInt8<T>(double offset, T value) where T : INumberBase<T> => Writable(offset, 1)[0] = unchecked((byte)NativeInteger.Bits32(value));
 
-        public void setUint8(double offset, double value) => Writable(offset, 1)[0] = unchecked((byte)NativeInteger.Bits32(value));
+        public void setUint8<T>(double offset, T value) where T : INumberBase<T> => Writable(offset, 1)[0] = unchecked((byte)NativeInteger.Bits32(value));
 
-        public void setInt16(double offset, double value, bool littleEndian = false)
+        public void setInt16<T>(double offset, T value, bool littleEndian = false) where T : INumberBase<T>
         {
             var span = Writable(offset, 2);
             var converted = unchecked((short)NativeInteger.Bits32(value));
@@ -71,7 +72,7 @@ namespace Tsonic.CSharp.Js
             else BinaryPrimitives.WriteInt16BigEndian(span, converted);
         }
 
-        public void setUint16(double offset, double value, bool littleEndian = false)
+        public void setUint16<T>(double offset, T value, bool littleEndian = false) where T : INumberBase<T>
         {
             var span = Writable(offset, 2);
             var converted = unchecked((ushort)NativeInteger.Bits32(value));
@@ -79,7 +80,7 @@ namespace Tsonic.CSharp.Js
             else BinaryPrimitives.WriteUInt16BigEndian(span, converted);
         }
 
-        public void setInt32(double offset, double value, bool littleEndian = false)
+        public void setInt32<T>(double offset, T value, bool littleEndian = false) where T : INumberBase<T>
         {
             var span = Writable(offset, 4);
             var converted = unchecked((int)NativeInteger.Bits32(value));
@@ -87,7 +88,7 @@ namespace Tsonic.CSharp.Js
             else BinaryPrimitives.WriteInt32BigEndian(span, converted);
         }
 
-        public void setUint32(double offset, double value, bool littleEndian = false)
+        public void setUint32<T>(double offset, T value, bool littleEndian = false) where T : INumberBase<T>
         {
             var span = Writable(offset, 4);
             var converted = unchecked((uint)NativeInteger.Bits32(value));

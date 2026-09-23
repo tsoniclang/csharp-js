@@ -108,18 +108,30 @@ namespace Tsonic.CSharp.Js
             }
             set
             {
-                var selected = ElementIndex(index);
-                if (selected >= 0)
-                {
-                    Elements[selected] = ToElement(value);
-                }
+                Set(index, value);
             }
+        }
+
+        public TValue Set<TValue>(double index, TValue value) where TValue : INumberBase<TValue>
+        {
+            var selected = ElementIndex(index);
+            if (selected >= 0) Elements[selected] = ToElement(value);
+            return value;
         }
 
         public TElement Get(double index)
         {
             var selected = ElementIndex(index);
             return selected < 0 ? default : Elements[selected];
+        }
+
+        public TResult Update<TResult>(double index, bool increment, bool prefix) where TResult : INumberBase<TResult>
+        {
+            var selected = ElementIndex(index);
+            var before = selected < 0 ? TResult.Zero : TResult.CreateChecked(Elements[selected]);
+            var after = increment ? before + TResult.One : before - TResult.One;
+            if (selected >= 0) Elements[selected] = ToElement(after);
+            return prefix ? after : before;
         }
 
         public TElement? at(double index)
@@ -134,7 +146,7 @@ namespace Tsonic.CSharp.Js
                 : Elements[checked((int)selected)];
         }
 
-        public TArray fill(double value, double start = 0, double? end = null)
+        public TArray fill<TValue>(TValue value, double start = 0, double? end = null) where TValue : INumberBase<TValue>
         {
             var range = NormalizeRange(start, end);
             Elements[range.Start..range.End].Fill(ToElement(value));
@@ -240,7 +252,7 @@ namespace Tsonic.CSharp.Js
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        protected abstract TElement ToElement(double value);
+        protected abstract TElement ToElement<TValue>(TValue value) where TValue : INumberBase<TValue>;
 
         protected abstract double FromElement(TElement value);
 

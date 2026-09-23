@@ -25,7 +25,7 @@ namespace Tsonic.CSharp.Js
         }
         public Uint32Array(IEnumerable<double> values) : base(values) { }
         public Uint32Array(ArrayBuffer buffer, double byteOffset = 0, double? length = null) : base(buffer, byteOffset, length) { }
-        protected override uint ToElement(double value) => unchecked((uint)NativeInteger.Bits32(value));
+        protected override uint ToElement<T>(T value) => unchecked((uint)NativeInteger.Bits32(value));
         protected override double FromElement(uint value) => value;
         protected override Uint32Array CreateView(ArrayBuffer buffer, double byteOffset, double length) => new(buffer, byteOffset, length);
         protected override Uint32Array CreateCopy(IEnumerable<double> values) => new(values);

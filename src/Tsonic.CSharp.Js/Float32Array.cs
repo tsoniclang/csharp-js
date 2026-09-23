@@ -25,7 +25,7 @@ namespace Tsonic.CSharp.Js
         }
         public Float32Array(IEnumerable<double> values) : base(values) { }
         public Float32Array(ArrayBuffer buffer, double byteOffset = 0, double? length = null) : base(buffer, byteOffset, length) { }
-        protected override float ToElement(double value) => (float)value;
+        protected override float ToElement<T>(T value) => float.CreateTruncating(value);
         protected override double FromElement(float value) => value;
         protected override Float32Array CreateView(ArrayBuffer buffer, double byteOffset, double length) => new(buffer, byteOffset, length);
         protected override Float32Array CreateCopy(IEnumerable<double> values) => new(values);

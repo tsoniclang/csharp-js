@@ -25,7 +25,8 @@ namespace Tsonic.CSharp.Js
         }
         public Uint8ClampedArray(IEnumerable<double> values) : base(values) { }
         public Uint8ClampedArray(ArrayBuffer buffer, double byteOffset = 0, double? length = null) : base(buffer, byteOffset, length) { }
-        protected override byte ToElement(double value) => TypedArrayNumbers.ToUint8Clamp(value);
+        protected override byte ToElement<T>(T value) => T.IsInteger(value)
+            ? byte.CreateSaturating(value) : TypedArrayNumbers.ToUint8Clamp(double.CreateChecked(value));
         protected override double FromElement(byte value) => value;
         protected override Uint8ClampedArray CreateView(ArrayBuffer buffer, double byteOffset, double length) => new(buffer, byteOffset, length);
         protected override Uint8ClampedArray CreateCopy(IEnumerable<double> values) => new(values);
