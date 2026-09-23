@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 using Xunit;
 
@@ -26,7 +25,7 @@ public sealed class NativeTypedArrayCopyTests
         where TArray : TypedArray<TArray, TElement>
         where TElement : unmanaged, INumberBase<TElement>
     {
-        IEnumerable<double>[] copies = {
+        IArrayLike<double>[] copies = {
             Int8Array.From(source), Uint8Array.From(source), Uint8ClampedArray.From(source),
             Int16Array.From(source), Uint16Array.From(source), Int32Array.From(source),
             Uint32Array.From(source), Float32Array.From(source), Float64Array.From(source),
@@ -40,26 +39,37 @@ public sealed class NativeTypedArrayCopyTests
         var unsignedWord = new Uint32Array(3); unsignedWord.set(source);
         var single = new Float32Array(3); single.set(source);
         var wide = new Float64Array(3); wide.set(source);
-        IEnumerable<double>[] assigned = {
+        IArrayLike<double>[] assigned = {
             signedByte, unsignedByte, clamped, signedShort, unsignedShort,
             signedWord, unsignedWord, single, wide,
         };
         source[0] = 7;
-        foreach (var copy in copies) Assert.Equal(new[] { 0d, 1d, 127d }, copy);
-        foreach (var copy in assigned) Assert.Equal(new[] { 0d, 1d, 127d }, copy);
+        foreach (var copy in copies) AssertValues(copy);
+        foreach (var copy in assigned) AssertValues(copy);
+    }
+
+    private static void AssertValues(IArrayLike<double> copy)
+    {
+        var expected = new[] { 0d, 1d, 127d };
+        Assert.Equal(expected.Length, copy.Length);
+        for (var index = 0; index < expected.Length; index++)
+        {
+            Assert.True(copy.TryGet(index, out var value));
+            Assert.Equal(expected[index], value);
+        }
     }
 
     [Fact]
     public void TruncatingNarrowingAndExplicitClampingRemainDifferentOperations()
     {
         var source = new Int16Array(new[] { -1d, 256d });
-        Assert.Equal(new[] { 255d, 0d }, Uint8Array.From(source));
+        Assert.Equal(new byte[] { 255, 0 }, Uint8Array.From(source));
         var destination = new Uint8Array(2);
         destination.set(source);
-        Assert.Equal(new[] { 255d, 0d }, destination);
-        Assert.Equal(new[] { 0d, 255d }, Uint8ClampedArray.From(source));
+        Assert.Equal(new byte[] { 255, 0 }, destination);
+        Assert.Equal(new byte[] { 0, 255 }, Uint8ClampedArray.From(source));
         var fractions = new Float64Array(new[] { 0.5, 1.5, 254.5, double.NaN, double.PositiveInfinity });
-        Assert.Equal(new[] { 0d, 2d, 254d, 0d, 255d }, Uint8ClampedArray.From(fractions));
+        Assert.Equal(new byte[] { 0, 2, 254, 0, 255 }, Uint8ClampedArray.From(fractions));
         var wide = new Uint32Array(new[] { (double)uint.MaxValue });
         Assert.Equal((double)uint.MaxValue, Float64Array.From(wide)[0]);
         Assert.Equal(-1, Int32Array.From(wide)[0]);
@@ -76,7 +86,7 @@ public sealed class NativeTypedArrayCopyTests
         for (var index = 0; index < 4; index++) source[index] = index + 1;
         var target = new Uint8Array(buffer, destinationOffset, 4);
         target.set(source);
-        Assert.Equal(new[] { 1d, 2d, 3d, 4d }, target);
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, target);
         Assert.Same(buffer, target.buffer);
         Assert.Same(buffer, source.buffer);
     }
@@ -86,8 +96,8 @@ public sealed class NativeTypedArrayCopyTests
     {
         var values = new Uint8Array(new[] { 1d, 2d, 3d, 4d });
         values.set(values.subarray(0, 3), 1);
-        Assert.Equal(new[] { 1d, 1d, 2d, 3d }, values);
+        Assert.Equal(new byte[] { 1, 1, 2, 3 }, values);
         Assert.Throws<RangeError>(() => values.set(new Uint8Array(5)));
-        Assert.Equal(new[] { 1d, 1d, 2d, 3d }, values);
+        Assert.Equal(new byte[] { 1, 1, 2, 3 }, values);
     }
 }

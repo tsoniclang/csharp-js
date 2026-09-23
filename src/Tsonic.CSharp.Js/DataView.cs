@@ -29,30 +29,30 @@ namespace Tsonic.CSharp.Js
 
         public ArrayBuffer buffer { get; }
 
-        public double byteOffset => _byteOffset;
+        public int byteOffset => _byteOffset;
 
-        public double byteLength => ByteLength;
+        public int byteLength => ByteLength;
 
         private int ByteLength { get; }
 
-        public double getInt8(double offset) => unchecked((sbyte)Read(offset, 1)[0]);
+        public sbyte getInt8(double offset) => unchecked((sbyte)Read(offset, 1)[0]);
 
-        public double getUint8(double offset) => Read(offset, 1)[0];
+        public byte getUint8(double offset) => Read(offset, 1)[0];
 
-        public double getInt16(double offset, bool littleEndian = false) =>
+        public short getInt16(double offset, bool littleEndian = false) =>
             littleEndian ? BinaryPrimitives.ReadInt16LittleEndian(Read(offset, 2)) : BinaryPrimitives.ReadInt16BigEndian(Read(offset, 2));
 
-        public double getUint16(double offset, bool littleEndian = false) =>
+        public ushort getUint16(double offset, bool littleEndian = false) =>
             littleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(Read(offset, 2)) : BinaryPrimitives.ReadUInt16BigEndian(Read(offset, 2));
 
-        public double getInt32(double offset, bool littleEndian = false) =>
+        public int getInt32(double offset, bool littleEndian = false) =>
             littleEndian ? BinaryPrimitives.ReadInt32LittleEndian(Read(offset, 4)) : BinaryPrimitives.ReadInt32BigEndian(Read(offset, 4));
 
-        public double getUint32(double offset, bool littleEndian = false) =>
+        public uint getUint32(double offset, bool littleEndian = false) =>
             littleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(Read(offset, 4)) : BinaryPrimitives.ReadUInt32BigEndian(Read(offset, 4));
 
-        public double getFloat32(double offset, bool littleEndian = false) =>
-            BitConverter.Int32BitsToSingle(checked((int)getInt32(offset, littleEndian)));
+        public float getFloat32(double offset, bool littleEndian = false) =>
+            BitConverter.Int32BitsToSingle(getInt32(offset, littleEndian));
 
         public double getFloat64(double offset, bool littleEndian = false) =>
             BitConverter.Int64BitsToDouble(littleEndian

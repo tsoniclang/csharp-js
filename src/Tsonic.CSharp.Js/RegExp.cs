@@ -196,7 +196,7 @@ public class RegExp
         RegExpProtocols.MatchAll(input, this, requireGlobal: false);
     public string replace(string input, string replacement) => RegExpProtocols.Replace(input, this, replacement);
     public string replace(string input, ReplacementCallback replacer) => RegExpProtocols.Replace(input, this, replacer);
-    public double search(string input) => RegExpProtocols.Search(input, this);
+    public int search(string input) => RegExpProtocols.Search(input, this);
     public JSArray<string?> split(string input, double? limit = null) => RegExpProtocols.Split(input, this, limit);
 
     public override string ToString() => toString();
@@ -244,7 +244,7 @@ public class RegExp
     {
         var values = new string?[_program.CaptureCount];
         var indexPairs = hasIndices
-            ? new (double Start, double End)?[values.Length]
+            ? new (int Start, int End)?[values.Length]
             : null;
         for (var index = 0; index < values.Length; index += 1)
         {
@@ -259,7 +259,7 @@ public class RegExp
         }
 
         Dictionary<string, string?>? namedValues = null;
-        Dictionary<string, (double Start, double End)?>? namedIndices = null;
+        Dictionary<string, (int Start, int End)?>? namedIndices = null;
         foreach (var entry in _program.NamedCaptures)
         {
             namedValues ??= new Dictionary<string, string?>(StringComparer.Ordinal);
@@ -273,7 +273,7 @@ public class RegExp
             {
                 namedIndices ??= new Dictionary<
                     string,
-                    (double Start, double End)?
+                    (int Start, int End)?
                 >(StringComparer.Ordinal);
                 var selectedIndices = indexPairs[entry.Value];
                 if (!namedIndices.ContainsKey(entry.Key) ||

@@ -85,10 +85,10 @@ public class NativePerformanceTests
     {
         var values = new Uint8Array(new double[] { 1, 2, 3, 4, 5 });
         values.set(values.subarray(0, 4), 1);
-        Assert.Equal(new double[] { 1, 1, 2, 3, 4 }, values.ToArray());
+        Assert.Equal(new byte[] { 1, 1, 2, 3, 4 }, values.ToArray());
         var selected = values.subarray(1, 4);
         selected.fill(7);
-        Assert.Equal(new double[] { 1, 7, 7, 7, 4 }, values.ToArray());
+        Assert.Equal(new byte[] { 1, 7, 7, 7, 4 }, values.ToArray());
         var copy = selected.slice(0, 2);
         selected[0] = 9;
         Assert.Equal((byte)7, copy[0]);

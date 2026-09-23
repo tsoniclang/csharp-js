@@ -389,10 +389,10 @@ namespace Tsonic.CSharp.Js
         public static RegExpStringIterator matchAll(this string str, RegExp pattern) =>
             RegExpProtocols.MatchAll(str, pattern, requireGlobal: true);
 
-        public static double search(this string str, string pattern) =>
+        public static int search(this string str, string pattern) =>
             RegExpProtocols.Search(str, new RegExp(pattern));
 
-        public static double search(this string str, RegExp pattern) =>
+        public static int search(this string str, RegExp pattern) =>
             RegExpProtocols.Search(str, pattern);
 
         public static string replace(this string str, RegExp pattern, string replacement) =>

@@ -33,7 +33,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Length of the buffer in bytes
         /// </summary>
-        public double byteLength => _buffer.Length;
+        public int byteLength => _buffer.Length;
 
         internal int ByteLength => _buffer.Length;
 

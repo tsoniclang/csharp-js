@@ -56,7 +56,7 @@ internal static class RegExpProtocols
         });
     }
 
-    public static double Search(string input, RegExp expression)
+    public static int Search(string input, RegExp expression)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(expression);

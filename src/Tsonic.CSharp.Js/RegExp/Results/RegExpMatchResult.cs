@@ -48,45 +48,45 @@ public sealed class RegExpNamedGroups
 }
 
 public sealed class RegExpNamedIndices
-    : IReadOnlyDictionary<string, (double Start, double End)?>
+    : IReadOnlyDictionary<string, (int Start, int End)?>
 {
-    private readonly Dictionary<string, (double Start, double End)?> _values;
+    private readonly Dictionary<string, (int Start, int End)?> _values;
 
     internal RegExpNamedIndices(
         IReadOnlyDictionary<
             string,
-            (double Start, double End)?
+            (int Start, int End)?
         > values)
     {
-        _values = new Dictionary<string, (double Start, double End)?>(
+        _values = new Dictionary<string, (int Start, int End)?>(
             values,
             StringComparer.Ordinal);
     }
 
-    public (double Start, double End)? this[string key]
+    public (int Start, int End)? this[string key]
     {
         get => _values.TryGetValue(key, out var value) ? value : null;
         set => _values[key] = value;
     }
     public IEnumerable<string> Keys => _values.Keys;
-    public IEnumerable<(double Start, double End)?> Values => _values.Values;
+    public IEnumerable<(int Start, int End)?> Values => _values.Values;
     public int Count => _values.Count;
     public bool ContainsKey(string key) => _values.ContainsKey(key);
     public bool TryGetValue(
         string key,
-        out (double Start, double End)? value) =>
+        out (int Start, int End)? value) =>
         _values.TryGetValue(key, out value);
     public IEnumerator<
-        KeyValuePair<string, (double Start, double End)?>
+        KeyValuePair<string, (int Start, int End)?>
     > GetEnumerator() => _values.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 public sealed class RegExpIndicesArray
-    : JSArray<(double Start, double End)?>
+    : JSArray<(int Start, int End)?>
 {
     internal RegExpIndicesArray(
-        (double Start, double End)?[] values,
+        (int Start, int End)?[] values,
         RegExpNamedIndices? groups)
         : base(values)
     {
@@ -100,7 +100,7 @@ public class RegExpMatchArray : JSArray<string?>
 {
     internal RegExpMatchArray(
         string?[] values,
-        double? index,
+        int? index,
         string? input,
         RegExpNamedGroups? groups,
         RegExpIndicesArray? indices)
@@ -115,7 +115,7 @@ public class RegExpMatchArray : JSArray<string?>
     public string value =>
         length == 0 ? string.Empty : this[0] ?? string.Empty;
 
-    public double? index { get; }
+    public int? index { get; }
     public string? input { get; }
     public RegExpNamedGroups? groups { get; }
     public RegExpIndicesArray? indices { get; }
@@ -125,7 +125,7 @@ public sealed class RegExpExecArray : RegExpMatchArray
 {
     internal RegExpExecArray(
         string?[] values,
-        double index,
+        int index,
         string input,
         RegExpNamedGroups? groups,
         RegExpIndicesArray? indices)
@@ -135,6 +135,6 @@ public sealed class RegExpExecArray : RegExpMatchArray
         this.input = input;
     }
 
-    public new double index { get; }
+    public new int index { get; }
     public new string input { get; }
 }

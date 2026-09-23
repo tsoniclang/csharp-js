@@ -97,11 +97,11 @@ public sealed class RegExpTests
         const string astral = "😀";
         var legacy = new RegExp(".", "d").exec(astral)!;
         Assert.Equal("\uD83D", legacy.value);
-        Assert.Equal((0d, 1d), legacy.indices![0]);
+        Assert.Equal((0, 1), legacy.indices![0]);
 
         var unicode = new RegExp(".", "du").exec(astral)!;
         Assert.Equal(astral, unicode.value);
-        Assert.Equal((0d, 2d), unicode.indices![0]);
+        Assert.Equal((0, 2), unicode.indices![0]);
 
         var sticky = new RegExp("b", "y") { lastIndex = 2 };
         Assert.Equal("b", sticky.exec("😀b")!.value);
@@ -119,10 +119,10 @@ public sealed class RegExpTests
         Assert.Equal("abc", result.groups!["letter"]);
         Assert.Null(result.groups["digits"]);
         Assert.True(result.groups.ContainsKey("digits"));
-        Assert.Equal((0d, 3d), result.indices![0]);
-        Assert.Equal((0d, 3d), result.indices[1]);
+        Assert.Equal((0, 3), result.indices![0]);
+        Assert.Equal((0, 3), result.indices[1]);
         Assert.Null(result.indices[2]);
-        Assert.Equal((0d, 3d), result.indices.groups!["letter"]);
+        Assert.Equal((0, 3), result.indices.groups!["letter"]);
         Assert.Null(result.indices.groups["digits"]);
     }
 
@@ -299,7 +299,7 @@ public sealed class RegExpTests
         }
         Assert.NotNull(actual);
         Assert.Equal(expected.GetProperty("value").GetString(), actual!.value);
-        Assert.Equal(expected.GetProperty("index").GetDouble(), actual.index);
+        Assert.Equal(expected.GetProperty("index").GetInt32(), actual.index);
         Assert.Equal(expected.GetProperty("input").GetString(), actual.input);
         var groupIndex = 0;
         foreach (var expectedGroup in expected.GetProperty("groups").EnumerateArray())

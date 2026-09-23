@@ -144,7 +144,7 @@ namespace Tsonic.CSharp.Js
             return false;
         }
 
-        double IArrayLike<T>.Length => length;
+        int IArrayLike<T>.Length => length;
 
         bool IArrayLike<T>.TryGet(double index, out T value) => tryGetAt(index, out value);
 

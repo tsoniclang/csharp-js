@@ -4,7 +4,7 @@ namespace Tsonic.CSharp.Js;
 public interface IArrayLike<T>
 {
     /// <summary>The current number of array slots.</summary>
-    double Length { get; }
+    int Length { get; }
     /// <summary>Reads an initialized integer index, distinguishing it from an invalid index.</summary>
     bool TryGet(double index, out T value);
 }
@@ -22,7 +22,7 @@ public static class ArrayLike
     /// <summary>Copies a statically proven dense array into independent ordinary-array storage.</summary>
     public static JSArray<T> CopyDense<T>(IArrayLike<T> source)
     {
-        var length = checked((int)source.Length);
+        var length = source.Length;
         var result = JSArray<T>.createWithCapacity(length);
         for (var index = 0; index < length; index++)
         {

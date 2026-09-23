@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Numerics;
 using System.Threading;
 
 namespace Tsonic.CSharp.Js
@@ -62,29 +63,30 @@ namespace Tsonic.CSharp.Js
             return (int)System.Math.Truncate(delayMs);
         }
 
-        private static bool TryNormalizeTimerId(double id, out int timerId)
+        private static bool TryNormalizeTimerId<T>(T id, out int timerId) where T : INumberBase<T>
         {
-            if (double.IsNaN(id) || double.IsInfinity(id))
+            if (!T.IsInteger(id))
             {
                 timerId = 0;
                 return false;
             }
 
-            var truncated = System.Math.Truncate(id);
-            if (truncated != id || truncated < int.MinValue || truncated > int.MaxValue)
+            try
+            {
+                timerId = int.CreateChecked(id);
+                return true;
+            }
+            catch (OverflowException)
             {
                 timerId = 0;
                 return false;
             }
-
-            timerId = (int)truncated;
-            return true;
         }
 
         /// <summary>
         /// Schedule a callback to run after a delay (one-shot timer)
         /// </summary>
-        public static double setTimeout(
+        public static int setTimeout(
             TimerCallback callback,
             double delayMs = 0,
             params object?[] arguments)
@@ -121,7 +123,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Cancel a timeout
         /// </summary>
-        public static void clearTimeout(double id)
+        public static void clearTimeout<T>(T id) where T : INumberBase<T>
         {
             if (!TryNormalizeTimerId(id, out var timerId))
             {
@@ -137,7 +139,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Schedule a callback to run repeatedly at an interval
         /// </summary>
-        public static double setInterval(
+        public static int setInterval(
             TimerCallback callback,
             double intervalMs = 0,
             params object?[] arguments)
@@ -168,7 +170,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Cancel an interval
         /// </summary>
-        public static void clearInterval(double id)
+        public static void clearInterval<T>(T id) where T : INumberBase<T>
         {
             // Same implementation as clearTimeout
             clearTimeout(id);

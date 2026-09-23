@@ -61,11 +61,11 @@ namespace Tsonic.CSharp.Js
         public string locale => IntlRuntime.DefaultLocale;
         public string numberingSystem => "latn";
         public required string style { get; init; }
-        public required double minimumIntegerDigits { get; init; }
-        public double? minimumFractionDigits { get; init; }
-        public double? maximumFractionDigits { get; init; }
-        public double? minimumSignificantDigits { get; init; }
-        public double? maximumSignificantDigits { get; init; }
+        public required int minimumIntegerDigits { get; init; }
+        public int? minimumFractionDigits { get; init; }
+        public int? maximumFractionDigits { get; init; }
+        public int? minimumSignificantDigits { get; init; }
+        public int? maximumSignificantDigits { get; init; }
         public required Union<bool, string> useGrouping { get; init; }
         public string? currency { get; init; }
         public string? currencyDisplay { get; init; }
@@ -76,7 +76,7 @@ namespace Tsonic.CSharp.Js
         public string? compactDisplay => null;
         public string signDisplay => "auto";
         public string roundingPriority => "auto";
-        public double roundingIncrement => 1;
+        public int roundingIncrement => 1;
         public string roundingMode => "halfExpand";
         public string trailingZeroDisplay => "auto";
     }
@@ -426,7 +426,7 @@ namespace Tsonic.CSharp.Js
             _caseFirst = IntlRuntime.EnumOption(options, "caseFirst", "upper", "lower", "false") ?? "false";
         }
 
-        public double compare(string left, string right)
+        public int compare(string left, string right)
         {
             var leftKey = IntlRuntime.CollationKey(left, _sensitivity, _ignorePunctuation);
             var rightKey = IntlRuntime.CollationKey(right, _sensitivity, _ignorePunctuation);

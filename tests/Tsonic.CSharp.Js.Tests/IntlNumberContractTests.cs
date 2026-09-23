@@ -15,13 +15,13 @@ namespace Tsonic.CSharp.Js.Tests
             var result = formatter.resolvedOptions();
             Assert.Null(result.minimumFractionDigits);
             Assert.Null(result.maximumFractionDigits);
-            Assert.Equal(1.0, result.minimumSignificantDigits);
-            Assert.Equal(3.0, result.maximumSignificantDigits);
+            Assert.Equal(1, result.minimumSignificantDigits);
+            Assert.Equal(3, result.maximumSignificantDigits);
             Assert.Equal("auto", result.useGrouping.As2());
             Assert.Equal("1,230", formatter.format(1234.5));
             Assert.Equal("0.00123", formatter.format(0.0012345));
             var mixed = Create("maximumSignificantDigits", 3.9, "maximumFractionDigits", -1.0);
-            Assert.Equal(3.0, mixed.resolvedOptions().maximumSignificantDigits);
+            Assert.Equal(3, mixed.resolvedOptions().maximumSignificantDigits);
             Assert.Null(mixed.resolvedOptions().maximumFractionDigits);
             Assert.Equal("1,230", mixed.format(1234.5));
         }
@@ -30,13 +30,13 @@ namespace Tsonic.CSharp.Js.Tests
         public void FractionDefaultsAndZeroRemainDistinctFromAbsence()
         {
             var result = Create().resolvedOptions();
-            Assert.Equal(0.0, result.minimumFractionDigits);
-            Assert.Equal(3.0, result.maximumFractionDigits);
+            Assert.Equal(0, result.minimumFractionDigits);
+            Assert.Equal(3, result.maximumFractionDigits);
             Assert.Null(result.maximumSignificantDigits);
             Assert.Equal("en-US", result.locale);
             Assert.Equal("latn", result.numberingSystem);
             Assert.Equal("decimal", result.style);
-            Assert.Equal(1.0, result.minimumIntegerDigits);
+            Assert.Equal(1, result.minimumIntegerDigits);
             Assert.Null(result.currency);
             Assert.Null(result.currencyDisplay);
             Assert.Null(result.currencySign);
@@ -46,14 +46,14 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("standard", result.notation);
             Assert.Equal("auto", result.signDisplay);
             Assert.Equal("auto", result.roundingPriority);
-            Assert.Equal(1.0, result.roundingIncrement);
+            Assert.Equal(1, result.roundingIncrement);
             Assert.Equal("halfExpand", result.roundingMode);
             Assert.Equal("auto", result.trailingZeroDisplay);
             var currency = Create("style", "currency", "currency", "usd", "currencyDisplay", "code").resolvedOptions();
             Assert.Equal("USD", currency.currency);
             Assert.Equal("code", currency.currencyDisplay);
             Assert.Equal("standard", currency.currencySign);
-            Assert.Equal(0.0, Create("maximumFractionDigits", 0.0).resolvedOptions().maximumFractionDigits);
+            Assert.Equal(0, Create("maximumFractionDigits", 0.0).resolvedOptions().maximumFractionDigits);
             Assert.Equal("1.01", Create("maximumFractionDigits", 2.0).format(1.005));
             Assert.Equal("1.01", Create("maximumFractionDigits", 2.9).format(1.005));
             Assert.Equal("-0", Create().format(-0.0));
