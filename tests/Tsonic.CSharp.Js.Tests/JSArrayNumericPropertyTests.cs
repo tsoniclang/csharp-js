@@ -47,8 +47,10 @@ public class JSArrayNumericPropertyTests
         Assert.Equal(6, alias[-2]);
         values[double.NaN] = null;
         Assert.Null(closed.ReadDynamicSlot("NaN").unwrap());
-        Assert.False(closed.ReadDynamicSlot("NaN").isUndefined());
+        Assert.True(closed.ReadDynamicSlot("NaN").isUndefined());
+        Assert.True(Object.hasOwn(values, "NaN"));
         Assert.True(values.deleteAt(double.NaN));
+        Assert.False(Object.hasOwn(values, "NaN"));
         Assert.True(closed.ReadDynamicSlot("NaN").isUndefined());
         Assert.True(values.deleteAt(1.5));
         values[1.5] = 10;

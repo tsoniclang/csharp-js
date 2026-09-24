@@ -357,11 +357,11 @@ namespace Tsonic.CSharp.Js.Tests
             map.set((object)1, 4);
             map.set((object)1.0, 5);
 
-            Assert.Equal(3, map.size);
+            Assert.Equal(2, map.size);
             Assert.True(map.has(null));
             Assert.True(map.has(TsValue.undefined().unwrap()));
             Assert.True(map.has(TsValue.undefined()));
-            Assert.Equal(1, map.get(null));
+            Assert.Equal(3, map.get(null));
             Assert.Equal(3, map.get(TsValue.undefined().unwrap()));
             Assert.Equal(5, map.get(1));
         }

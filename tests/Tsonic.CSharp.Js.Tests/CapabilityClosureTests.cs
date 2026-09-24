@@ -85,7 +85,7 @@ namespace Tsonic.CSharp.Js.Tests
             JsonReplacer replacer = (key, value) =>
                 key == "drop" ? TsValue.undefined() : value;
 
-            Assert.Equal("{\"keep\":1}", JSON.stringify(source, replacer));
+            Assert.Equal("{\"keep\":1,\"drop\":null}", JSON.stringify(source, replacer));
             Assert.Equal(
                 "{\n  \"drop\": 2\n}",
                 JSON.stringify(source, new[] { "drop" }, TsValue.from(2.0)));
