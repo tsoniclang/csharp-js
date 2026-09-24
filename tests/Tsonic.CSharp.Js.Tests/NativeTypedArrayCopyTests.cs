@@ -7,6 +7,27 @@ namespace Tsonic.CSharp.Js.Tests;
 public sealed class NativeTypedArrayCopyTests
 {
     [Fact]
+    public void SearchDoesNotAllocateForNativeOrUnrepresentableQueries()
+    {
+        var bytes = new Uint8Array(new double[] { 0, 1, 255 });
+        var doubles = new Float64Array(new double[] { 9007199254740992, (double)ulong.MaxValue });
+        var matches = 0;
+        void Search()
+        {
+            if (bytes.includes((byte)255)) matches++;
+            if (bytes.indexOf(ulong.MaxValue) != -1) matches++;
+            if (doubles.includes(9007199254740993UL)) matches++;
+            if (doubles.indexOf(ulong.MaxValue) != -1) matches++;
+        }
+        for (var count = 0; count < 1000; count++) Search();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var count = 0; count < 1000; count++) Search();
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(0, allocated);
+        Assert.Equal(2000, matches);
+    }
+
+    [Fact]
     public void OrdinaryNumericArraysPreserveExactNativeElementsWithoutTemporaryStorage()
     {
         ulong[] values = [9_007_199_254_740_993, ulong.MaxValue];

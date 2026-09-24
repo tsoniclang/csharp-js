@@ -223,12 +223,16 @@ namespace Tsonic.CSharp.Js
             return result;
         }
 
-        public int indexOf(double value, double fromIndex = 0)
+        public int indexOf<TValue>(TValue value) where TValue : INumberBase<TValue> => indexOf(value, 0);
+
+        public int indexOf<TValue, TIndex>(TValue value, TIndex fromIndex)
+            where TValue : INumberBase<TValue> where TIndex : INumberBase<TIndex>
         {
+            if (!TypedArrayNumbers.TrySearch<TValue, TElement>(value, out var search)) return -1;
             var start = NormalizeStart(fromIndex);
             for (var index = start; index < ElementCount; index++)
             {
-                if (FromElement(Elements[index]) == value)
+                if (Elements[index] == search)
                 {
                     return index;
                 }
@@ -236,13 +240,22 @@ namespace Tsonic.CSharp.Js
             return -1;
         }
 
-        public bool includes(double value, double fromIndex = 0)
+        public bool includes<TValue>(TValue value) where TValue : INumberBase<TValue> => includes(value, 0);
+
+        public bool includes<TValue, TIndex>(TValue value, TIndex fromIndex)
+            where TValue : INumberBase<TValue> where TIndex : INumberBase<TIndex>
         {
+            if (!TypedArrayNumbers.TrySearch<TValue, TElement>(value, out var search)) return false;
             var start = NormalizeStart(fromIndex);
+            if (TElement.IsNaN(search))
+            {
+                for (var index = start; index < ElementCount; index++)
+                    if (TElement.IsNaN(Elements[index])) return true;
+                return false;
+            }
             for (var index = start; index < ElementCount; index++)
             {
-                var element = FromElement(Elements[index]);
-                if (element.Equals(value) || double.IsNaN(element) && double.IsNaN(value))
+                if (Elements[index] == search)
                 {
                     return true;
                 }
@@ -305,9 +318,9 @@ namespace Tsonic.CSharp.Js
                 : (selectedStart, selectedEnd);
         }
 
-        private int NormalizeStart(double index)
+        private int NormalizeStart<TIndex>(TIndex index) where TIndex : INumberBase<TIndex>
         {
-            var integer = NativeInteger.Index(index);
+            var integer = TIndex.IsNaN(index) ? 0 : long.CreateSaturating(index);
             var selected = integer < 0 ? ElementCount + integer : integer;
             return checked((int)System.Math.Clamp(selected, 0, ElementCount));
         }
@@ -327,6 +340,30 @@ namespace Tsonic.CSharp.Js
 
     internal static class TypedArrayNumbers
     {
+        public static bool TrySearch<TValue, TElement>(TValue value, out TElement result)
+            where TValue : INumberBase<TValue>
+            where TElement : unmanaged, INumberBase<TElement>
+        {
+            result = TElement.CreateSaturating(value);
+            if (TValue.IsNaN(value)) return TElement.IsNaN(result);
+            if (TValue.IsFinite(value) && !TElement.IsFinite(result)) return false;
+            if ((typeof(TElement) == typeof(float) || typeof(TElement) == typeof(double)) &&
+                (typeof(TValue) == typeof(sbyte) || typeof(TValue) == typeof(byte) ||
+                 typeof(TValue) == typeof(short) || typeof(TValue) == typeof(ushort) ||
+                 typeof(TValue) == typeof(int) || typeof(TValue) == typeof(uint) ||
+                 typeof(TValue) == typeof(long) || typeof(TValue) == typeof(ulong) ||
+                 typeof(TValue) == typeof(nint) || typeof(TValue) == typeof(nuint) ||
+                 typeof(TValue) == typeof(Int128) || typeof(TValue) == typeof(UInt128)))
+            {
+                var number = double.CreateTruncating(result);
+                if (TValue.IsNegative(value))
+                    return number >= -170141183460469231731687303715884105728.0 &&
+                        Int128.CreateTruncating(number) == Int128.CreateTruncating(value);
+                return number < 340282366920938463463374607431768211456.0 &&
+                    UInt128.CreateTruncating(number) == UInt128.CreateTruncating(value);
+            }
+            return TValue.CreateSaturating(result) == value;
+        }
 
         public static byte ToUint8Clamp(double value)
         {

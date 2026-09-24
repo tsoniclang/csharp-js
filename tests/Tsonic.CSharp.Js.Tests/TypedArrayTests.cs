@@ -6,6 +6,39 @@ namespace Tsonic.CSharp.Js.Tests
 {
     public class TypedArrayTests
     {
+        [Fact]
+        public void Search_KeepsExactNativeQueriesWithoutRoundingOrClamping()
+        {
+            var doubles = new Float64Array(new double[] { 9007199254740992, (double)ulong.MaxValue, long.MinValue, (double)UInt128.MaxValue });
+            Assert.False(doubles.includes(9007199254740993UL));
+            Assert.Equal(-1, doubles.indexOf(9007199254740993UL));
+            Assert.True(doubles.includes(9007199254740992UL));
+            Assert.False(doubles.includes(ulong.MaxValue));
+            Assert.False(doubles.includes(UInt128.MaxValue));
+            Assert.False(doubles.includes(Int128.MaxValue));
+            Assert.True(doubles.includes(long.MinValue));
+            Assert.False(doubles.includes(9007199254740992UL, nuint.MaxValue));
+            Assert.Equal(2, doubles.indexOf(long.MinValue, -2));
+            var singles = new Float32Array(new double[] { 16777216, double.PositiveInfinity, double.NegativeInfinity, double.NaN, -0.0 });
+            Assert.False(singles.includes(16777217UL));
+            Assert.False(singles.includes(double.MaxValue));
+            Assert.True(singles.includes(double.NaN));
+            Assert.Equal(-1, singles.indexOf(double.NaN));
+            Assert.Equal(4, singles.indexOf(0));
+            Assert.True(singles.includes(double.PositiveInfinity));
+            Assert.True(singles.includes(double.NegativeInfinity));
+            var bytes = new Uint8Array(new double[] { 0, 1, 255 });
+            var clamped = new Uint8ClampedArray(new double[] { 0, 1, 255 });
+            foreach (var query in new[] { -1.0, 0.5, 256.0, double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+            {
+                Assert.False(bytes.includes(query));
+                Assert.Equal(-1, bytes.indexOf(query));
+                Assert.False(clamped.includes(query));
+            }
+            Assert.True(clamped.includes(255UL));
+            Assert.Equal(2, bytes.indexOf((UInt128)255));
+        }
+
         // ==================== Int8Array Tests ====================
 
         [Fact]
