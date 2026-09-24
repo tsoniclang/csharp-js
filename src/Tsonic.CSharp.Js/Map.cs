@@ -81,7 +81,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public object? get(K key)
         {
-            return _entries.TryGetValue(new CollectionKey<K>(key), out var value) ? value : Undefined.value;
+            return _entries.TryGetValue(new CollectionKey<K>(key), out var value) ? value : null;
         }
 
         public bool tryGet(K key, out V value)
@@ -225,9 +225,9 @@ namespace Tsonic.CSharp.Js
             return map.tryGet(key, out var value) ? value : null;
         }
 
-        public static TReference? getReference<TKey, TReference>(Map<TKey, TReference> map, TKey key) where TReference : class
+        public static TValue getOptional<TKey, TValue>(Map<TKey, TValue> map, TKey key)
         {
-            return map.tryGet(key, out var value) ? value : null;
+            return map.tryGet(key, out var value) ? value : default!;
         }
     }
 }

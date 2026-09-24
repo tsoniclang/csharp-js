@@ -181,9 +181,9 @@ public sealed class RegExpTests
         Assert.Equal("a#b#", output);
         Assert.Equal(2, calls.Count);
         Assert.Equal(new ReplacementObservation(
-            "1", "1", Undefined.value, 1, "a1b2x", calls[0].Groups), calls[0]);
+            "1", "1", TsValue.undefined().unwrap(), 1, "a1b2x", calls[0].Groups), calls[0]);
         Assert.Equal("1", calls[0].Groups["digit"]);
-        Assert.Same(Undefined.value, calls[0].OptionalCapture);
+        Assert.Same(TsValue.undefined().unwrap(), calls[0].OptionalCapture);
         Assert.Equal("x", calls[1].OptionalCapture);
     }
 
@@ -326,7 +326,7 @@ public sealed class RegExpTests
     private sealed record ReplacementObservation(
         string Whole,
         string Capture,
-        object OptionalCapture,
+        object? OptionalCapture,
         double Offset,
         string Input,
         RegExpNamedGroups Groups);

@@ -59,7 +59,7 @@ internal static class JSKeyEquality
             ? System.Collections.Generic.EqualityComparer<T>.Default.Equals(left, right)
             : BoxedEqual(left, right);
 
-    public static bool sameValueZeroUndefined<T>(T value) => BoxedEqual(Undefined.value, value);
+    public static bool sameValueZeroUndefined<T>(T value) => BoxedEqual(null, value);
 
     public static int keyHash<T>(T value) => NativeValueKey<T>.Supported
         ? value is null ? 0 : System.Collections.Generic.EqualityComparer<T>.Default.GetHashCode(value)

@@ -21,7 +21,7 @@ namespace Tsonic.CSharp.Js.Tests
                 Console.SetOut(original);
             }
 
-            Assert.Equal($"test 123 true false null undefined{Environment.NewLine}", output.ToString());
+            Assert.Equal($"test 123 true false null null{Environment.NewLine}", output.ToString());
         }
 
         [Fact]

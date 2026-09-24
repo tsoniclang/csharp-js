@@ -67,10 +67,6 @@ namespace Tsonic.CSharp.Js
         public static string? stringify(object? value)
         {
             value = NormalizeDirectJsonValue(value);
-            if (IsUndefined(value))
-            {
-                return null;
-            }
             var stream = new ArrayBufferWriter<byte>();
             using var writer = new Utf8JsonWriter(stream);
             writeValue(writer, value, new JsonWriteContext(), "");
@@ -90,7 +86,6 @@ namespace Tsonic.CSharp.Js
             switch (replacer)
             {
                 case null:
-                case Undefined:
                     selected = NormalizeJsonValue(value, "");
                     break;
                 case JsonReplacer callback:
@@ -101,10 +96,6 @@ namespace Tsonic.CSharp.Js
                     break;
                 default:
                     throw new TypeError("JSON.stringify replacer requires a closed callback, property-name sequence, null, or undefined.");
-            }
-            if (IsUndefined(selected))
-            {
-                return null;
             }
             return FormatWithSpace(stringify(selected)!, space);
         }
@@ -220,10 +211,6 @@ namespace Tsonic.CSharp.Js
             JsonWriteContext context)
         {
             value = NormalizeDirectJsonValue(value);
-            if (IsUndefined(value))
-            {
-                return;
-            }
             writer.WritePropertyName(key);
             writeValue(writer, value, context, key);
         }
@@ -340,14 +327,7 @@ namespace Tsonic.CSharp.Js
                     if (array.TryGetAt(index, out var item))
                     {
                         var normalized = NormalizeDirectJsonValue(item);
-                        if (IsUndefined(normalized))
-                        {
-                            writer.WriteNullValue();
-                        }
-                        else
-                        {
-                            writeValue(writer, normalized, context, index.ToString(CultureInfo.InvariantCulture));
-                        }
+                        writeValue(writer, normalized, context, index.ToString(CultureInfo.InvariantCulture));
                     }
                     else
                     {
@@ -387,10 +367,6 @@ namespace Tsonic.CSharp.Js
             {
                 var normalized = NormalizeJsonValue(value, key);
                 var replaced = replacer(key, ToTsValue(normalized));
-                if (replaced.isUndefined())
-                {
-                    return replaced;
-                }
                 var unwrapped = replaced.unwrap();
                 var replacementIdentity = TrackableJsonIdentity(unwrapped);
                 var trackReplacement = replacementIdentity != null &&
@@ -407,10 +383,7 @@ namespace Tsonic.CSharp.Js
                         foreach (var (property, propertyValue) in sourceObject.entries())
                         {
                             var child = ApplyReplacer(property, propertyValue, replacer, sourceObject, context);
-                            if (!child.isUndefined())
-                            {
-                                result[property] = child.unwrap();
-                            }
+                            result[property] = child.unwrap();
                         }
                         return TsValue.from(result);
                     }
@@ -421,7 +394,7 @@ namespace Tsonic.CSharp.Js
                         {
                             var item = sourceArray.TryGetAt(index, out var current) ? current : null;
                             var child = ApplyReplacer(index.ToString(CultureInfo.InvariantCulture), item, replacer, sourceArray, context);
-                            result.push(child.isUndefined() ? null : child.unwrap());
+                            result.push(child.unwrap());
                         }
                         return TsValue.from(result);
                     }
@@ -466,10 +439,7 @@ namespace Tsonic.CSharp.Js
                         if (names.Contains(property))
                         {
                             var selected = FilterProperties(propertyValue, names, property, context);
-                            if (!IsUndefined(selected))
-                            {
-                                result[property] = selected;
-                            }
+                            result[property] = selected;
                         }
                     }
                     return result;
@@ -570,12 +540,7 @@ namespace Tsonic.CSharp.Js
 
         private static TsValue ToTsValue(object? value)
         {
-            return IsUndefined(value) ? TsValue.undefined() : TsValue.from(value);
-        }
-
-        private static bool IsUndefined(object? value)
-        {
-            return value is Undefined || value is TsValue wrapped && wrapped.isUndefined();
+            return TsValue.from(value);
         }
 
         private static object? TrackableJsonIdentity(object? value)

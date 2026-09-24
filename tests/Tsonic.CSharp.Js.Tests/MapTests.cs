@@ -95,7 +95,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void get_NonExistingKey_ReturnsDefault()
         {
             var map = new Map<string, int>();
-            Assert.Same(Undefined.value, map.get("missing"));
+            Assert.Same(TsValue.undefined().unwrap(), map.get("missing"));
             Assert.Null(Tsonic.CSharp.Js.Map.getValue(map, "missing"));
         }
 
@@ -103,8 +103,8 @@ namespace Tsonic.CSharp.Js.Tests
         public void get_NonExistingKey_ReferenceType_ReturnsNull()
         {
             var map = new Map<string, string>();
-            Assert.Same(Undefined.value, map.get("missing"));
-            Assert.Null(Tsonic.CSharp.Js.Map.getReference(map, "missing"));
+            Assert.Same(TsValue.undefined().unwrap(), map.get("missing"));
+            Assert.Null(Tsonic.CSharp.Js.Map.getOptional(map, "missing"));
         }
 
         [Fact]
@@ -117,12 +117,27 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void getReference_ReturnsStoredReferenceOrNullForMissing()
+        public void getOptional_ReturnsStoredReferenceOrNullForMissing()
         {
             var map = new Map<string, string>();
             map.set("value", "found");
-            Assert.Equal("found", Tsonic.CSharp.Js.Map.getReference(map, "value"));
-            Assert.Null(Tsonic.CSharp.Js.Map.getReference(map, "missing"));
+            Assert.Equal("found", Tsonic.CSharp.Js.Map.getOptional(map, "value"));
+            Assert.Null(Tsonic.CSharp.Js.Map.getOptional(map, "missing"));
+        }
+
+        [Fact]
+        public void getOptional_PreservesNullableValuesAndMembership()
+        {
+            var map = new Map<string, long?>();
+            map.set("absent", null);
+            map.set("zero", 0);
+            map.set("exact", 9007199254740993);
+            Assert.Null(Tsonic.CSharp.Js.Map.getOptional(map, "absent"));
+            Assert.Null(Tsonic.CSharp.Js.Map.getOptional(map, "missing"));
+            Assert.True(map.has("absent"));
+            Assert.False(map.has("missing"));
+            Assert.Equal(0L, Tsonic.CSharp.Js.Map.getOptional(map, "zero"));
+            Assert.Equal(9007199254740993L, Tsonic.CSharp.Js.Map.getOptional(map, "exact"));
         }
 
         // ==================== has Tests ====================
@@ -337,17 +352,17 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var map = new Map<object?, int>();
             map.set(null, 1);
-            map.set(Undefined.value, 2);
+            map.set(TsValue.undefined().unwrap(), 2);
             map.set(TsValue.undefined(), 3);
             map.set((object)1, 4);
             map.set((object)1.0, 5);
 
             Assert.Equal(3, map.size);
             Assert.True(map.has(null));
-            Assert.True(map.has(Undefined.value));
+            Assert.True(map.has(TsValue.undefined().unwrap()));
             Assert.True(map.has(TsValue.undefined()));
             Assert.Equal(1, map.get(null));
-            Assert.Equal(3, map.get(Undefined.value));
+            Assert.Equal(3, map.get(TsValue.undefined().unwrap()));
             Assert.Equal(5, map.get(1));
         }
 

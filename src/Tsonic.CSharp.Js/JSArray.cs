@@ -1131,21 +1131,21 @@ namespace Tsonic.CSharp.Js
             int actualIndex = index < 0 ? _values.Count + index : index;
             if (actualIndex < 0 || actualIndex >= _values.Count)
             {
-                return Undefined.value;
+                return null;
             }
-            return IsPresent(actualIndex) ? _values[actualIndex] : Undefined.value;
+            return IsPresent(actualIndex) ? _values[actualIndex] : null;
         }
 
         public TValue? atValue<TValue>(int index) where TValue : struct
         {
             object? value = at(index);
-            return value is null or Undefined ? null : (TValue)value;
+            return value is null ? null : (TValue)value;
         }
 
         public TReference? atReference<TReference>(int index) where TReference : class
         {
             object? value = at(index);
-            return value is Undefined ? null : value as TReference;
+            return value as TReference;
         }
 
         /// <summary>

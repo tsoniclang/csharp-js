@@ -26,16 +26,16 @@ namespace Tsonic.CSharp.Js.Tests
         public void at_OutOfBounds_ReturnsNullishCarrier()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            Assert.Same(Undefined.value, arr.at(3));
-            Assert.Same(Undefined.value, arr.at(-4));
+            Assert.Same(TsValue.undefined().unwrap(), arr.at(3));
+            Assert.Same(TsValue.undefined().unwrap(), arr.at(-4));
         }
 
         [Fact]
-        public void at_DistinguishesExplicitUndefinedFromPresentNull()
+        public void at_CollapsesSourceAbsenceButRetainsSlots()
         {
-            var arr = new JSArray<object?>(new object?[] { Undefined.value, null });
+            var arr = new JSArray<object?>(new object?[] { TsValue.undefined().unwrap(), null });
 
-            Assert.Same(Undefined.value, arr.at(0));
+            Assert.Same(TsValue.undefined().unwrap(), arr.at(0));
             Assert.Null(arr.at(1));
             Assert.Null(arr.atReference<object>(0));
             Assert.Null(arr.atReference<object>(1));
@@ -47,8 +47,8 @@ namespace Tsonic.CSharp.Js.Tests
             var arr = new List<int> { 1, 2, 3 };
             Assert.Equal(2, Tsonic.CSharp.Js.Array.at(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.at(arr, -1));
-            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(arr, 3));
-            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(arr, -4));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(arr, 3));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(arr, -4));
             Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
             Assert.Null(Tsonic.CSharp.Js.Array.atValue(arr, 3));
@@ -65,8 +65,8 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(10, Tsonic.CSharp.Js.Array.at(numbers, double.NaN));
             Assert.Equal(20, Tsonic.CSharp.Js.Array.at(numbers, 1.8));
             Assert.Equal(30, Tsonic.CSharp.Js.Array.at(numbers, -1.8));
-            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(numbers, double.PositiveInfinity));
-            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(numbers, double.NegativeInfinity));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(numbers, double.PositiveInfinity));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(numbers, double.NegativeInfinity));
             Assert.Equal(10, Tsonic.CSharp.Js.Array.atValue(numbers, double.NaN));
             Assert.Equal(20, Tsonic.CSharp.Js.Array.atValue(numbers, 1.8));
             Assert.Null(Tsonic.CSharp.Js.Array.atValue(numbers, double.PositiveInfinity));
@@ -76,10 +76,10 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("b", Tsonic.CSharp.Js.Array.atReference(strings, 1.8));
             Assert.Null(Tsonic.CSharp.Js.Array.atReference(strings, double.NegativeInfinity));
 
-            var values = new JSArray<object?>(new object?[] { Undefined.value, "present" });
-            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(values, double.NaN));
+            var values = new JSArray<object?>(new object?[] { TsValue.undefined().unwrap(), "present" });
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(values, double.NaN));
             Assert.Equal("present", Tsonic.CSharp.Js.Array.at(values, 1.8));
-            Assert.Same(Undefined.value, Tsonic.CSharp.Js.Array.at(values, double.PositiveInfinity));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(values, double.PositiveInfinity));
         }
 
         [Fact]

@@ -33,11 +33,11 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(new string?[] { "value", null, null }, referenceCopy);
             Assert.True(referenceCopy.hasIndex(1));
             Assert.True(references.hasIndex(1));
-            var onlyUndefined = new JSArray<Undefined>(new[] { Undefined.value, Undefined.value });
+            var onlyUndefined = new JSArray<object?>(new[] { TsValue.undefined().unwrap(), TsValue.undefined().unwrap() });
             var undefinedCopy = JSArrayStatics.fromDense(onlyUndefined);
             Assert.Equal(2, undefinedCopy.length);
-            Assert.Same(Undefined.value, undefinedCopy[0]);
-            Assert.Same(Undefined.value, undefinedCopy[1]);
+            Assert.Same(TsValue.undefined().unwrap(), undefinedCopy[0]);
+            Assert.Same(TsValue.undefined().unwrap(), undefinedCopy[1]);
             Assert.True(undefinedCopy.hasIndex(0));
             Assert.True(onlyUndefined.hasIndex(0));
         }
@@ -100,9 +100,9 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(new int?[] { 4, null, 9 }, visited);
             Assert.Equal(new[] { "value", "missing" }, JSArrayStatics.fromDense<string?, string>(
                 new JSArray<string?>(new string?[] { "value", null }), (value, _) => value ?? "missing"));
-            Assert.Equal(new[] { 0, 1 }, JSArrayStatics.fromDense(new JSArray<Undefined>(new[] { Undefined.value, Undefined.value }), (value, index) =>
+            Assert.Equal(new[] { 0, 1 }, JSArrayStatics.fromDense(new JSArray<object?>(new[] { TsValue.undefined().unwrap(), TsValue.undefined().unwrap() }), (value, index) =>
             {
-                Assert.Same(Undefined.value, value);
+                Assert.Same(TsValue.undefined().unwrap(), value);
                 return index;
             }));
         }

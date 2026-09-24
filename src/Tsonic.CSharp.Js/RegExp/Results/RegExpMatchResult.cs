@@ -33,15 +33,13 @@ public sealed class RegExpNamedGroups
     bool IDynamicObject.TryReadDynamicSlot(string key, out object? value)
     {
         var found = _values.TryGetValue(key, out var group);
-        value = group is null
-            ? found ? Undefined.value : null
-            : group;
+        value = group;
         return found;
     }
 
     void IDynamicObject.WriteDynamicSlot(string key, object? value)
     {
-        _values[key] = value is null or Undefined
+        _values[key] = value is null
             ? null
             : TsValue.CastDynamic<string>(value);
     }

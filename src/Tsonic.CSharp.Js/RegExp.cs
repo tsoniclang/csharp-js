@@ -34,12 +34,6 @@ public class RegExp
         source = EscapeSource(_pattern);
     }
 
-    public RegExp(string pattern, Undefined flags)
-        : this(pattern, (string?)null)
-    {
-        ArgumentNullException.ThrowIfNull(flags);
-    }
-
     public RegExp(RegExp pattern, string? flags = null)
         : this(
             pattern?.Pattern ?? throw new ArgumentNullException(nameof(pattern)),
@@ -47,29 +41,10 @@ public class RegExp
     {
     }
 
-    public RegExp(RegExp pattern, Undefined flags)
-        : this(pattern, (string?)null)
-    {
-        ArgumentNullException.ThrowIfNull(flags);
-    }
-
-    public RegExp(Undefined pattern)
-        : this(string.Empty, (string?)null)
-    {
-        ArgumentNullException.ThrowIfNull(pattern);
-    }
-
-    public RegExp(Undefined pattern, string flags)
+    public RegExp(object? pattern, string? flags = null)
         : this(string.Empty, flags)
     {
-        ArgumentNullException.ThrowIfNull(pattern);
-    }
-
-    public RegExp(Undefined pattern, Undefined flags)
-        : this(string.Empty, (string?)null)
-    {
-        ArgumentNullException.ThrowIfNull(pattern);
-        ArgumentNullException.ThrowIfNull(flags);
+        if (pattern is not null) throw new ArgumentException("An absent pattern must be null.", nameof(pattern));
     }
 
     public string source { get; }
@@ -92,23 +67,11 @@ public class RegExp
     public static RegExp create() => new();
     public static RegExp create(string pattern, string? flags = null) =>
         new(pattern, flags);
-    public static RegExp create(string pattern, Undefined flags) =>
-        new(pattern, flags);
     public static RegExp create(RegExp pattern) =>
         pattern ?? throw new ArgumentNullException(nameof(pattern));
-    public static RegExp create(RegExp pattern, string flags) =>
-        new(pattern, flags);
-    public static RegExp create(RegExp pattern, Undefined flags)
-    {
-        ArgumentNullException.ThrowIfNull(pattern);
-        ArgumentNullException.ThrowIfNull(flags);
-        return pattern;
-    }
-    public static RegExp create(Undefined pattern) => new(pattern);
-    public static RegExp create(Undefined pattern, string flags) =>
-        new(pattern, flags);
-    public static RegExp create(Undefined pattern, Undefined flags) =>
-        new(pattern, flags);
+    public static RegExp create(RegExp pattern, string? flags) =>
+        flags is null ? create(pattern) : new(pattern, flags);
+    public static RegExp create(object? pattern, string? flags = null) => new(pattern, flags);
 
     public static string escape(string value)
     {

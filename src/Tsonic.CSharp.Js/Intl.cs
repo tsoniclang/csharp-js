@@ -265,8 +265,7 @@ namespace Tsonic.CSharp.Js
                 throw new RangeError("Intl.NumberFormat supports only roundingIncrement 1.");
             _useGrouping = options.ReadDynamicSlotOptional("useGrouping").unwrap() switch
             {
-                Undefined => "auto",
-                null => null,
+                null => "auto",
                 false => null,
                 true => "always",
                 "auto" => "auto",
@@ -484,7 +483,6 @@ namespace Tsonic.CSharp.Js
             switch (value)
             {
                 case null:
-                case Undefined:
                     return;
                 case string locale:
                     ValidateLocaleName(locale);
@@ -517,7 +515,6 @@ namespace Tsonic.CSharp.Js
             return value switch
             {
                 null => null,
-                Undefined => null,
                 string text => text,
                 _ => throw new TypeError($"Intl option '{name}' must be a string."),
             };
@@ -539,7 +536,6 @@ namespace Tsonic.CSharp.Js
             return value switch
             {
                 null => null,
-                Undefined => null,
                 bool boolean => boolean,
                 _ => throw new TypeError($"Intl option '{name}' must be boolean."),
             };
@@ -548,7 +544,7 @@ namespace Tsonic.CSharp.Js
         public static int? IntegerOption(TsValue options, string name, int minimum, int maximum)
         {
             var value = options.ReadDynamicSlotOptional(name).unwrap();
-            if (value is null or Undefined)
+            if (value is null)
             {
                 return null;
             }
