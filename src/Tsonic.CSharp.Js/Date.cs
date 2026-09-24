@@ -1,6 +1,6 @@
 /**
  * JavaScript Date implementation
- * Retains the ECMAScript epoch-millisecond scalar and uses DateTimeOffset only
+ * Retains an epoch-millisecond scalar and uses DateTimeOffset only
  * for representable local-time operations.
  */
 
@@ -20,7 +20,6 @@ namespace Tsonic.CSharp.Js
 
         private static readonly DateTimeOffset Epoch = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
         private const long MillisecondsPerDay = 86_400_000;
-        private const double MaximumTimeMilliseconds = 8_640_000_000_000_000.0;
         private static readonly string[] Weekdays = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
         private static readonly string[] Months = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
@@ -109,7 +108,7 @@ namespace Tsonic.CSharp.Js
 
         private void SetFromMilliseconds(double milliseconds)
         {
-            _milliseconds = TimeClip(milliseconds);
+            _milliseconds = NativeTimestamp(milliseconds);
             if (!double.IsFinite(_milliseconds))
             {
                 _value = DateTimeOffset.MinValue;
@@ -135,7 +134,7 @@ namespace Tsonic.CSharp.Js
             if (DateTimeOffset.TryParse(dateString, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
             {
                 _value = parsed;
-                _milliseconds = TimeClip((parsed.ToUniversalTime() - Epoch).TotalMilliseconds);
+                _milliseconds = NativeTimestamp((parsed.ToUniversalTime() - Epoch).TotalMilliseconds);
                 _hasLocalValue = true;
             }
             else
@@ -491,7 +490,7 @@ namespace Tsonic.CSharp.Js
 
         private void SyncMillisecondsFromValue()
         {
-            _milliseconds = TimeClip((_value.ToUniversalTime() - Epoch).TotalMilliseconds);
+            _milliseconds = NativeTimestamp((_value.ToUniversalTime() - Epoch).TotalMilliseconds);
             _hasLocalValue = true;
         }
 
@@ -538,16 +537,16 @@ namespace Tsonic.CSharp.Js
 
             year = System.Math.Truncate(year);
             month = System.Math.Truncate(month);
-            if (System.Math.Abs(year) > 1_000_000 || System.Math.Abs(month) > 10_000_000)
+            if (year < int.MinValue || year > int.MaxValue || month < int.MinValue || month > int.MaxValue)
                 return double.NaN;
 
             var totalMonths = checked((long)year * 12 + (long)month);
             var civilYear = FloorDiv(totalMonths, 12);
-            if (System.Math.Abs(civilYear) > 1_000_000)
+            if (civilYear < int.MinValue || civilYear > int.MaxValue)
                 return double.NaN;
             var civilMonth = checked((int)Modulo(totalMonths, 12) + 1);
             var dayNumber = DaysFromCivil(civilYear, civilMonth, 1);
-            return TimeClip(
+            return NativeTimestamp(
                 (dayNumber + System.Math.Truncate(day) - 1) * MillisecondsPerDay
                 + System.Math.Truncate(hours) * 3_600_000
                 + System.Math.Truncate(minutes) * 60_000
@@ -555,9 +554,9 @@ namespace Tsonic.CSharp.Js
                 + System.Math.Truncate(milliseconds));
         }
 
-        private static double TimeClip(double value)
+        private static double NativeTimestamp(double value)
         {
-            if (!double.IsFinite(value) || System.Math.Abs(value) > MaximumTimeMilliseconds)
+            if (!double.IsFinite(value) || value < long.MinValue || value >= -(double)long.MinValue)
                 return double.NaN;
             return value == 0 ? 0 : System.Math.Truncate(value);
         }

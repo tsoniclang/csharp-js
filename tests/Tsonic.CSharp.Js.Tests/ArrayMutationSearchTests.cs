@@ -246,14 +246,14 @@ namespace Tsonic.CSharp.Js.Tests
         public void join_TreatsUndefinedAndNullAsEmptyStrings()
         {
             var values = new JSArray<object?>(4);
-            values[1] = Undefined.value;
+            values[1] = TsValue.undefined().unwrap();
             values[2] = null;
             values[3] = "x";
 
             Assert.Equal(",,,x", values.join());
             Assert.Equal("|||x", values.join("|"));
 
-            var denseValues = new List<object?> { Undefined.value, null, "x", true, 3.5 };
+            var denseValues = new List<object?> { TsValue.undefined().unwrap(), null, "x", true, 3.5 };
             Assert.Equal(",,x,true,3.5", Tsonic.CSharp.Js.Array.join(denseValues));
 
             var broadValues = new JSArray<TsValue>(new[] { TsValue.undefined(), TsValue.from("x"), TsValue.from(false) });

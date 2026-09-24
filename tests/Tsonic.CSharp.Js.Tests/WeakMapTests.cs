@@ -5,6 +5,23 @@ namespace Tsonic.CSharp.Js.Tests
 {
     public class WeakMapTests
     {
+        [Fact]
+        public void getOptional_PreservesNullableValuesAndMembership()
+        {
+            var map = new WeakMap<object, long?>();
+            var present = new object();
+            var missing = new object();
+            map.set(present, null);
+            Assert.Null(Tsonic.CSharp.Js.WeakMap.getOptional(map, present));
+            Assert.Null(Tsonic.CSharp.Js.WeakMap.getOptional(map, missing));
+            Assert.True(map.has(present));
+            Assert.False(map.has(missing));
+            map.set(present, 0);
+            Assert.Equal(0L, Tsonic.CSharp.Js.WeakMap.getOptional(map, present));
+            map.set(present, 9007199254740993);
+            Assert.Equal(9007199254740993L, Tsonic.CSharp.Js.WeakMap.getOptional(map, present));
+        }
+
         // ==================== Constructor Tests ====================
 
         [Fact]

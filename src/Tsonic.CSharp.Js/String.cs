@@ -301,7 +301,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static JSArray<string> split(this string str, string separator, double? limit = null)
         {
-            var maximum = toUint32(limit ?? uint.MaxValue);
+            var maximum = (int)System.Math.Min(NativeInteger.SplitLimit(limit), int.MaxValue);
             if (maximum == 0)
             {
                 return new JSArray<string>();
@@ -319,27 +319,11 @@ namespace Tsonic.CSharp.Js
 
         private static JSArray<string> applySplitLimit(
             IEnumerable<string> parts,
-            uint maximum)
+            int maximum)
         {
             return maximum >= int.MaxValue
                 ? JSArray<string>.from(parts)
-                : JSArray<string>.from(parts.Take((int)maximum));
-        }
-
-        private static uint toUint32(double value)
-        {
-            if (!double.IsFinite(value) || value == 0)
-            {
-                return 0;
-            }
-            const double modulus = 4_294_967_296d;
-            var integer = System.Math.Truncate(value);
-            var result = integer % modulus;
-            if (result < 0)
-            {
-                result += modulus;
-            }
-            return (uint)result;
+                : JSArray<string>.from(parts.Take(maximum));
         }
 
         /// <summary>
@@ -405,10 +389,10 @@ namespace Tsonic.CSharp.Js
         public static RegExpStringIterator matchAll(this string str, RegExp pattern) =>
             RegExpProtocols.MatchAll(str, pattern, requireGlobal: true);
 
-        public static double search(this string str, string pattern) =>
+        public static int search(this string str, string pattern) =>
             RegExpProtocols.Search(str, new RegExp(pattern));
 
-        public static double search(this string str, RegExp pattern) =>
+        public static int search(this string str, RegExp pattern) =>
             RegExpProtocols.Search(str, pattern);
 
         public static string replace(this string str, RegExp pattern, string replacement) =>
@@ -716,12 +700,12 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Static method: Create string from character codes
         /// </summary>
-        public static string fromCharCode(params double[] codes)
+        public static string fromCharCode<T>(params ReadOnlySpan<T> codes) where T : System.Numerics.INumber<T>
         {
             var chars = new char[codes.Length];
             for (int index = 0; index < codes.Length; index++)
             {
-                chars[index] = (char)(toUint32(codes[index]) & 0xFFFF);
+                chars[index] = unchecked((char)NativeInteger.Bits32(codes[index]));
             }
             return new string(chars);
         }
@@ -729,16 +713,18 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Static method: Create string from code points
         /// </summary>
-        public static string fromCodePoint(params double[] codePoints)
+        public static string fromCodePoint<T>(params ReadOnlySpan<T> codePoints) where T : System.Numerics.INumber<T>
         {
             var result = new System.Text.StringBuilder();
-            foreach (double codePoint in codePoints)
+            foreach (var value in codePoints)
             {
-                if (!double.IsFinite(codePoint) || codePoint != System.Math.Truncate(codePoint) ||
-                    codePoint < 0 || codePoint > 0x10FFFF)
+                if (!T.IsInteger(value) || value < T.Zero)
                 {
                     throw new RangeError("Invalid code point.");
                 }
+
+                var codePoint = uint.CreateSaturating(value);
+                if (codePoint > 0x10FFFF) throw new RangeError("Invalid code point.");
 
                 if (codePoint <= 0xFFFF)
                 {

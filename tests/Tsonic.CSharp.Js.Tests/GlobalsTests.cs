@@ -189,10 +189,10 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void undefined_IsClosedCarrierDistinctFromNull()
+        public void undefined_IsNativeNull()
         {
-            Assert.Same(Undefined.value, Globals.undefined);
-            Assert.NotNull(Globals.undefined);
+            Assert.Same(TsValue.undefined().unwrap(), Globals.undefined);
+            Assert.Null(Globals.undefined);
         }
 
         [Theory]
@@ -225,10 +225,10 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Number_Undefined_ReturnsNaN()
+        public void Number_Absence_ReturnsZero()
         {
-            Assert.True(double.IsNaN(Globals.Number(Globals.undefined)));
-            Assert.True(double.IsNaN(Globals.Number(TsValue.undefined())));
+            Assert.Equal(0, Globals.Number(Globals.undefined));
+            Assert.Equal(0, Globals.Number(TsValue.undefined()));
         }
 
         [Theory]
@@ -270,10 +270,10 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void String_Undefined_ReturnsUndefined()
+        public void String_Absence_ReturnsNull()
         {
-            Assert.Equal("undefined", Globals.String(Globals.undefined));
-            Assert.Equal("undefined", Globals.String(TsValue.undefined()));
+            Assert.Equal("null", Globals.String(Globals.undefined));
+            Assert.Equal("null", Globals.String(TsValue.undefined()));
         }
 
         [Fact]

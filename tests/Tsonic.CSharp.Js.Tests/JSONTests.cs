@@ -62,6 +62,28 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void stringify_OneAbsencePreservesPresentMembersAndNativeDefaults()
+        {
+            var value = new JSObject
+            {
+                ["null"] = null,
+                ["undefined"] = TsValue.undefined(),
+                ["zero"] = 0,
+                ["false"] = false,
+                ["empty"] = ""
+            };
+            Assert.Equal("null", JSON.stringify(TsValue.undefined()));
+            var restored = Assert.IsType<JSObject>(JSON.parse(JSON.stringify(value)!).unwrap());
+            Assert.Equal(new[] { "null", "undefined", "zero", "false", "empty" }, restored.keys());
+            Assert.Null(restored["null"]);
+            Assert.Null(restored["undefined"]);
+            Assert.Equal(0d, restored["zero"]);
+            Assert.Equal(false, restored["false"]);
+            Assert.Equal("", restored["empty"]);
+            Assert.DoesNotContain("missing", restored.keys());
+        }
+
+        [Fact]
         public void stringify_HandlesNumbers()
         {
             var obj = new JSObject

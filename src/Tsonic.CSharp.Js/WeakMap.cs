@@ -96,12 +96,11 @@ namespace Tsonic.CSharp.Js
             return map.TryGetValue(key, out var value) ? value : null;
         }
 
-        public static V? getReference<K, V>(WeakMap<K, V> map, K key)
+        public static V getOptional<K, V>(WeakMap<K, V> map, K key)
             where K : class
-            where V : class
         {
             ArgumentNullException.ThrowIfNull(map);
-            return map.TryGetValue(key, out var value) ? value : null;
+            return map.TryGetValue(key, out var value) ? value : default!;
         }
     }
 }

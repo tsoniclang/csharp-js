@@ -25,65 +25,29 @@ namespace Tsonic.CSharp.Js
         public static double abs(double x) => System.Math.Abs(x);
         public static double ceil(double x) => System.Math.Ceiling(x);
         public static double floor(double x) => System.Math.Floor(x);
-        public static double round(double x)
+        public static double round(double value)
         {
-            if (double.IsNaN(x) || double.IsInfinity(x) || x == 0)
-            {
-                return x;
-            }
-
-            var rounded = System.Math.Floor(x + 0.5);
-            return rounded == 0 && x < 0 ? -0.0 : rounded;
+            if (!double.IsFinite(value) || value == 0) return value;
+            var lower = System.Math.Floor(value);
+            var rounded = value - lower >= 0.5 ? lower + 1 : lower;
+            return rounded == 0 && value < 0 ? -0.0 : rounded;
         }
         public static double sqrt(double x) => System.Math.Sqrt(x);
-        public static double pow(double x, double y) => System.Math.Pow(x, y);
+        public static double pow(double x, double y) =>
+            System.Math.Abs(x) == 1 && double.IsInfinity(y) ? double.NaN : System.Math.Pow(x, y);
 
         // Min/max with params
         public static double max(params double[] values)
         {
-            if (values.Length == 0)
-            {
-                return double.NegativeInfinity;
-            }
-
-            var result = values[0];
-            foreach (var value in values)
-            {
-                if (double.IsNaN(value))
-                {
-                    return double.NaN;
-                }
-
-                if (value > result || (value == 0 && result == 0 && IsNegativeZero(result) && !IsNegativeZero(value)))
-                {
-                    result = value;
-                }
-            }
-
+            var result = double.NegativeInfinity;
+            foreach (var value in values) result = System.Math.Max(result, value);
             return result;
         }
 
         public static double min(params double[] values)
         {
-            if (values.Length == 0)
-            {
-                return double.PositiveInfinity;
-            }
-
-            var result = values[0];
-            foreach (var value in values)
-            {
-                if (double.IsNaN(value))
-                {
-                    return double.NaN;
-                }
-
-                if (value < result || (value == 0 && result == 0 && !IsNegativeZero(result) && IsNegativeZero(value)))
-                {
-                    result = value;
-                }
-            }
-
+            var result = double.PositiveInfinity;
+            foreach (var value in values) result = System.Math.Min(result, value);
             return result;
         }
 
@@ -107,15 +71,8 @@ namespace Tsonic.CSharp.Js
         public static double random() => _random.NextDouble();
 
         // Sign and truncation
-        public static double sign(double x)
-        {
-            if (double.IsNaN(x) || x == 0)
-            {
-                return x;
-            }
-
-            return x > 0 ? 1 : -1;
-        }
+        public static double sign(double value) =>
+            double.IsNaN(value) || value == 0 ? value : value > 0 ? 1 : -1;
         public static double trunc(double x) => System.Math.Truncate(x);
 
         // Hyperbolic functions
@@ -174,12 +131,13 @@ namespace Tsonic.CSharp.Js
 
         // Floating point operations
         public static double fround(double x) => (double)(float)x;
-        public static int imul(int a, int b) => unchecked(a * b);
-        public static int clz32(int x)
-        {
-            if (x == 0) return 32;
-            return System.Numerics.BitOperations.LeadingZeroCount((uint)x);
-        }
+        public static int imul<TLeft, TRight>(TLeft left, TRight right)
+            where TLeft : System.Numerics.INumberBase<TLeft>
+            where TRight : System.Numerics.INumberBase<TRight> =>
+            unchecked((int)(NativeInteger.Bits32(left) * NativeInteger.Bits32(right)));
+
+        public static int clz32<T>(T value) where T : System.Numerics.INumberBase<T> =>
+            System.Numerics.BitOperations.LeadingZeroCount(NativeInteger.Bits32(value));
 
         // ES2024: Round to 16-bit float
         public static double f16round(double x)
@@ -189,9 +147,5 @@ namespace Tsonic.CSharp.Js
             return (double)half;
         }
 
-        private static bool IsNegativeZero(double value)
-        {
-            return value == 0 && double.IsNegative(value);
-        }
     }
 }

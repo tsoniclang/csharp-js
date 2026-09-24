@@ -2,20 +2,29 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Tsonic.CSharp.Js
 {
-    public abstract class TypedArray<TArray, TElement> : IEnumerable<double>, IArrayLike<double>
+    public abstract class TypedArray<TArray, TElement> : IEnumerable<TElement>, IArrayLike<double>
         where TArray : TypedArray<TArray, TElement>
-        where TElement : unmanaged
+        where TElement : unmanaged, INumberBase<TElement>
     {
         private readonly ArrayBuffer _buffer;
         private readonly int _byteOffset;
 
         protected TypedArray(double length)
-            : this(new ArrayBuffer(checked(CheckedLength(length) * ElementSize)), 0, length)
+            : this(CheckedLength(length))
         {
+        }
+
+        protected TypedArray(int length)
+        {
+            if (length < 0) throw new RangeError("Typed array length must be non-negative.");
+            _buffer = new ArrayBuffer(checked(length * ElementSize));
+            _byteOffset = 0;
+            ElementCount = length;
         }
 
         protected TypedArray(IEnumerable<double> values)
@@ -59,15 +68,27 @@ namespace Tsonic.CSharp.Js
 
         protected int ElementCount { get; }
 
+        internal ReadOnlySpan<TElement> NativeElements => Elements;
+
+        internal int NativeLength => ElementCount;
+
+        protected Span<TElement> NativeDestination(int sourceLength, double offset)
+        {
+            var selectedOffset = CheckedLength(offset);
+            if (selectedOffset > ElementCount || sourceLength > ElementCount - selectedOffset)
+                throw new RangeError("Typed array set source exceeds the target view.");
+            return Elements.Slice(selectedOffset, sourceLength);
+        }
+
         public ArrayBuffer buffer => _buffer;
 
-        public double byteOffset => _byteOffset;
+        public int byteOffset => _byteOffset;
 
-        public double byteLength => checked(ElementCount * ElementSize);
+        public int byteLength => checked(ElementCount * ElementSize);
 
-        public double length => ElementCount;
+        public int length => ElementCount;
 
-        double IArrayLike<double>.Length => length;
+        int IArrayLike<double>.Length => length;
 
         bool IArrayLike<double>.TryGet(double index, out double value)
         {
@@ -76,7 +97,7 @@ namespace Tsonic.CSharp.Js
             return selected >= 0;
         }
 
-        public double BYTES_PER_ELEMENT => ElementSize;
+        public int BYTES_PER_ELEMENT => ElementSize;
 
         public double this[double index]
         {
@@ -87,27 +108,49 @@ namespace Tsonic.CSharp.Js
             }
             set
             {
-                var selected = ElementIndex(index);
-                if (selected >= 0)
-                {
-                    Elements[selected] = ToElement(value);
-                }
+                Set(index, value);
             }
         }
 
-        public double? at(double index)
+        public TValue Set<TIndex, TValue>(TIndex index, TValue value)
+            where TIndex : INumberBase<TIndex>
+            where TValue : INumberBase<TValue>
         {
-            var selected = TypedArrayNumbers.IntegerOrInfinity(index);
-            if (selected < 0 && selected != long.MinValue)
+            var selected = ElementIndex(index);
+            if (selected >= 0) Elements[selected] = ToElement(value);
+            return value;
+        }
+
+        public TElement Get<TIndex>(TIndex index) where TIndex : INumberBase<TIndex>
+        {
+            var selected = ElementIndex(index);
+            return selected < 0 ? default : Elements[selected];
+        }
+
+        public TResult Update<TResult, TIndex>(TIndex index, bool increment, bool prefix)
+            where TResult : INumberBase<TResult>
+            where TIndex : INumberBase<TIndex>
+        {
+            var selected = ElementIndex(index);
+            var before = selected < 0 ? TResult.Zero : TResult.CreateChecked(Elements[selected]);
+            var after = increment ? before + TResult.One : before - TResult.One;
+            if (selected >= 0) Elements[selected] = ToElement(after);
+            return prefix ? after : before;
+        }
+
+        public TElement? at(double index)
+        {
+            var selected = NativeInteger.Index(index);
+            if (selected < 0)
             {
                 selected += ElementCount;
             }
             return selected < 0 || selected >= ElementCount
                 ? null
-                : FromElement(Elements[checked((int)selected)]);
+                : Elements[checked((int)selected)];
         }
 
-        public TArray fill(double value, double start = 0, double? end = null)
+        public TArray fill<TValue>(TValue value, double start = 0, double? end = null) where TValue : INumberBase<TValue>
         {
             var range = NormalizeRange(start, end);
             Elements[range.Start..range.End].Fill(ToElement(value));
@@ -123,14 +166,6 @@ namespace Tsonic.CSharp.Js
                 throw new RangeError("Typed array set offset is outside the target view.");
             }
 
-            if (source is TypedArray<TArray, TElement> typed)
-            {
-                if (typed.ElementCount > ElementCount - selectedOffset)
-                    throw new RangeError("Typed array set source exceeds the target view.");
-                typed.Elements.CopyTo(Elements[selectedOffset..]);
-                return;
-            }
-
             var values = source.ToArray();
             if (values.Length > ElementCount - selectedOffset)
             {
@@ -141,6 +176,33 @@ namespace Tsonic.CSharp.Js
             {
                 Elements[selectedOffset + index] = ToElement(values[index]);
             }
+        }
+
+        public void set<TSource>(IReadOnlyList<TSource> source, double offset = 0)
+            where TSource : INumberBase<TSource>
+        {
+            ArgumentNullException.ThrowIfNull(source);
+            var destination = NativeDestination(source.Count, offset);
+            if (source is TSource[] array)
+            {
+                CopyValues(array, destination);
+            }
+            else if (source is List<TSource> list)
+            {
+                CopyValues(CollectionsMarshal.AsSpan(list), destination);
+            }
+            else
+            {
+                for (var index = 0; index < destination.Length; index++)
+                    destination[index] = ToElement(source[index]);
+            }
+        }
+
+        private void CopyValues<TSource>(ReadOnlySpan<TSource> source, Span<TElement> destination)
+            where TSource : INumberBase<TSource>
+        {
+            for (var index = 0; index < source.Length; index++)
+                destination[index] = ToElement(source[index]);
         }
 
         public TArray subarray(double begin = 0, double? end = null)
@@ -161,12 +223,16 @@ namespace Tsonic.CSharp.Js
             return result;
         }
 
-        public double indexOf(double value, double fromIndex = 0)
+        public int indexOf<TValue>(TValue value) where TValue : INumberBase<TValue> => indexOf(value, 0);
+
+        public int indexOf<TValue, TIndex>(TValue value, TIndex fromIndex)
+            where TValue : INumberBase<TValue> where TIndex : INumberBase<TIndex>
         {
+            if (!TypedArrayNumbers.TrySearch<TValue, TElement>(value, out var search)) return -1;
             var start = NormalizeStart(fromIndex);
             for (var index = start; index < ElementCount; index++)
             {
-                if (FromElement(Elements[index]) == value)
+                if (Elements[index] == search)
                 {
                     return index;
                 }
@@ -174,13 +240,22 @@ namespace Tsonic.CSharp.Js
             return -1;
         }
 
-        public bool includes(double value, double fromIndex = 0)
+        public bool includes<TValue>(TValue value) where TValue : INumberBase<TValue> => includes(value, 0);
+
+        public bool includes<TValue, TIndex>(TValue value, TIndex fromIndex)
+            where TValue : INumberBase<TValue> where TIndex : INumberBase<TIndex>
         {
+            if (!TypedArrayNumbers.TrySearch<TValue, TElement>(value, out var search)) return false;
             var start = NormalizeStart(fromIndex);
+            if (TElement.IsNaN(search))
+            {
+                for (var index = start; index < ElementCount; index++)
+                    if (TElement.IsNaN(Elements[index])) return true;
+                return false;
+            }
             for (var index = start; index < ElementCount; index++)
             {
-                var element = FromElement(Elements[index]);
-                if (element.Equals(value) || double.IsNaN(element) && double.IsNaN(value))
+                if (Elements[index] == search)
                 {
                     return true;
                 }
@@ -196,31 +271,32 @@ namespace Tsonic.CSharp.Js
             return (TArray)this;
         }
 
-        public TArray sort(Func<double, double, double>? compareFn = null)
+        public TArray sort(Func<TElement, TElement, double>? compareFn = null)
         {
-            var values = this.ToArray();
-            Comparison<double> comparison = compareFn is null
-                ? TypedArrayNumbers.Compare
-                : (left, right) => System.Math.Sign(compareFn(left, right));
+            var values = Elements.ToArray();
+            Comparison<TElement> comparison = compareFn is null
+                ? TypedArrayNumbers.Compare<TElement>
+                : (left, right) =>
+                {
+                    var order = compareFn(left, right);
+                    return double.IsNaN(order) ? 0 : System.Math.Sign(order);
+                };
             System.Array.Sort(values, comparison);
-            for (var index = 0; index < values.Length; index++)
-            {
-                Elements[index] = ToElement(values[index]);
-            }
+            values.AsSpan().CopyTo(Elements);
             return (TArray)this;
         }
 
-        public IEnumerator<double> GetEnumerator()
+        public IEnumerator<TElement> GetEnumerator()
         {
             for (var index = 0; index < ElementCount; index++)
             {
-                yield return FromElement(Elements[index]);
+                yield return Elements[index];
             }
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        protected abstract TElement ToElement(double value);
+        protected abstract TElement ToElement<TValue>(TValue value) where TValue : INumberBase<TValue>;
 
         protected abstract double FromElement(TElement value);
 
@@ -242,87 +318,51 @@ namespace Tsonic.CSharp.Js
                 : (selectedStart, selectedEnd);
         }
 
-        private int NormalizeStart(double index)
+        private int NormalizeStart<TIndex>(TIndex index) where TIndex : INumberBase<TIndex>
         {
-            var integer = TypedArrayNumbers.IntegerOrInfinity(index);
-            if (integer == long.MaxValue)
-            {
-                return ElementCount;
-            }
-            if (integer == long.MinValue)
-            {
-                return 0;
-            }
+            var integer = TIndex.IsNaN(index) ? 0 : long.CreateSaturating(index);
             var selected = integer < 0 ? ElementCount + integer : integer;
             return checked((int)System.Math.Clamp(selected, 0, ElementCount));
         }
 
-        private int ElementIndex(double index)
+        private int ElementIndex<TIndex>(TIndex index) where TIndex : INumberBase<TIndex>
         {
-            if (!double.IsFinite(index) || System.Math.Truncate(index) != index || index < 0 || index >= ElementCount)
-            {
-                return -1;
-            }
-            return checked((int)index);
+            if (!TIndex.IsInteger(index) || TIndex.IsNegative(index) && !TIndex.IsZero(index)) return -1;
+            var selected = int.CreateSaturating(index);
+            return selected < ElementCount ? selected : -1;
         }
 
         protected static int CheckedLength(double value)
         {
-            if (!double.IsFinite(value))
-            {
-                throw new RangeError("Typed array length or offset must be finite.");
-            }
-            var integer = System.Math.Truncate(value);
-            if (integer < 0 || integer > int.MaxValue)
-            {
-                throw new RangeError("Typed array length or offset is outside the supported range.");
-            }
-            return checked((int)integer);
+            return NativeInteger.IndexLength(value);
         }
     }
 
     internal static class TypedArrayNumbers
     {
-        public static long IntegerOrInfinity(double value)
+        public static bool TrySearch<TValue, TElement>(TValue value, out TElement result)
+            where TValue : INumberBase<TValue>
+            where TElement : unmanaged, INumberBase<TElement>
         {
-            if (double.IsNaN(value) || value == 0)
+            result = TElement.CreateSaturating(value);
+            if (TValue.IsNaN(value)) return TElement.IsNaN(result);
+            if (TValue.IsFinite(value) && !TElement.IsFinite(result)) return false;
+            if ((typeof(TElement) == typeof(float) || typeof(TElement) == typeof(double)) &&
+                (typeof(TValue) == typeof(sbyte) || typeof(TValue) == typeof(byte) ||
+                 typeof(TValue) == typeof(short) || typeof(TValue) == typeof(ushort) ||
+                 typeof(TValue) == typeof(int) || typeof(TValue) == typeof(uint) ||
+                 typeof(TValue) == typeof(long) || typeof(TValue) == typeof(ulong) ||
+                 typeof(TValue) == typeof(nint) || typeof(TValue) == typeof(nuint) ||
+                 typeof(TValue) == typeof(Int128) || typeof(TValue) == typeof(UInt128)))
             {
-                return 0;
+                var number = double.CreateTruncating(result);
+                if (TValue.IsNegative(value))
+                    return number >= -170141183460469231731687303715884105728.0 &&
+                        Int128.CreateTruncating(number) == Int128.CreateTruncating(value);
+                return number < 340282366920938463463374607431768211456.0 &&
+                    UInt128.CreateTruncating(number) == UInt128.CreateTruncating(value);
             }
-            if (double.IsPositiveInfinity(value) || value >= long.MaxValue)
-            {
-                return long.MaxValue;
-            }
-            if (double.IsNegativeInfinity(value) || value <= long.MinValue)
-            {
-                return long.MinValue;
-            }
-            return checked((long)System.Math.Truncate(value));
-        }
-
-        public static ulong ToUnsigned(double value, int width)
-        {
-            if (!double.IsFinite(value) || value == 0)
-            {
-                return 0;
-            }
-            var modulus = System.Math.Pow(2, width);
-            var remainder = System.Math.Truncate(value) % modulus;
-            if (remainder < 0)
-            {
-                remainder += modulus;
-            }
-            return checked((ulong)remainder);
-        }
-
-        public static long ToSigned(double value, int width)
-        {
-            var unsigned = ToUnsigned(value, width);
-            var sign = 1UL << (width - 1);
-            var modulus = 1UL << width;
-            return unsigned >= sign
-                ? checked((long)unsigned) - checked((long)modulus)
-                : checked((long)unsigned);
+            return TValue.CreateSaturating(result) == value;
         }
 
         public static byte ToUint8Clamp(double value)
@@ -338,17 +378,16 @@ namespace Tsonic.CSharp.Js
             return checked((byte)System.Math.Round(value, MidpointRounding.ToEven));
         }
 
-        public static int Compare(double left, double right)
+        public static int Compare<TElement>(TElement left, TElement right)
+            where TElement : unmanaged, INumberBase<TElement>
         {
-            if (double.IsNaN(left)) return double.IsNaN(right) ? 0 : 1;
-            if (double.IsNaN(right)) return -1;
-            if (left == 0 && right == 0)
+            if (TElement.IsNaN(left)) return TElement.IsNaN(right) ? 0 : 1;
+            if (TElement.IsNaN(right)) return -1;
+            if (TElement.IsZero(left) && TElement.IsZero(right))
             {
-                var leftBits = BitConverter.DoubleToInt64Bits(left);
-                var rightBits = BitConverter.DoubleToInt64Bits(right);
-                return leftBits.CompareTo(rightBits);
+                return TElement.IsNegative(right).CompareTo(TElement.IsNegative(left));
             }
-            return left.CompareTo(right);
+            return Comparer<TElement>.Default.Compare(left, right);
         }
     }
 }

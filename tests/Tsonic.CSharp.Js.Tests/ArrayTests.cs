@@ -186,17 +186,17 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void IncludesAndIndexOfDistinguishExplicitUndefinedAndNull()
+        public void IncludesAndIndexOfUseOneAbsenceWithoutLosingMembership()
         {
-            var values = new JSArray<object?>(new object?[] { null, Undefined.value });
-            Assert.True(values.includes(Undefined.value));
+            var values = new JSArray<object?>(new object?[] { null, TsValue.undefined().unwrap() });
+            Assert.True(values.includes(TsValue.undefined().unwrap()));
             Assert.True(values.includes(TsValue.undefined()));
-            Assert.Equal(1, values.indexOf(Undefined.value));
+            Assert.Equal(0, values.indexOf(TsValue.undefined().unwrap()));
             Assert.Equal(0, values.indexOf(null));
-            Assert.True(Tsonic.CSharp.Js.Array.includes(values, Undefined.value));
-            Assert.Equal(1, Tsonic.CSharp.Js.Array.indexOf(values, Undefined.value));
+            Assert.True(Tsonic.CSharp.Js.Array.includes(values, TsValue.undefined().unwrap()));
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.indexOf(values, TsValue.undefined().unwrap()));
             Assert.Null(values.at(0));
-            Assert.Same(Undefined.value, values.at(1));
+            Assert.Same(TsValue.undefined().unwrap(), values.at(1));
             Assert.True(values.hasIndex(0) && values.hasIndex(1));
             Assert.Throws<TypeError>(() => values.deleteAt(1));
         }

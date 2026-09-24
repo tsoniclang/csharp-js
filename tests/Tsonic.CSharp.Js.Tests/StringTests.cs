@@ -8,6 +8,19 @@ namespace Tsonic.CSharp.Js.Tests
 {
     public class StringTests
     {
+        [Fact]
+        public void CharacterConstructorsPreserveNativeIntegerBits()
+        {
+            Assert.Equal("\u0001", String.fromCharCode(9_007_199_254_740_993UL));
+            Assert.Equal("\uffff", String.fromCharCode(System.UInt128.MaxValue));
+            Assert.Equal("AB", String.fromCharCode((byte)65, (byte)66));
+            Assert.Equal("😀", String.fromCodePoint(0x1f600U));
+            Assert.Equal("A", String.fromCodePoint(65UL));
+            Assert.Throws<RangeError>(() => String.fromCodePoint(9_007_199_254_740_993UL));
+            Assert.Throws<RangeError>(() => String.fromCodePoint(System.UInt128.MaxValue));
+            Assert.Throws<RangeError>(() => String.fromCodePoint(long.MinValue));
+        }
+
         [Theory]
         [InlineData("banana", "ana", 3, 3)]
         [InlineData("banana", "ana", 2, 1)]
@@ -495,8 +508,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void CharacterConstructorsPreserveTheSourceNumericDomain()
         {
-            Assert.Equal("", String.fromCharCode());
-            Assert.Equal("", String.fromCodePoint());
+            Assert.Equal("", String.fromCharCode<int>());
+            Assert.Equal("", String.fromCodePoint<int>());
             Assert.Equal("AB", String.fromCharCode(65.9, 66.1));
             Assert.Equal("\uffff\u0001\u0000", String.fromCharCode(-1.9, 4_294_967_297d, -0.9));
             Assert.Equal("\u0000\u0000\u0000", String.fromCharCode(double.NaN, double.PositiveInfinity, double.NegativeInfinity));

@@ -209,7 +209,7 @@ namespace Tsonic.CSharp.Js
         public static object? at<T>(IReadOnlyList<T> array, double index)
         {
             var actualIndex = normalizeAtIndex(index, array.Count);
-            return actualIndex >= 0 ? array[actualIndex] : Undefined.value;
+            return actualIndex >= 0 ? array[actualIndex] : null;
         }
 
         public static object? at<T>(IReadOnlyList<T> array, int index)
@@ -220,7 +220,7 @@ namespace Tsonic.CSharp.Js
         public static object? at<T>(JSArray<T> array, double index)
         {
             var actualIndex = normalizeAtIndex(index, array.length);
-            return actualIndex >= 0 && array.tryGetAtObject(actualIndex, out var value) ? value : Undefined.value;
+            return actualIndex >= 0 && array.tryGetAtObject(actualIndex, out var value) ? value : null;
         }
 
         public static object? at<T>(JSArray<T> array, int index)
@@ -1241,7 +1241,7 @@ namespace Tsonic.CSharp.Js
                 return toJoinPart(tsValue.unwrap());
             }
 
-            if (value is null or Undefined)
+            if (value is null)
             {
                 return string.Empty;
             }

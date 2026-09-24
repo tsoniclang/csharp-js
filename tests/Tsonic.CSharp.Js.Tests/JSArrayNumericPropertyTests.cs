@@ -15,7 +15,6 @@ public class JSArrayNumericPropertyTests
         values[1.5] = 4;
         values[double.NaN] = 5;
         values[double.PositiveInfinity] = 6;
-        values[4294967295d] = 7;
         values[-0d] = 8;
         Assert.Equal(1, values.length);
         Assert.Equal(8, values[0]);
@@ -23,7 +22,6 @@ public class JSArrayNumericPropertyTests
         Assert.Equal(4, values[1.5]);
         Assert.Equal(5, values[double.NaN]);
         Assert.Equal(6, values[double.PositiveInfinity]);
-        Assert.Equal(7, values[4294967295d]);
         Assert.False(values.hasIndex(1));
         Assert.True(ArrayLike.HasIndex(-1, values));
         Assert.True(ArrayLike.HasIndex(double.NaN, values));
@@ -31,7 +29,7 @@ public class JSArrayNumericPropertyTests
         Assert.Equal(4, ArrayLike.ReadNumber(values, 1.5));
         Assert.Equal(5, ArrayLike.ReadNumber(values, double.NaN));
         Assert.Null(ArrayLike.ReadNumber(values, 1));
-        Assert.Equal(new[] { "0", "-1", "1.5", "NaN", "Infinity", "4294967295" }, Object.keys(values).ToArray());
+        Assert.Equal(new[] { "0", "-1", "1.5", "NaN", "Infinity" }, Object.keys(values).ToArray());
         Assert.True(Object.hasOwn(values, "length"));
         Assert.False(Object.hasOwn(values, "-0"));
         Assert.False(Object.hasOwn(values, "1.50"));
@@ -49,8 +47,10 @@ public class JSArrayNumericPropertyTests
         Assert.Equal(6, alias[-2]);
         values[double.NaN] = null;
         Assert.Null(closed.ReadDynamicSlot("NaN").unwrap());
-        Assert.False(closed.ReadDynamicSlot("NaN").isUndefined());
+        Assert.True(closed.ReadDynamicSlot("NaN").isUndefined());
+        Assert.True(Object.hasOwn(values, "NaN"));
         Assert.True(values.deleteAt(double.NaN));
+        Assert.False(Object.hasOwn(values, "NaN"));
         Assert.True(closed.ReadDynamicSlot("NaN").isUndefined());
         Assert.True(values.deleteAt(1.5));
         values[1.5] = 10;
@@ -83,15 +83,20 @@ public class JSArrayNumericPropertyTests
         Assert.Equal(0, values.length);
     }
 
-    [Fact]
-    public void NativeStorageAndLengthBoundariesRejectWithoutTruncation()
+    [Theory]
+    [InlineData(4294967294d)]
+    [InlineData(4294967295d)]
+    [InlineData(9007199254740992d)]
+    [InlineData(double.MaxValue)]
+    public void NativeStorageAndLengthBoundariesRejectWithoutTruncation(double index)
     {
         var values = new JSArray<int>();
-        Assert.Throws<RangeError>(() => values[4294967294d] = 1);
+        Assert.Throws<RangeError>(() => values[index] = 1);
         Assert.Throws<RangeError>(() => values.setLength(1.5));
         Assert.Throws<RangeError>(() => values.setLength(double.NaN));
         Assert.Equal(0, values.length);
-        Assert.False(values.hasIndex(4294967294d));
-        Assert.True(values.deleteAt(4294967294d));
+        Assert.False(values.hasIndex(index));
+        Assert.True(values.deleteAt(index));
+        Assert.Empty(Object.keys(values).ToArray());
     }
 }

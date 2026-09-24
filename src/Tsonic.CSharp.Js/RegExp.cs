@@ -34,12 +34,6 @@ public class RegExp
         source = EscapeSource(_pattern);
     }
 
-    public RegExp(string pattern, Undefined flags)
-        : this(pattern, (string?)null)
-    {
-        ArgumentNullException.ThrowIfNull(flags);
-    }
-
     public RegExp(RegExp pattern, string? flags = null)
         : this(
             pattern?.Pattern ?? throw new ArgumentNullException(nameof(pattern)),
@@ -47,29 +41,10 @@ public class RegExp
     {
     }
 
-    public RegExp(RegExp pattern, Undefined flags)
-        : this(pattern, (string?)null)
-    {
-        ArgumentNullException.ThrowIfNull(flags);
-    }
-
-    public RegExp(Undefined pattern)
-        : this(string.Empty, (string?)null)
-    {
-        ArgumentNullException.ThrowIfNull(pattern);
-    }
-
-    public RegExp(Undefined pattern, string flags)
+    public RegExp(object? pattern, string? flags = null)
         : this(string.Empty, flags)
     {
-        ArgumentNullException.ThrowIfNull(pattern);
-    }
-
-    public RegExp(Undefined pattern, Undefined flags)
-        : this(string.Empty, (string?)null)
-    {
-        ArgumentNullException.ThrowIfNull(pattern);
-        ArgumentNullException.ThrowIfNull(flags);
+        if (pattern is not null) throw new ArgumentException("An absent pattern must be null.", nameof(pattern));
     }
 
     public string source { get; }
@@ -92,23 +67,11 @@ public class RegExp
     public static RegExp create() => new();
     public static RegExp create(string pattern, string? flags = null) =>
         new(pattern, flags);
-    public static RegExp create(string pattern, Undefined flags) =>
-        new(pattern, flags);
     public static RegExp create(RegExp pattern) =>
         pattern ?? throw new ArgumentNullException(nameof(pattern));
-    public static RegExp create(RegExp pattern, string flags) =>
-        new(pattern, flags);
-    public static RegExp create(RegExp pattern, Undefined flags)
-    {
-        ArgumentNullException.ThrowIfNull(pattern);
-        ArgumentNullException.ThrowIfNull(flags);
-        return pattern;
-    }
-    public static RegExp create(Undefined pattern) => new(pattern);
-    public static RegExp create(Undefined pattern, string flags) =>
-        new(pattern, flags);
-    public static RegExp create(Undefined pattern, Undefined flags) =>
-        new(pattern, flags);
+    public static RegExp create(RegExp pattern, string? flags) =>
+        flags is null ? create(pattern) : new(pattern, flags);
+    public static RegExp create(object? pattern, string? flags = null) => new(pattern, flags);
 
     public static string escape(string value)
     {
@@ -173,7 +136,7 @@ public class RegExp
     {
         ArgumentNullException.ThrowIfNull(input);
         var stateful = global || sticky;
-        var start = stateful ? ToLength(_lastIndex) : 0;
+        var start = stateful ? (int)System.Math.Clamp(NativeInteger.Index(_lastIndex), 0, int.MaxValue) : 0;
         if (start > input.Length)
         {
             if (stateful) _lastIndex = 0;
@@ -196,7 +159,7 @@ public class RegExp
         RegExpProtocols.MatchAll(input, this, requireGlobal: false);
     public string replace(string input, string replacement) => RegExpProtocols.Replace(input, this, replacement);
     public string replace(string input, ReplacementCallback replacer) => RegExpProtocols.Replace(input, this, replacer);
-    public double search(string input) => RegExpProtocols.Search(input, this);
+    public int search(string input) => RegExpProtocols.Search(input, this);
     public JSArray<string?> split(string input, double? limit = null) => RegExpProtocols.Split(input, this, limit);
 
     public override string ToString() => toString();
@@ -210,7 +173,7 @@ public class RegExp
 
     internal void AdvanceAfterEmptyMatch(string input)
     {
-        var current = ToLength(_lastIndex);
+        var current = (int)System.Math.Clamp(NativeInteger.Index(_lastIndex), 0, int.MaxValue);
         _lastIndex = AdvanceStringIndex(input, current, _flags.FullUnicode);
     }
 
@@ -244,7 +207,7 @@ public class RegExp
     {
         var values = new string?[_program.CaptureCount];
         var indexPairs = hasIndices
-            ? new (double Start, double End)?[values.Length]
+            ? new (int Start, int End)?[values.Length]
             : null;
         for (var index = 0; index < values.Length; index += 1)
         {
@@ -259,7 +222,7 @@ public class RegExp
         }
 
         Dictionary<string, string?>? namedValues = null;
-        Dictionary<string, (double Start, double End)?>? namedIndices = null;
+        Dictionary<string, (int Start, int End)?>? namedIndices = null;
         foreach (var entry in _program.NamedCaptures)
         {
             namedValues ??= new Dictionary<string, string?>(StringComparer.Ordinal);
@@ -273,7 +236,7 @@ public class RegExp
             {
                 namedIndices ??= new Dictionary<
                     string,
-                    (double Start, double End)?
+                    (int Start, int End)?
                 >(StringComparer.Ordinal);
                 var selectedIndices = indexPairs[entry.Value];
                 if (!namedIndices.ContainsKey(entry.Key) ||
@@ -290,13 +253,6 @@ public class RegExp
                 indexPairs,
                 namedIndices is null ? null : new RegExpNamedIndices(namedIndices));
         return new RegExpExecArray(values, match.Start, input, groups, indices);
-    }
-
-    private static int ToLength(double value)
-    {
-        if (double.IsNaN(value) || value <= 0) return 0;
-        if (double.IsPositiveInfinity(value) || value >= int.MaxValue) return int.MaxValue;
-        return (int)System.Math.Floor(value);
     }
 
     private static string EscapeSource(string pattern)

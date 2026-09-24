@@ -373,7 +373,7 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Date_UtcOperations_CoverTheCompleteTimeClipRange()
+        public void Date_UtcOperations_CoverExtendedYears()
         {
             var maximum = new Date(8_640_000_000_000_000);
             var minimum = new Date(-8_640_000_000_000_000);
@@ -390,11 +390,12 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Date_TimeClip_TruncatesFiniteValuesAndRejectsOutOfRangeValues()
+        public void Date_NativeTimestampRange_TruncatesFiniteValuesAndRejectsOverflow()
         {
             Assert.Equal(1234, new Date(1234.9).getTime());
 
-            var outOfRange = new Date(8_640_000_000_000_001);
+            Assert.Equal(8_640_000_000_000_001d, new Date(8_640_000_000_000_001d).getTime());
+            var outOfRange = new Date(-(double)long.MinValue);
             Assert.True(double.IsNaN(outOfRange.getTime()));
             Assert.True(double.IsNaN(outOfRange.getUTCFullYear()));
             Assert.Equal("Invalid Date", outOfRange.toUTCString());
@@ -408,6 +409,26 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(Date.UTC(2024, 0, 1), Date.UTC(2023, 12, 1));
             Assert.Equal(Date.UTC(2022, 11, 31), Date.UTC(2023, 0, 0));
             Assert.Equal(1999, new Date(Date.UTC(99, 0, 1)).getUTCFullYear());
+        }
+
+        [Fact]
+        public void Date_UtcOperations_UseNativeTimestampAndComponentBounds()
+        {
+            foreach (var millis in new[] { (double)long.MinValue, (double)(long.MaxValue - 1023), 9007199254740992d, -9007199254740992d })
+            {
+                var date = new Date(millis);
+                Assert.Equal(millis, date.getTime());
+                Assert.NotEmpty(date.toISOString());
+                Assert.True(double.IsFinite(date.getUTCFullYear()));
+            }
+            foreach (var millis in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity, -(double)long.MinValue, (double)long.MinValue * 2 })
+            {
+                var date = new Date(millis);
+                Assert.True(double.IsNaN(date.getTime()));
+                Assert.Throws<RangeError>(() => date.toISOString());
+            }
+            Assert.True(double.IsNaN(Date.UTC(int.MinValue, 0)));
+            Assert.True(double.IsNaN(Date.UTC(int.MaxValue, 0)));
         }
 
         [Fact]

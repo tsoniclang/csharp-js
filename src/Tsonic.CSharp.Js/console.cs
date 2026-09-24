@@ -15,7 +15,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Log message to console
         /// </summary>
-        public static void log(params object[] data)
+        public static void log(params object?[] data)
         {
             Console.WriteLine(formatArguments(data));
         }
@@ -23,7 +23,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Log error message to stderr
         /// </summary>
-        public static void error(params object[] data)
+        public static void error(params object?[] data)
         {
             Console.Error.WriteLine(formatArguments(data));
         }
@@ -31,7 +31,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Log warning message
         /// </summary>
-        public static void warn(params object[] data)
+        public static void warn(params object?[] data)
         {
             Console.WriteLine("WARN: " + formatArguments(data));
         }
@@ -39,7 +39,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Log info message
         /// </summary>
-        public static void info(params object[] data)
+        public static void info(params object?[] data)
         {
             Console.WriteLine(formatArguments(data));
         }
@@ -47,7 +47,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Log debug message
         /// </summary>
-        public static void debug(params object[] data)
+        public static void debug(params object?[] data)
         {
             Console.WriteLine("DEBUG: " + formatArguments(data));
         }
@@ -55,13 +55,13 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Log stack trace
         /// </summary>
-        public static void trace(params object[] data)
+        public static void trace(params object?[] data)
         {
             Console.WriteLine(formatArguments(data));
             Console.WriteLine(new System.Diagnostics.StackTrace(true).ToString());
         }
 
-        private static string formatArguments(object[] data)
+        private static string formatArguments(object?[] data)
         {
             var formatted = new string[data.Length];
             for (int index = 0; index < data.Length; index++)
@@ -74,7 +74,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Assert condition and log if false
         /// </summary>
-        public static void assert(bool condition = false, params object[] data)
+        public static void assert(bool condition = false, params object?[] data)
         {
             if (!condition)
             {
@@ -96,7 +96,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static void table(object? tabularData = null, object? properties = null)
         {
-            log(properties == null ? new object[] { tabularData! } : new object[] { tabularData!, properties });
+            log(properties == null ? new object?[] { tabularData! } : new object?[] { tabularData!, properties });
         }
 
         // Timing
@@ -127,7 +127,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Log elapsed time without ending timer
         /// </summary>
-        public static void timeLog(string label = "default", params object[] data)
+        public static void timeLog(string label = "default", params object?[] data)
         {
             if (_timers.TryGetValue(label, out long startTime))
             {
@@ -185,7 +185,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Start a log group
         /// </summary>
-        public static void group(params object[] data)
+        public static void group(params object?[] data)
         {
             log(data);
             _groupIndent++;
@@ -194,7 +194,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Start a collapsed log group
         /// </summary>
-        public static void groupCollapsed(params object[] data)
+        public static void groupCollapsed(params object?[] data)
         {
             log(data);
             _groupIndent++;
@@ -224,13 +224,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static void dir(object? item = null, object? options = null)
         {
-            log(options == null ? new object[] { item! } : new object[] { item!, options });
+            log(options == null ? new object?[] { item! } : new object?[] { item!, options });
         }
 
         /// <summary>
         /// Display XML/HTML element
         /// </summary>
-        public static void dirxml(params object[] data)
+        public static void dirxml(params object?[] data)
         {
             log(data);
         }

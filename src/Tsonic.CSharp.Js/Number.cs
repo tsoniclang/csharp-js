@@ -1,20 +1,11 @@
 using System;
 using System.Globalization;
-
-/**
- * JavaScript Number static methods
- * Provides Number.parseInt, Number.parseFloat, Number.isNaN, Number.isFinite, Number.isInteger
- */
+using System.Numerics;
 
 namespace Tsonic.CSharp.Js
 {
-    /// <summary>
-    /// JavaScript Number object static methods.
-    /// Note: Number.parseInt and Number.parseFloat are aliases for the global functions.
-    /// </summary>
-    public static class Number
+    public static partial class Number
     {
-        // Number constants
         public const double MAX_VALUE = double.MaxValue;
         public const double MIN_VALUE = double.Epsilon; // Smallest positive value
         public const double MAX_SAFE_INTEGER = 9007199254740991; // 2^53 - 1
@@ -24,426 +15,233 @@ namespace Tsonic.CSharp.Js
         public const double NaN = double.NaN;
         public const double EPSILON = 2.220446049250313e-16; // 2^-52
 
-        /// <summary>
-        /// Parse string to integer with optional radix.
-        /// Alias for the global parseInt function.
-        /// </summary>
+
         public static double parseInt(string str, int? radix = null)
         {
-            return Globals.parseInt(str, radix);
+            if (string.IsNullOrEmpty(str))
+            {
+                return double.NaN;
+            }
+
+            var span = TrimWhitespaceStart(str.AsSpan());
+            if (span.Length == 0)
+            {
+                return double.NaN;
+            }
+
+            var sign = 1.0;
+            if (span[0] == '+' || span[0] == '-')
+            {
+                if (span[0] == '-')
+                {
+                    sign = -1.0;
+                }
+
+                span = span[1..];
+                if (span.Length == 0)
+                {
+                    return double.NaN;
+                }
+            }
+
+            var actualRadix = radix ?? 0;
+            if (actualRadix != 0 && (actualRadix < 2 || actualRadix > 36))
+            {
+                return double.NaN;
+            }
+
+            if (actualRadix == 0)
+            {
+                actualRadix = 10;
+                if (span.Length >= 2 && span[0] == '0' && (span[1] == 'x' || span[1] == 'X'))
+                {
+                    actualRadix = 16;
+                    span = span[2..];
+                }
+            }
+            else if (actualRadix == 16 && span.Length >= 2 && span[0] == '0' && (span[1] == 'x' || span[1] == 'X'))
+            {
+                span = span[2..];
+            }
+
+            var count = 0;
+            foreach (var character in span)
+            {
+                var digit = Digit(character);
+                if (digit < 0 || digit >= actualRadix) break;
+                count++;
+            }
+            return count == 0 ? double.NaN : sign * ParseUnsignedInteger(span[..count], actualRadix);
         }
 
-        /// <summary>
-        /// Parse string to floating point number.
-        /// Alias for the global parseFloat function.
-        /// </summary>
         public static double parseFloat(string str)
         {
-            return Globals.parseFloat(str);
-        }
-
-        /// <summary>
-        /// Check if value is NaN.
-        /// Unlike global isNaN, this does NOT convert the argument.
-        /// </summary>
-        public static bool isNaN(double value)
-        {
-            return double.IsNaN(value);
-        }
-
-        public static bool isNaN(int value)
-        {
-            return false;
-        }
-
-        public static bool isNaN(int? value)
-        {
-            return value.HasValue && isNaN(value.Value);
-        }
-
-        public static bool isNaN(long value)
-        {
-            return false;
-        }
-
-        public static bool isNaN(long? value)
-        {
-            return value.HasValue && isNaN(value.Value);
-        }
-
-        /// <summary>
-        /// Check if value is finite (not infinite or NaN).
-        /// Unlike global isFinite, this does NOT convert the argument.
-        /// </summary>
-        public static bool isFinite(double value)
-        {
-            return !double.IsInfinity(value) && !double.IsNaN(value);
-        }
-
-        public static bool isFinite(int value)
-        {
-            return true;
-        }
-
-        public static bool isFinite(int? value)
-        {
-            return value.HasValue;
-        }
-
-        public static bool isFinite(long value)
-        {
-            return true;
-        }
-
-        public static bool isFinite(long? value)
-        {
-            return value.HasValue;
-        }
-
-        /// <summary>
-        /// Check if value is an integer (no fractional part).
-        /// </summary>
-        public static bool isInteger(double value)
-        {
-            if (double.IsInfinity(value) || double.IsNaN(value))
+            if (string.IsNullOrEmpty(str))
             {
-                return false;
-            }
-            return System.Math.Floor(value) == value;
-        }
-
-        public static bool isInteger(int value)
-        {
-            return true;
-        }
-
-        public static bool isInteger(int? value)
-        {
-            return value.HasValue;
-        }
-
-        public static bool isInteger(long value)
-        {
-            return true;
-        }
-
-        public static bool isInteger(long? value)
-        {
-            return value.HasValue;
-        }
-
-        /// <summary>
-        /// Check if value is a safe integer (can be exactly represented).
-        /// Safe integers are integers in the range -(2^53-1) to 2^53-1.
-        /// </summary>
-        public static bool isSafeInteger(double value)
-        {
-            if (!isInteger(value))
-            {
-                return false;
-            }
-            return value >= MIN_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
-        }
-
-        public static bool isSafeInteger(int value)
-        {
-            return true;
-        }
-
-        public static bool isSafeInteger(int? value)
-        {
-            return value.HasValue;
-        }
-
-        public static bool isSafeInteger(long value)
-        {
-            return value >= MIN_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
-        }
-
-        public static bool isSafeInteger(long? value)
-        {
-            return value.HasValue && isSafeInteger(value.Value);
-        }
-
-        /// <summary>
-        /// Convert a number to its JavaScript string form.
-        /// </summary>
-        public static string toString(this double value)
-        {
-            return formatJsNumber(value);
-        }
-
-        public static string toString(this double? value)
-        {
-            return value.HasValue ? formatJsNumber(value.Value) : string.Empty;
-        }
-
-        public static string toString(this int value)
-        {
-            return value.ToString(CultureInfo.InvariantCulture);
-        }
-
-        public static string toString(this int value, int radix)
-        {
-            return formatSignedIntegralRadix(value, radix);
-        }
-
-        public static string toString(this int? value)
-        {
-            return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-        }
-
-        public static string toString(this int? value, int radix)
-        {
-            return value.HasValue ? formatSignedIntegralRadix(value.Value, radix) : string.Empty;
-        }
-
-        public static string toString(this long value)
-        {
-            return value.ToString(CultureInfo.InvariantCulture);
-        }
-
-        public static string toString(this long value, int radix)
-        {
-            return formatSignedIntegralRadix(value, radix);
-        }
-
-        public static string toString(this long? value)
-        {
-            return value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-        }
-
-        public static string toString(this long? value, int radix)
-        {
-            return value.HasValue ? formatSignedIntegralRadix(value.Value, radix) : string.Empty;
-        }
-
-        public static string toExponential(this double value, int? fractionDigits = null)
-        {
-            var special = formatSpecialJsNumber(value);
-            if (special != null)
-            {
-                return special;
+                return double.NaN;
             }
 
-            if (fractionDigits.HasValue)
+            var span = TrimWhitespaceStart(str.AsSpan());
+            if (span.Length == 0)
             {
-                validateFractionDigits(fractionDigits.Value);
-                return normalizeExponent(value.ToString($"E{fractionDigits.Value}", CultureInfo.InvariantCulture));
+                return double.NaN;
             }
 
-            return normalizeExponent(trimMantissaZeros(value.ToString("E15", CultureInfo.InvariantCulture)));
+            var cursor = 0;
+            if (span[cursor] == '+' || span[cursor] == '-')
+            {
+                cursor++;
+            }
+
+            if (span[cursor..].StartsWith("Infinity", StringComparison.Ordinal))
+            {
+                return cursor > 0 && span[0] == '-'
+                    ? double.NegativeInfinity
+                    : double.PositiveInfinity;
+            }
+
+            var digitStart = cursor;
+            while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
+            {
+                cursor++;
+            }
+
+            if (cursor < span.Length && span[cursor] == '.')
+            {
+                cursor++;
+                while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
+                {
+                    cursor++;
+                }
+            }
+
+            if (cursor == digitStart || (cursor == digitStart + 1 && span[digitStart] == '.'))
+            {
+                return double.NaN;
+            }
+
+            var exponentStart = cursor;
+            if (cursor < span.Length && (span[cursor] == 'e' || span[cursor] == 'E'))
+            {
+                cursor++;
+                if (cursor < span.Length && (span[cursor] == '+' || span[cursor] == '-'))
+                {
+                    cursor++;
+                }
+
+                var exponentDigitStart = cursor;
+                while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
+                {
+                    cursor++;
+                }
+
+                if (cursor == exponentDigitStart)
+                {
+                    cursor = exponentStart;
+                }
+            }
+
+            return double.TryParse(span[..cursor], NumberStyles.Float, CultureInfo.InvariantCulture, out var result)
+                ? result
+                : (span[0] == '-' ? double.NegativeInfinity : double.PositiveInfinity);
         }
 
-        public static string toFixed(this double value, int? digits = null)
+        public static bool isNaN<T>(T value) where T : System.Numerics.INumberBase<T> =>
+            T.IsNaN(value);
+
+        public static bool isNaN<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue && T.IsNaN(value.Value);
+
+        public static bool isFinite<T>(T value) where T : System.Numerics.INumberBase<T> =>
+            T.IsFinite(value);
+
+        public static bool isFinite<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue && T.IsFinite(value.Value);
+
+        public static bool isInteger<T>(T value) where T : System.Numerics.INumberBase<T> =>
+            T.IsInteger(value);
+
+        public static bool isInteger<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue && T.IsInteger(value.Value);
+
+        public static bool isSafeInteger<T>(T value) where T : INumber<T>
         {
-            var special = formatSpecialJsNumber(value);
-            if (special != null)
-            {
-                return special;
-            }
-
-            var fractionDigits = digits ?? 0;
-            validateFractionDigits(fractionDigits);
-            if (System.Math.Abs(value) >= 1e21)
-            {
-                return formatJsNumber(value);
-            }
-
-            return value.ToString($"F{fractionDigits}", CultureInfo.InvariantCulture);
+            if (!T.IsInteger(value)) return false;
+            if (typeof(T) == typeof(float)) return System.Math.Abs(double.CreateChecked(value)) < 9007199254740992.0;
+            if (typeof(T) == typeof(sbyte) || typeof(T) == typeof(byte) ||
+                typeof(T) == typeof(short) || typeof(T) == typeof(ushort) ||
+                typeof(T) == typeof(int) || typeof(T) == typeof(uint) || typeof(T) == typeof(Half)) return true;
+            return !T.IsNegative(value)
+                ? value <= T.CreateSaturating(9007199254740991L)
+                : value >= T.CreateSaturating(-9007199254740991L);
         }
 
-        public static string toPrecision(this double value, int? precision = null)
+        public static bool isSafeInteger<T>(T? value) where T : struct, INumber<T> =>
+            value.HasValue && isSafeInteger(value.Value);
+
+
+        public static string toString<T>(this T value) where T : INumberBase<T> =>
+            FormatDecimal(value);
+
+        public static string toString<T>(this T? value) where T : struct, INumberBase<T> =>
+            value.HasValue ? toString(value.Value) : string.Empty;
+
+        public static string toString<T>(this T value, int radix) where T : IBinaryInteger<T>
         {
-            var special = formatSpecialJsNumber(value);
-            if (special != null)
-            {
-                return special;
-            }
-
-            if (!precision.HasValue)
-            {
-                return formatJsNumber(value);
-            }
-
-            validatePrecision(precision.Value);
-            return normalizeExponent(value.ToString($"G{precision.Value}", CultureInfo.InvariantCulture));
-        }
-
-        public static string toLocaleString(this double value, object? locales = null, object? options = null)
-        {
-            _ = locales;
-            _ = options;
-            return formatJsNumber(value);
-        }
-
-        /// <summary>
-        /// Return the primitive numeric value.
-        /// </summary>
-        public static double valueOf(this double value)
-        {
-            return value;
-        }
-
-        public static double? valueOf(this double? value)
-        {
-            return value;
-        }
-
-        public static int valueOf(this int value)
-        {
-            return value;
-        }
-
-        public static int? valueOf(this int? value)
-        {
-            return value;
-        }
-
-        public static long valueOf(this long value)
-        {
-            return value;
-        }
-
-        public static long? valueOf(this long? value)
-        {
-            return value;
-        }
-
-        private static string formatJsNumber(double value)
-        {
-            var special = formatSpecialJsNumber(value);
-            if (special != null)
-            {
-                return special;
-            }
-
-            if (value == 0)
-            {
-                return "0";
-            }
-
-            var formatted = value.ToString("R", CultureInfo.InvariantCulture);
-            var exponentIndex = formatted.IndexOf('E');
-            if (exponentIndex < 0)
-            {
-                return formatted;
-            }
-            var magnitude = System.Math.Abs(value);
-            if (magnitude < 1e-6 || magnitude >= 1e21)
-            {
-                return normalizeExponent(formatted);
-            }
-            var sign = value < 0 ? "-" : "";
-            var mantissa = formatted.Substring(sign.Length, exponentIndex - sign.Length);
-            var exponent = int.Parse(formatted.AsSpan(exponentIndex + 1), CultureInfo.InvariantCulture);
-            var decimalIndex = mantissa.IndexOf('.');
-            var point = (decimalIndex < 0 ? mantissa.Length : decimalIndex) + exponent;
-            var digits = mantissa.Replace(".", "");
-            if (point <= 0)
-            {
-                return sign + "0." + new string('0', -point) + digits;
-            }
-            return sign + (point >= digits.Length
-                ? digits + new string('0', point - digits.Length)
-                : digits.Insert(point, "."));
-        }
-
-        private static string? formatSpecialJsNumber(double value)
-        {
-            if (double.IsNaN(value))
-            {
-                return "NaN";
-            }
-
-            if (double.IsPositiveInfinity(value))
-            {
-                return "Infinity";
-            }
-
-            return double.IsNegativeInfinity(value) ? "-Infinity" : null;
-        }
-
-        private static string formatSignedIntegralRadix(long value, int radix)
-        {
-            validateRadix(radix);
-            if (value == 0)
-            {
-                return "0";
-            }
-            var negative = value < 0;
+            if (radix < 2 || radix > 36) throw new RangeError("Number radix must be between 2 and 36.");
+            var negative = T.IsNegative(value);
             var magnitude = negative
-                ? (ulong)(-(value + 1)) + 1
-                : (ulong)value;
-            var digits = formatUnsignedIntegralRadix(magnitude, radix);
-            return negative ? "-" + digits : digits;
-        }
-
-        private static string formatUnsignedIntegralRadix(ulong value, int radix)
-        {
+                ? checked(UInt128.CreateChecked(~value) + 1)
+                : UInt128.CreateChecked(value);
+            Span<char> buffer = stackalloc char[129];
+            var position = buffer.Length;
             const string alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
-            Span<char> buffer = stackalloc char[64];
-            var index = buffer.Length;
-            var divisor = (ulong)radix;
-            while (value > 0)
+            do
             {
-                var digit = (int)(value % divisor);
-                buffer[--index] = alphabet[digit];
-                value /= divisor;
-            }
-            return new string(buffer[index..]);
+                buffer[--position] = alphabet[(int)(magnitude % (uint)radix)];
+                magnitude /= (uint)radix;
+            } while (magnitude != 0);
+            if (negative) buffer[--position] = '-';
+            return new string(buffer[position..]);
         }
 
-        private static void validateRadix(int value)
+        public static string toString<T>(this T? value, int radix) where T : struct, IBinaryInteger<T> =>
+            value.HasValue ? toString(value.Value, radix) : string.Empty;
+
+        public static string toFixed<T>(this T value, int? digits = null) where T : INumberBase<T>
         {
-            if (value < 2 || value > 36)
-            {
-                throw new RangeError("Number radix must be between 2 and 36.");
-            }
+            var count = digits ?? 0;
+            if (count < 0 || count > 100) throw new RangeError("Number fraction digits must be between 0 and 100.");
+            if (IsFloating<T>() && (!T.IsFinite(value) || System.Math.Abs(double.CreateChecked(value)) >= 1e21))
+                return FormatDecimal(value);
+            Span<char> output = stackalloc char[160];
+            Span<char> format = stackalloc char[4];
+            if (T.IsZero(value)) value = T.Zero;
+            if (!value.TryFormat(output, out var length, PrecisionFormat('F', count, format), CultureInfo.InvariantCulture))
+                throw new InvalidOperationException("Fixed numeric formatting exceeded its bounded buffer.");
+            if (DecimalHalfRoundsDown(value, count)) output[length - 1]++;
+            return new string(output[..length]);
         }
 
-        private static void validateFractionDigits(int value)
+        public static string toExponential<T>(this T value, int? fractionDigits = null) where T : INumberBase<T>
         {
-            if (value < 0 || value > 100)
-            {
-                throw new RangeError("Number fraction digits must be between 0 and 100.");
-            }
+            if (fractionDigits < 0 || fractionDigits > 100) throw new RangeError("Number fraction digits must be between 0 and 100.");
+            if (!T.IsFinite(value)) return FormatDecimal(value);
+            return FormatSignificant(value, fractionDigits.HasValue ? fractionDigits.Value + 1 : null, true);
         }
 
-        private static void validatePrecision(int value)
+        public static string toPrecision<T>(this T value, int? precision = null) where T : INumberBase<T>
         {
-            if (value < 1 || value > 100)
-            {
-                throw new RangeError("Number precision must be between 1 and 100.");
-            }
+            if (precision < 1 || precision > 100) throw new RangeError("Number precision must be between 1 and 100.");
+            if (!precision.HasValue || !T.IsFinite(value)) return FormatDecimal(value);
+            return FormatSignificant(value, precision.Value, false);
         }
 
-        private static string trimMantissaZeros(string value)
-        {
-            var exponentIndex = value.IndexOf('E');
-            if (exponentIndex < 0)
-            {
-                return value;
-            }
+        public static string toLocaleString<T>(this T value, object? locales = null, object? options = null)
+            where T : INumberBase<T> => FormatDecimal(value);
 
-            var mantissa = value.Substring(0, exponentIndex);
-            mantissa = mantissa.Contains('.')
-                ? mantissa.TrimEnd('0').TrimEnd('.')
-                : mantissa;
-            return mantissa + value.Substring(exponentIndex);
-        }
+        public static T valueOf<T>(this T value) where T : INumberBase<T> => value;
 
-        private static string normalizeExponent(string value)
-        {
-            var exponentIndex = value.IndexOf('E');
-            if (exponentIndex < 0)
-            {
-                return value;
-            }
-
-            var mantissa = value.Substring(0, exponentIndex);
-            var exponent = int.Parse(value.Substring(exponentIndex + 1), CultureInfo.InvariantCulture);
-            return $"{mantissa}e{(exponent >= 0 ? "+" : "")}{exponent.ToString(CultureInfo.InvariantCulture)}";
-        }
+        public static T? valueOf<T>(this T? value) where T : struct, INumberBase<T> => value;
     }
 }

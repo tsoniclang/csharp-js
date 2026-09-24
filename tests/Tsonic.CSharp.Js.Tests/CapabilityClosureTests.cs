@@ -85,7 +85,7 @@ namespace Tsonic.CSharp.Js.Tests
             JsonReplacer replacer = (key, value) =>
                 key == "drop" ? TsValue.undefined() : value;
 
-            Assert.Equal("{\"keep\":1}", JSON.stringify(source, replacer));
+            Assert.Equal("{\"keep\":1,\"drop\":null}", JSON.stringify(source, replacer));
             Assert.Equal(
                 "{\n  \"drop\": 2\n}",
                 JSON.stringify(source, new[] { "drop" }, TsValue.from(2.0)));
@@ -100,13 +100,13 @@ namespace Tsonic.CSharp.Js.Tests
             var littleEndian = new DataView(buffer);
 
             bigEndian.setUint32(0, 0x01020304, false);
-            Assert.Equal(0x04030201, littleEndian.getUint32(0, true));
+            Assert.Equal(0x04030201u, littleEndian.getUint32(0, true));
 
             var bytes = new Uint8Array(buffer);
             Assert.Equal(new[] { 1.0, 2.0, 3.0, 4.0 },
                 Enumerable.Range(0, 4).Select(index => bytes[index]).ToArray());
             bytes[1] = 9;
-            Assert.Equal(0x01090304, bigEndian.getUint32(0, false));
+            Assert.Equal(0x01090304u, bigEndian.getUint32(0, false));
         }
 
         [Fact]

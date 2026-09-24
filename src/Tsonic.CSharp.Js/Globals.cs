@@ -18,222 +18,22 @@ namespace Tsonic.CSharp.Js
         // Global constants
         public const double Infinity = double.PositiveInfinity;
         public const double NaN = double.NaN;
-        public static readonly object undefined = Undefined.value;
+        public static readonly object? undefined = null;
 
-        /// <summary>
-        /// Parse string to integer with optional radix.
-        /// Mirrors JavaScript semantics: trims leading whitespace, supports optional sign,
-        /// consumes valid digits until the first invalid character, and returns NaN when
-        /// no valid integer prefix exists.
-        /// </summary>
-        public static double parseInt(string str, int? radix = null)
-        {
-            if (string.IsNullOrEmpty(str))
-            {
-                return double.NaN;
-            }
+        public static double parseInt(string str, int? radix = null) => Tsonic.CSharp.Js.Number.parseInt(str, radix);
 
-            var span = str.AsSpan().TrimStart();
-            if (span.Length == 0)
-            {
-                return double.NaN;
-            }
-
-            var sign = 1.0;
-            if (span[0] == '+' || span[0] == '-')
-            {
-                if (span[0] == '-')
-                {
-                    sign = -1.0;
-                }
-
-                span = span[1..];
-                if (span.Length == 0)
-                {
-                    return double.NaN;
-                }
-            }
-
-            var actualRadix = radix ?? 0;
-            if (actualRadix != 0 && (actualRadix < 2 || actualRadix > 36))
-            {
-                return double.NaN;
-            }
-
-            if (actualRadix == 0)
-            {
-                actualRadix = 10;
-                if (span.Length >= 2 && span[0] == '0' && (span[1] == 'x' || span[1] == 'X'))
-                {
-                    actualRadix = 16;
-                    span = span[2..];
-                }
-            }
-            else if (actualRadix == 16 && span.Length >= 2 && span[0] == '0' && (span[1] == 'x' || span[1] == 'X'))
-            {
-                span = span[2..];
-            }
-
-            var value = 0.0;
-            var sawDigit = false;
-
-            foreach (var ch in span)
-            {
-                var digit = ch switch
-                {
-                    >= '0' and <= '9' => ch - '0',
-                    >= 'a' and <= 'z' => ch - 'a' + 10,
-                    >= 'A' and <= 'Z' => ch - 'A' + 10,
-                    _ => -1
-                };
-
-                if (digit < 0 || digit >= actualRadix)
-                {
-                    break;
-                }
-
-                value = (value * actualRadix) + digit;
-                sawDigit = true;
-            }
-
-            if (!sawDigit)
-            {
-                return double.NaN;
-            }
-
-            return sign * value;
-        }
-
-        /// <summary>
-        /// Parse string to floating point number
-        /// </summary>
-        public static double parseFloat(string str)
-        {
-            if (string.IsNullOrEmpty(str))
-            {
-                return double.NaN;
-            }
-
-            var span = str.AsSpan().TrimStart();
-            if (span.Length == 0)
-            {
-                return double.NaN;
-            }
-
-            var cursor = 0;
-            if (span[cursor] == '+' || span[cursor] == '-')
-            {
-                cursor++;
-            }
-
-            if (span[cursor..].StartsWith("Infinity", StringComparison.Ordinal))
-            {
-                return cursor > 0 && span[0] == '-'
-                    ? double.NegativeInfinity
-                    : double.PositiveInfinity;
-            }
-
-            var digitStart = cursor;
-            while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
-            {
-                cursor++;
-            }
-
-            if (cursor < span.Length && span[cursor] == '.')
-            {
-                cursor++;
-                while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
-                {
-                    cursor++;
-                }
-            }
-
-            if (cursor == digitStart || (cursor == digitStart + 1 && span[digitStart] == '.'))
-            {
-                return double.NaN;
-            }
-
-            var exponentStart = cursor;
-            if (cursor < span.Length && (span[cursor] == 'e' || span[cursor] == 'E'))
-            {
-                cursor++;
-                if (cursor < span.Length && (span[cursor] == '+' || span[cursor] == '-'))
-                {
-                    cursor++;
-                }
-
-                var exponentDigitStart = cursor;
-                while (cursor < span.Length && char.IsAsciiDigit(span[cursor]))
-                {
-                    cursor++;
-                }
-
-                if (cursor == exponentDigitStart)
-                {
-                    cursor = exponentStart;
-                }
-            }
-
-            return double.TryParse(span[..cursor], NumberStyles.Float, CultureInfo.InvariantCulture, out var result)
-                ? result
-                : (span[0] == '-' ? double.NegativeInfinity : double.PositiveInfinity);
-        }
+        public static double parseFloat(string str) => Tsonic.CSharp.Js.Number.parseFloat(str);
 
         /// <summary>
         /// Check if value is NaN
         /// </summary>
-        public static bool isNaN(double value)
-        {
-            return double.IsNaN(value);
-        }
+        public static bool isNaN<T>(T value) where T : System.Numerics.INumberBase<T> => Tsonic.CSharp.Js.Number.isNaN(value);
 
-        public static bool isNaN(int value)
-        {
-            return false;
-        }
+        public static bool isNaN<T>(T? value) where T : struct, System.Numerics.INumberBase<T> => Tsonic.CSharp.Js.Number.isNaN(value);
 
-        public static bool isNaN(int? value)
-        {
-            return value.HasValue && isNaN(value.Value);
-        }
+        public static bool isFinite<T>(T value) where T : System.Numerics.INumberBase<T> => Tsonic.CSharp.Js.Number.isFinite(value);
 
-        public static bool isNaN(long value)
-        {
-            return false;
-        }
-
-        public static bool isNaN(long? value)
-        {
-            return value.HasValue && isNaN(value.Value);
-        }
-
-        /// <summary>
-        /// Check if value is finite (not infinite or NaN)
-        /// </summary>
-        public static bool isFinite(double value)
-        {
-            return !double.IsInfinity(value) && !double.IsNaN(value);
-        }
-
-        public static bool isFinite(int value)
-        {
-            return true;
-        }
-
-        public static bool isFinite(int? value)
-        {
-            return value.HasValue;
-        }
-
-        public static bool isFinite(long value)
-        {
-            return true;
-        }
-
-        public static bool isFinite(long? value)
-        {
-            return value.HasValue;
-        }
+        public static bool isFinite<T>(T? value) where T : struct, System.Numerics.INumberBase<T> => Tsonic.CSharp.Js.Number.isFinite(value);
 
         /// <summary>
         /// Helper method to percent-encode a rune (Unicode scalar value)
@@ -448,12 +248,30 @@ namespace Tsonic.CSharp.Js
         public static double Number<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh, TEighth>(Union<TFirst, TSecond, TThird, TFourth, TFifth, TSixth, TSeventh, TEighth> value) =>
             value.Match(part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part), part => Number(part));
 
+        public static double Number(sbyte value) => (double)value;
+        public static double Number(byte value) => (double)value;
+        public static double Number(short value) => (double)value;
+        public static double Number(ushort value) => (double)value;
+        public static double Number(int value) => (double)value;
+        public static double Number(uint value) => (double)value;
+        public static double Number(long value) => (double)value;
+        public static double Number(ulong value) => (double)value;
+        public static double Number(nint value) => (double)value;
+        public static double Number(nuint value) => (double)value;
+        public static double Number(Int128 value) => (double)value;
+        public static double Number(UInt128 value) => (double)value;
+        public static double Number(Half value) => (double)value;
+        public static double Number(float value) => (double)value;
+        public static double Number(double value) => (double)value;
+        public static double Number(decimal value) => (double)value;
+        public static double Number(System.Numerics.BigInteger value) => (double)value;
+        public static double Number(bool value) => value ? 1 : 0;
+
         public static double Number(object? value = null)
         {
             value = unwrapClosedValue(value);
 
             if (value == null) return 0;
-            if (value is Undefined) return double.NaN;
 
             if (value is double d) return d;
             if (value is int i) return i;
@@ -464,19 +282,19 @@ namespace Tsonic.CSharp.Js
             if (value is ulong unsignedInteger) return unsignedInteger;
             if (value is Int128 wideInteger) return (double)wideInteger;
             if (value is UInt128 wideUnsignedInteger) return (double)wideUnsignedInteger;
+            if (value is sbyte signedByte) return signedByte;
+            if (value is byte unsignedByte) return unsignedByte;
+            if (value is short signedShort) return signedShort;
+            if (value is ushort unsignedShort) return unsignedShort;
+            if (value is uint unsignedWord) return unsignedWord;
+            if (value is nint signedNative) return signedNative;
+            if (value is nuint unsignedNative) return unsignedNative;
+            if (value is Half half) return (double)half;
             if (value is bool b) return b ? 1 : 0;
 
             if (value is string str)
             {
-                if (string.IsNullOrWhiteSpace(str)) return 0;
-                str = str.Trim();
-                if (str == "Infinity") return double.PositiveInfinity;
-                if (str == "-Infinity") return double.NegativeInfinity;
-                if (double.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
-                {
-                    return result;
-                }
-                return double.NaN;
+                return Tsonic.CSharp.Js.Number.ParseNumericString(str);
             }
 
             return double.NaN;
@@ -511,6 +329,24 @@ namespace Tsonic.CSharp.Js
         public static string String<T1, T2, T3, T4, T5, T6, T7, T8>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6, T7, T8>? value)
             => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String, String, String, String);
 
+        public static string String(sbyte value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(byte value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(short value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(ushort value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(int value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(uint value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(long value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(ulong value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(nint value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(nuint value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(Int128 value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(UInt128 value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(Half value) => Tsonic.CSharp.Js.Number.toString(value);
+        public static string String(float value) => Tsonic.CSharp.Js.Number.toString(value);
+        public static string String(double value) => Tsonic.CSharp.Js.Number.toString(value);
+        public static string String(decimal value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(System.Numerics.BigInteger value) => value.ToString(CultureInfo.InvariantCulture);
+
         public static string String<TValue>(TValue input)
         {
             object? value = unwrapClosedValue(input);
@@ -519,12 +355,11 @@ namespace Tsonic.CSharp.Js
                 value = union.unwrap();
             }
 
-            if (value == null || value is Tsonic.CSharp.Runtime.Null) return "null";
-            if (value is Undefined) return "undefined";
+            if (value == null) return "null";
             if (value is string s) return s;
             if (value is bool b) return b ? "true" : "false";
             if (value is double number) return Tsonic.CSharp.Js.Number.toString(number);
-            if (value is float single) return Tsonic.CSharp.Js.Number.toString((double)single);
+            if (value is float single) return Tsonic.CSharp.Js.Number.toString(single);
             if (value is IFormattable formatted) return formatted.ToString(null, CultureInfo.InvariantCulture);
             return value.ToString() ?? "";
         }
@@ -537,7 +372,6 @@ namespace Tsonic.CSharp.Js
             value = unwrapClosedValue(value);
 
             if (value == null) return false;
-            if (value is Undefined) return false;
 
             if (value is bool b) return b;
             if (value is string s) return s.Length > 0;

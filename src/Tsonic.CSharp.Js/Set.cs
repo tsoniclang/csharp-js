@@ -1,6 +1,6 @@
 /**
  * Closed JavaScript Set carrier.
- * Uses explicit SameValueZero value matching and insertion-order storage instead of native collection equality semantics.
+ * Uses native numeric value equality and insertion-order storage.
  */
 
 using System;

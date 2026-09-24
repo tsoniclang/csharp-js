@@ -201,6 +201,21 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void TimerIdsRetainNativeIntegersAndRejectInvalidNumbers()
+        {
+            int timeout = Timers.setTimeout(_ => throw new InvalidOperationException(), 100000);
+            int interval = Timers.setInterval(_ => throw new InvalidOperationException(), 100000);
+            Timers.clearTimeout(timeout);
+            Timers.clearInterval(interval);
+            Timers.clearTimeout(ulong.MaxValue);
+            Timers.clearTimeout(9007199254740993L);
+            Timers.clearTimeout(double.NaN);
+            Timers.clearTimeout(double.PositiveInfinity);
+            Timers.clearTimeout(2147483648.0);
+            Timers.clearInterval(-2147483649.0);
+        }
+
+        [Fact]
         public void clearTimeout_CalledTwice_DoesNotThrow()
         {
             var id = Timers.setTimeout(_ => { }, 1000);

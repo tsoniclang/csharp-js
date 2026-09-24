@@ -20,11 +20,6 @@ public static class Object
             return value == null && other == null;
         }
 
-        if (value is Undefined || other is Undefined)
-        {
-            return ReferenceEquals(value, other);
-        }
-
         if (tryGetNumericValue(value, out var left) && tryGetNumericValue(other, out var right))
         {
             if (double.IsNaN(left) && double.IsNaN(right))
@@ -49,11 +44,6 @@ public static class Object
         if (value == null)
         {
             throw new TypeError("Object helper receiver cannot be null.");
-        }
-
-        if (value is Undefined)
-        {
-            throw new TypeError("Object helper receiver cannot be undefined.");
         }
 
         if (value is JSObject jsObject)
@@ -225,7 +215,6 @@ public static class Object
         return value switch
         {
             null => "[object Null]",
-            Undefined => "[object Undefined]",
             string text => text,
             bool boolean => BooleanOps.toString(boolean),
             byte number => Number.toString(number),
@@ -368,7 +357,7 @@ public static class Object
     private static bool IsNullishAssignSource(object? source)
     {
         var value = UnwrapClosedValue(source);
-        return value is null or Undefined;
+        return value is null;
     }
 
     private static object? UnwrapClosedValue(object? value)

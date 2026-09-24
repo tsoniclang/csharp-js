@@ -56,7 +56,7 @@ internal static class RegExpProtocols
         });
     }
 
-    public static double Search(string input, RegExp expression)
+    public static int Search(string input, RegExp expression)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(expression);
@@ -76,7 +76,7 @@ internal static class RegExpProtocols
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(expression);
-        var maximum = ToUint32(limit ?? uint.MaxValue);
+        var maximum = NativeInteger.SplitLimit(limit);
         var output = new JSArray<string?>();
         if (maximum == 0) return output;
         if (input.Length == 0)
@@ -108,11 +108,11 @@ internal static class RegExpProtocols
                 continue;
             }
             output.push(input[segmentStart..cursor]);
-            if ((uint)output.length >= maximum) return output;
+            if (output.length >= maximum) return output;
             for (var index = 1; index < match.length; index += 1)
             {
                 output.push(match[index]);
-                if ((uint)output.length >= maximum) return output;
+                if (output.length >= maximum) return output;
             }
             segmentStart = end;
             cursor = end;
@@ -214,12 +214,4 @@ internal static class RegExpProtocols
         return output.ToString();
     }
 
-    private static uint ToUint32(double value)
-    {
-        if (!double.IsFinite(value) || value == 0) return 0;
-        var integer = System.Math.Truncate(value);
-        var modulo = integer % 4_294_967_296d;
-        if (modulo < 0) modulo += 4_294_967_296d;
-        return (uint)modulo;
-    }
 }
