@@ -7,6 +7,22 @@ namespace Tsonic.CSharp.Js.Tests
     public class PromiseRuntimeTests
     {
         [Fact]
+        public async Task Resolved_KeepsNullValueDistinctFromTaskAdoption()
+        {
+            var value = PromiseRuntime<object?>.Resolved(null);
+            Assert.Null(await value);
+            Assert.Same(value, PromiseRuntime<object?>.Resolve(value));
+            Assert.Throws<ArgumentNullException>(() => { _ = PromiseRuntime<object?>.Resolve(null!); });
+        }
+
+        [Fact]
+        public async Task Resolved_PreservesNativeIntegerWidth()
+        {
+            const ulong value = 9007199254740993UL;
+            Assert.Equal(value, await PromiseRuntime<ulong>.Resolved(value));
+        }
+
+        [Fact]
         public async Task Create_ResolvesVoidPromise()
         {
             var task = PromiseRuntime.Create((resolve, _) => resolve());

@@ -249,7 +249,7 @@ namespace Tsonic.CSharp.Js
             return completion.Task;
         }
 
-        public static Task<T> Resolve(T value) => Task.FromResult(value);
+        public static Task<T> Resolved(T value) => Task.FromResult(value);
 
         public static Task<T> Resolve(Task<T> value)
         {
