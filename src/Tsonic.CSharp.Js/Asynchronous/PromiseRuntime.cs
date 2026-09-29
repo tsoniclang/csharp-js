@@ -55,7 +55,7 @@ namespace Tsonic.CSharp.Js
         }
     }
 
-    public static class PromiseRuntime
+    public static partial class PromiseRuntime
     {
         public static Task Create(PromiseExecutor executor)
         {
@@ -63,9 +63,11 @@ namespace Tsonic.CSharp.Js
 
             var completion = new TaskCompletionSource(
                 TaskCreationOptions.RunContinuationsAsynchronously);
+            var resolved = 0;
 
             void Resolve(object? value = null)
             {
+                if (Interlocked.Exchange(ref resolved, 1) != 0) return;
                 if (value is Task task)
                 {
                     _ = CompleteFromTask(task);
@@ -85,7 +87,11 @@ namespace Tsonic.CSharp.Js
                     completion.TrySetException(exception);
                 }
             }
-            void Reject(object? reason = null) => completion.TrySetException(ToException(reason));
+            void Reject(object? reason = null)
+            {
+                if (Interlocked.Exchange(ref resolved, 1) == 0)
+                    completion.TrySetException(ToException(reason));
+            }
 
             try
             {
@@ -93,7 +99,7 @@ namespace Tsonic.CSharp.Js
             }
             catch (Exception exception)
             {
-                completion.TrySetException(exception);
+                Reject(exception);
             }
 
             return completion.Task;
@@ -198,7 +204,7 @@ namespace Tsonic.CSharp.Js
         }
     }
 
-    public static class PromiseRuntime<T>
+    public static partial class PromiseRuntime<T>
     {
         public static Task<T> Create(PromiseExecutor<T> executor)
         {
@@ -206,9 +212,11 @@ namespace Tsonic.CSharp.Js
 
             var completion = new TaskCompletionSource<T>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
+            var resolved = 0;
 
             void Resolve(Union<T, Task<T>> value)
             {
+                if (Interlocked.Exchange(ref resolved, 1) != 0) return;
                 if (value.Is1())
                 {
                     completion.TrySetResult(value.As1());
@@ -235,7 +243,11 @@ namespace Tsonic.CSharp.Js
                     completion.TrySetException(exception);
                 }
             }
-            void Reject(object? reason = null) => completion.TrySetException(PromiseRuntime.ToException(reason));
+            void Reject(object? reason = null)
+            {
+                if (Interlocked.Exchange(ref resolved, 1) == 0)
+                    completion.TrySetException(PromiseRuntime.ToException(reason));
+            }
 
             try
             {
@@ -243,7 +255,7 @@ namespace Tsonic.CSharp.Js
             }
             catch (Exception exception)
             {
-                completion.TrySetException(exception);
+                Reject(exception);
             }
 
             return completion.Task;

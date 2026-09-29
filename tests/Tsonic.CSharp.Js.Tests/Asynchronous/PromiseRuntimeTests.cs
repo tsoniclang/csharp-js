@@ -83,6 +83,39 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public async Task Create_PendingTypedAdoptionReservesFirstSettlement()
+        {
+            var pending = new TaskCompletionSource<ulong>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var task = PromiseRuntime<ulong>.Create((resolve, reject) =>
+            {
+                resolve(pending.Task);
+                reject(new InvalidOperationException("late rejection"));
+                resolve(0UL);
+                throw new InvalidOperationException("late throw");
+            });
+            Assert.False(task.IsCompleted);
+            pending.SetResult(9007199254740993UL);
+            Assert.Equal(9007199254740993UL, await task);
+        }
+
+        [Fact]
+        public async Task Create_PendingVoidAdoptionReservesFirstSettlement()
+        {
+            var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var task = PromiseRuntime.Create((resolve, reject) =>
+            {
+                resolve(pending.Task);
+                reject(new InvalidOperationException("late rejection"));
+                resolve();
+                throw new InvalidOperationException("late throw");
+            });
+            Assert.False(task.IsCompleted);
+            var expected = new InvalidOperationException("adopted rejection");
+            pending.SetException(expected);
+            Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(async () => await task));
+        }
+
+        [Fact]
         public async Task Create_RejectsWithExceptionReason()
         {
             var expected = new InvalidOperationException("rejected");
