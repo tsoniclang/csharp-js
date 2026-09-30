@@ -3,6 +3,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
@@ -367,8 +368,34 @@ namespace Tsonic.CSharp.Js
             if (value is bool b) return b ? "true" : "false";
             if (value is double number) return Tsonic.CSharp.Js.Number.toString(number);
             if (value is float single) return Tsonic.CSharp.Js.Number.toString(single);
+            if (value is Tsonic.CSharp.Runtime.Error error)
+                return error.message.Length == 0 ? error.name : error.name + ": " + error.message;
+            if (value is IDynamicArray array)
+            {
+                var result = new StringBuilder();
+                writeStringArray(array, result, new HashSet<object>(ReferenceEqualityComparer.Instance));
+                return result.ToString();
+            }
             if (value is IFormattable formatted) return formatted.ToString(null, CultureInfo.InvariantCulture);
             return value.ToString() ?? "";
+        }
+
+        private static void writeStringArray(IDynamicArray array, StringBuilder output, HashSet<object> ancestors)
+        {
+            if (!ancestors.Add(array)) throw new TypeError("String conversion does not support cyclic arrays");
+            try
+            {
+                for (var index = 0; index < array.Length; index++)
+                {
+                    if (index != 0) output.Append(',');
+                    array.TryGetAt(index, out var entry);
+                    var value = unwrapClosedValue(entry);
+                    while (value is Tsonic.CSharp.Runtime.TsUnion union) value = union.unwrap();
+                    if (value is IDynamicArray nested) writeStringArray(nested, output, ancestors);
+                    else if (value is not null) output.Append(String(value));
+                }
+            }
+            finally { ancestors.Remove(array); }
         }
 
         /// <summary>
