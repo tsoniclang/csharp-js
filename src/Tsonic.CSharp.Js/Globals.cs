@@ -266,6 +266,9 @@ namespace Tsonic.CSharp.Js
         public static double Number(decimal value) => (double)value;
         public static double Number(System.Numerics.BigInteger value) => (double)value;
         public static double Number(bool value) => value ? 1 : 0;
+        public static double Number(bool? value) => value == true ? 1 : 0;
+        public static double Number<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue ? double.CreateTruncating(value.Value) : 0;
 
         public static double Number(object? value = null)
         {
@@ -346,6 +349,10 @@ namespace Tsonic.CSharp.Js
         public static string String(double value) => Tsonic.CSharp.Js.Number.toString(value);
         public static string String(decimal value) => value.ToString(CultureInfo.InvariantCulture);
         public static string String(System.Numerics.BigInteger value) => value.ToString(CultureInfo.InvariantCulture);
+        public static string String(bool value) => value ? "true" : "false";
+        public static string String(bool? value) => value.HasValue ? String(value.Value) : "null";
+        public static string String<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
+            value.HasValue ? Tsonic.CSharp.Js.Number.toString(value.Value) : "null";
 
         public static string String<TValue>(TValue input)
         {
