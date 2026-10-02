@@ -358,10 +358,6 @@ namespace Tsonic.CSharp.Js
         public static string String<TValue>(TValue input)
         {
             object? value = unwrapClosedValue(input);
-            while (value is Tsonic.CSharp.Runtime.TsUnion union)
-            {
-                value = union.unwrap();
-            }
 
             if (value == null) return "null";
             if (value is string s) return s;
@@ -390,7 +386,6 @@ namespace Tsonic.CSharp.Js
                     if (index != 0) output.Append(',');
                     array.TryGetAt(index, out var entry);
                     var value = unwrapClosedValue(entry);
-                    while (value is Tsonic.CSharp.Runtime.TsUnion union) value = union.unwrap();
                     if (value is IDynamicArray nested) writeStringArray(nested, output, ancestors);
                     else if (value is not null) output.Append(String(value));
                 }
@@ -424,7 +419,7 @@ namespace Tsonic.CSharp.Js
 
         private static object? unwrapClosedValue(object? value)
         {
-            return value is TsValue tsValue ? tsValue.unwrap() : value;
+            return TsValue.UnwrapClosedValue(value);
         }
     }
 }

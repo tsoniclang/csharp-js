@@ -16,7 +16,7 @@ namespace Tsonic.CSharp.Js
     /// <summary>
     /// JSON parsing and stringification (AOT-friendly, no reflection)
     /// </summary>
-    public static class JSON
+    public static partial class JSON
     {
         /// <summary>
         /// Parse JSON string to a closed JavaScript value carrier.
@@ -137,71 +137,6 @@ namespace Tsonic.CSharp.Js
                 result[key] = keyValues[index + 1];
             }
             return result;
-        }
-
-        public static void writeValue(
-            Utf8JsonWriter writer,
-            object? value,
-            JsonWriteContext context,
-            string key = "")
-        {
-            value = NormalizeDirectJsonValue(value);
-            switch (value)
-            {
-                case null:
-                    writer.WriteNullValue();
-                    break;
-                case bool b:
-                    writer.WriteBooleanValue(b);
-                    break;
-                case string s:
-                    writer.WriteStringValue(s);
-                    break;
-                case double d:
-                    writer.WriteNumberValue(d);
-                    break;
-                case float f:
-                    writer.WriteNumberValue(f);
-                    break;
-                case int i:
-                    writer.WriteNumberValue(i);
-                    break;
-                case long l:
-                    writer.WriteNumberValue(l);
-                    break;
-                case uint ui:
-                    writer.WriteNumberValue(ui);
-                    break;
-                case byte bt:
-                    writer.WriteNumberValue(bt);
-                    break;
-                case short sh:
-                    writer.WriteNumberValue(sh);
-                    break;
-                case JSObject obj:
-                    WriteJsObject(writer, obj, context);
-                    break;
-                case IDynamicArray array:
-                    WriteJsArray(writer, array, context);
-                    break;
-                case IJsonValue jsonValue:
-                    WriteJsonValue(writer, jsonValue, context, key);
-                    break;
-                case TsValue wrapped:
-                    writeValue(writer, wrapped.unwrap(), context, key);
-                    break;
-                case TsUnion union:
-                    writeValue(writer, union.unwrap(), context, key);
-                    break;
-                case IDictionary<string, object?> dict:
-                    WriteObject(writer, dict, context);
-                    break;
-                case IReadOnlyDictionary<string, object?> dict:
-                    WriteObject(writer, dict, context);
-                    break;
-                default:
-                    throw new NotSupportedException("JSON.stringify requires a closed JS value carrier.");
-            }
         }
 
         public static void writeProperty(
@@ -513,12 +448,7 @@ namespace Tsonic.CSharp.Js
 
         private static object? NormalizeJsonValue(object? value, string key)
         {
-            value = value switch
-            {
-                TsValue wrapped => wrapped.unwrap(),
-                TsUnion union => union.unwrap(),
-                _ => value,
-            };
+            value = TsValue.UnwrapClosedValue(value);
             return value switch
             {
                 IJsonValue jsonValue => jsonValue.__tsonicJsonValue(key),
@@ -529,12 +459,7 @@ namespace Tsonic.CSharp.Js
 
         private static object? NormalizeDirectJsonValue(object? value)
         {
-            value = value switch
-            {
-                TsValue wrapped => wrapped.unwrap(),
-                TsUnion union => union.unwrap(),
-                _ => value,
-            };
+            value = TsValue.UnwrapClosedValue(value);
             return value is Date date ? date.toJSON() : value;
         }
 
@@ -545,12 +470,7 @@ namespace Tsonic.CSharp.Js
 
         private static object? TrackableJsonIdentity(object? value)
         {
-            value = value switch
-            {
-                TsValue wrapped => wrapped.unwrap(),
-                TsUnion union => union.unwrap(),
-                _ => value,
-            };
+            value = TsValue.UnwrapClosedValue(value);
             return value is IJsonValue or JSObject or IDynamicArray ? value : null;
         }
 
