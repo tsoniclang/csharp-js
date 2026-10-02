@@ -98,9 +98,9 @@ public partial class JSArray<T>
 
     void IDynamicObject.WriteDynamicSlot(string key, object? value)
     {
-        if (value is TsValue wrapped) value = wrapped.unwrap();
         if (key == "length")
         {
+            if (value is TsValue wrapped) value = wrapped.unwrap();
             if (value is System.Numerics.BigInteger)
                 throw new TypeError("Array length cannot be a BigInt");
             setLength(Globals.Number(value));
@@ -108,9 +108,31 @@ public partial class JSArray<T>
         }
         if (!TryNumericKey(key, out var index))
             throw new TypeError("Closed arrays require a numeric property key");
-        if (value is T typed) this[index] = typed;
-        else if (value is null && default(T) is null) this[index] = default!;
+        if (TryAssignmentElement(value, out var typed)) this[index] = typed;
         else throw new TypeError("Value does not match the closed array element carrier");
+    }
+
+    private static bool TryAssignmentElement(object? value, out T element)
+    {
+        if (typeof(T) == typeof(TsValue))
+        {
+            var closed = TsValue.from(value);
+            element = System.Runtime.CompilerServices.Unsafe.As<TsValue, T>(ref closed);
+            return true;
+        }
+        if (value is TsValue wrapped) value = wrapped.unwrap();
+        if (value is T typed)
+        {
+            element = typed;
+            return true;
+        }
+        if (value is null && default(T) is null)
+        {
+            element = default!;
+            return true;
+        }
+        element = default!;
+        return false;
     }
 
     private int FindNumericProperty(double key)

@@ -8,6 +8,50 @@ namespace Tsonic.CSharp.Js.Tests;
 public class JSArrayNumericPropertyTests
 {
     [Fact]
+    public void ClosedElementWritesRetainNativeBackingAndExactCarriers()
+    {
+        var values = new JSArray<TsValue>(1);
+        var closed = TsValue.from(values);
+        closed.WriteDynamicSlot("0", ulong.MaxValue);
+        Assert.Equal(ulong.MaxValue, Assert.IsType<ulong>(values[0].unwrap()));
+        var dynamic = (IDynamicArray)values;
+        Assert.True(dynamic.TrySetAt(0, "native"));
+        Assert.Equal("native", values[0].unwrap());
+        Assert.True(dynamic.TrySetAt(0, TsValue.undefined()));
+        Assert.True(values[0].isUndefined());
+        closed.WriteDynamicSlot("1.5", "property");
+        Assert.Equal("property", values[1.5].unwrap());
+        Assert.Equal(1, values.length);
+        var typed = new JSArray<string>(new[] { "original" });
+        Assert.False(((IDynamicArray)typed).TrySetAt(0, 7));
+        Assert.Equal("original", typed[0]);
+        Assert.True(((IDynamicArray)typed).TrySetAt(0, TsValue.from("updated")));
+        Assert.Equal("updated", typed[0]);
+    }
+
+    [Fact]
+    public void ClosedElementWritesDoNotBoxAnotherCarrierOrAllocate()
+    {
+        var values = new JSArray<TsValue>(1);
+        var closed = TsValue.from(values);
+        var dynamic = (IDynamicArray)values;
+        object value = ulong.MaxValue;
+        for (var index = 0; index < 100; index++)
+        {
+            closed.WriteDynamicSlot("0", value);
+            Assert.True(dynamic.TrySetAt(0, value));
+        }
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var index = 0; index < 10_000; index++)
+        {
+            closed.WriteDynamicSlot("0", value);
+            if (!dynamic.TrySetAt(0, value)) throw new InvalidOperationException();
+        }
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        Assert.Equal(ulong.MaxValue, values[0].unwrap());
+    }
+
+    [Fact]
     public void NumericPropertiesDoNotTruncateOrChangeLength()
     {
         var values = new JSArray<double>(new[] { 2d });

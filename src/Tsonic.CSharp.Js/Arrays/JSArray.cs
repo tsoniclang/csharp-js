@@ -155,20 +155,9 @@ namespace Tsonic.CSharp.Js
                 throw new ArgumentException("Array index cannot be negative", nameof(index));
             }
 
-            if (value is TsValue tsValue)
-            {
-                return trySetAtObject(index, tsValue.unwrap());
-            }
-
-            if (value is T typed)
+            if (TryAssignmentElement(value, out var typed))
             {
                 this[index] = typed;
-                return true;
-            }
-
-            if (value is null && default(T) is null)
-            {
-                this[index] = default!;
                 return true;
             }
 
