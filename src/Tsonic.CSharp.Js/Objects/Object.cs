@@ -66,6 +66,12 @@ public static class Object
             return jsArray.Entries();
         }
 
+        if (value is IDictionary<string, TsValue> record)
+            return record.Select(static pair => new KeyValuePair<string, object?>(pair.Key, pair.Value.unwrap()));
+
+        if (value is IReadOnlyDictionary<string, TsValue> readOnlyRecord)
+            return readOnlyRecord.Select(static pair => new KeyValuePair<string, object?>(pair.Key, pair.Value.unwrap()));
+
         if (value is IDictionary<string, object?> dictionary)
             return dictionary;
 
@@ -362,7 +368,7 @@ public static class Object
 
     private static object? UnwrapClosedValue(object? value)
     {
-        return value is TsValue tsValue ? tsValue.unwrap() : value;
+        return TsValue.UnwrapClosedValue(value);
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> EnumerateString(string text)

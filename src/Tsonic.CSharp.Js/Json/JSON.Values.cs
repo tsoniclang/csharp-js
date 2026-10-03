@@ -83,6 +83,12 @@ namespace Tsonic.CSharp.Js
                 case IJsonValue jsonValue:
                     WriteJsonValue(writer, jsonValue, context, key);
                     break;
+                case IDictionary<string, TsValue> dictionary:
+                    WriteObject<TsValue, ClosedRecordValue>(writer, dictionary, context);
+                    break;
+                case IReadOnlyDictionary<string, TsValue> dictionary:
+                    WriteObject<TsValue, ClosedRecordValue>(writer, dictionary, context);
+                    break;
                 case IDictionary<string, object?> dictionary:
                     WriteObject(writer, dictionary, context);
                     break;

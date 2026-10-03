@@ -89,7 +89,7 @@ namespace Tsonic.CSharp.Js
                     selected = NormalizeJsonValue(value, "");
                     break;
                 case JsonReplacer callback:
-                    selected = ApplyReplacer("", value, callback, null, new JsonWriteContext()).unwrap();
+                    selected = ApplyReplacer("", value, callback, new JsonWriteContext()).unwrap();
                     break;
                 case IEnumerable propertyNames:
                     selected = FilterProperties(value, PropertyNames(propertyNames), "", new JsonWriteContext());
@@ -102,18 +102,40 @@ namespace Tsonic.CSharp.Js
 
         public static string stringify<TValue>(IDictionary<string, TValue>? value)
         {
-            var stream = new ArrayBufferWriter<byte>();
-            using var writer = new Utf8JsonWriter(stream);
-            WriteObject(writer, value, new JsonWriteContext());
-            writer.Flush();
-            return Encoding.UTF8.GetString(stream.WrittenSpan);
+            return StringifyRecord<TValue, NativeRecordValue<TValue>>(value);
         }
 
         public static string stringify<TValue>(IReadOnlyDictionary<string, TValue>? value)
         {
+            return StringifyRecord<TValue, NativeRecordValue<TValue>>(value);
+        }
+
+        public static string stringify<TValue>(Dictionary<string, TValue>? value)
+        {
+            return StringifyRecord<TValue, NativeRecordValue<TValue>>(value);
+        }
+
+        public static string stringify(Dictionary<string, TsValue>? value)
+        {
+            return StringifyRecord<TsValue, ClosedRecordValue>(value);
+        }
+
+        public static string stringify(IDictionary<string, TsValue>? value)
+        {
+            return StringifyRecord<TsValue, ClosedRecordValue>(value);
+        }
+
+        public static string stringify(IReadOnlyDictionary<string, TsValue>? value)
+        {
+            return StringifyRecord<TsValue, ClosedRecordValue>(value);
+        }
+
+        private static string StringifyRecord<TValue, TRecordValue>(IEnumerable<KeyValuePair<string, TValue>>? value)
+            where TRecordValue : struct, IRecordValue<TValue>
+        {
             var stream = new ArrayBufferWriter<byte>();
             using var writer = new Utf8JsonWriter(stream);
-            WriteObject(writer, value, new JsonWriteContext());
+            WriteObject<TValue, TRecordValue>(writer, value, new JsonWriteContext());
             writer.Flush();
             return Encoding.UTF8.GetString(stream.WrittenSpan);
         }
@@ -188,46 +210,28 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        /// <summary>
-        /// Write dictionary as JSON object
-        /// </summary>
-        private static void WriteObject(Utf8JsonWriter writer, IDictionary<string, object?> dict, JsonWriteContext context)
+        private interface IRecordValue<TValue>
         {
-            Enter(dict, context);
-            try
-            {
-                writer.WriteStartObject();
-                foreach (var kvp in dict)
-                {
-                    writeProperty(writer, kvp.Key, kvp.Value, context);
-                }
-                writer.WriteEndObject();
-            }
-            finally
-            {
-                context.exit(dict);
-            }
+            static abstract object? Unwrap(TValue value);
         }
 
-        private static void WriteObject(Utf8JsonWriter writer, IReadOnlyDictionary<string, object?> dict, JsonWriteContext context)
+        private readonly struct NativeRecordValue<TValue> : IRecordValue<TValue>
         {
-            Enter(dict, context);
-            try
-            {
-                writer.WriteStartObject();
-                foreach (var kvp in dict)
-                {
-                    writeProperty(writer, kvp.Key, kvp.Value, context);
-                }
-                writer.WriteEndObject();
-            }
-            finally
-            {
-                context.exit(dict);
-            }
+            public static object? Unwrap(TValue value) => value;
+        }
+
+        private readonly struct ClosedRecordValue : IRecordValue<TsValue>
+        {
+            public static object? Unwrap(TsValue value) => value.unwrap();
         }
 
         private static void WriteObject<TValue>(Utf8JsonWriter writer, IEnumerable<KeyValuePair<string, TValue>>? dict, JsonWriteContext context)
+        {
+            WriteObject<TValue, NativeRecordValue<TValue>>(writer, dict, context);
+        }
+
+        private static void WriteObject<TValue, TRecordValue>(Utf8JsonWriter writer, IEnumerable<KeyValuePair<string, TValue>>? dict, JsonWriteContext context)
+            where TRecordValue : struct, IRecordValue<TValue>
         {
             if (dict == null)
             {
@@ -239,9 +243,32 @@ namespace Tsonic.CSharp.Js
             try
             {
                 writer.WriteStartObject();
-                foreach (var kvp in dict)
+                List<string>? remainingKeys = null;
+                object? pendingValue = null;
+                using (var entries = dict.GetEnumerator())
                 {
-                    writeProperty(writer, kvp.Key, kvp.Value, context);
+                    while (entries.MoveNext())
+                    {
+                        var entry = entries.Current;
+                        var value = TRecordValue.Unwrap(entry.Value);
+                        if (TrackableJsonIdentity(value) != null)
+                        {
+                            remainingKeys = new List<string> { entry.Key };
+                            while (entries.MoveNext()) remainingKeys.Add(entries.Current.Key);
+                            pendingValue = value;
+                            break;
+                        }
+                        writeProperty(writer, entry.Key, value, context);
+                    }
+                }
+                if (remainingKeys != null)
+                {
+                    writeProperty(writer, remainingKeys[0], pendingValue, context);
+                    for (var index = 1; index < remainingKeys.Count; index++)
+                    {
+                        if (TryReadRecordValue<TValue, TRecordValue>(dict, remainingKeys[index], out var value))
+                            writeProperty(writer, remainingKeys[index], value, context);
+                    }
                 }
                 writer.WriteEndObject();
             }
@@ -249,6 +276,20 @@ namespace Tsonic.CSharp.Js
             {
                 context.exit(dict);
             }
+        }
+
+        private static bool TryReadRecordValue<TValue, TRecordValue>(IEnumerable<KeyValuePair<string, TValue>> record, string key, out object? value)
+            where TRecordValue : struct, IRecordValue<TValue>
+        {
+            TValue selected;
+            var present = record switch
+            {
+                IDictionary<string, TValue> dictionary => dictionary.TryGetValue(key, out selected!),
+                IReadOnlyDictionary<string, TValue> dictionary => dictionary.TryGetValue(key, out selected!),
+                _ => throw new NotSupportedException("A native JSON record requires its exact typed dictionary interface."),
+            };
+            value = present ? TRecordValue.Unwrap(selected) : null;
+            return present;
         }
 
         private static void WriteJsArray(Utf8JsonWriter writer, IDynamicArray array, JsonWriteContext context)
@@ -289,65 +330,49 @@ namespace Tsonic.CSharp.Js
             string key,
             object? value,
             JsonReplacer replacer,
-            object? holder,
             JsonWriteContext context)
         {
-            _ = holder;
-            var sourceIdentity = TrackableJsonIdentity(value);
-            if (sourceIdentity != null)
+            var normalized = NormalizeJsonValue(value, key);
+            var replaced = replacer(key, ToTsValue(normalized));
+            var unwrapped = TsValue.UnwrapClosedValue(replaced);
+            var identity = TrackableJsonIdentity(unwrapped);
+            if (identity != null)
             {
-                Enter(sourceIdentity, context);
+                Enter(identity, context);
             }
             try
             {
-                var normalized = NormalizeJsonValue(value, key);
-                var replaced = replacer(key, ToTsValue(normalized));
-                var unwrapped = replaced.unwrap();
-                var replacementIdentity = TrackableJsonIdentity(unwrapped);
-                var trackReplacement = replacementIdentity != null &&
-                    !ReferenceEquals(replacementIdentity, sourceIdentity);
-                if (trackReplacement)
+                var keys = RecordKeys(unwrapped);
+                if (keys != null)
                 {
-                    Enter(replacementIdentity!, context);
+                    var result = new JSObject();
+                    var record = TsValue.from(unwrapped);
+                    foreach (var property in new List<string>(keys))
+                    {
+                        var child = ApplyReplacer(property, record.ReadDynamicSlot(property), replacer, context);
+                        result[property] = child.unwrap();
+                    }
+                    return TsValue.from(result);
                 }
-                try
+                if (unwrapped is IDynamicArray sourceArray)
                 {
-                    if (unwrapped is JSObject sourceObject)
+                    var result = new JSArray<object?>();
+                    var length = sourceArray.Length;
+                    for (var index = 0; index < length; index++)
                     {
-                        var result = new JSObject();
-                        foreach (var (property, propertyValue) in sourceObject.entries())
-                        {
-                            var child = ApplyReplacer(property, propertyValue, replacer, sourceObject, context);
-                            result[property] = child.unwrap();
-                        }
-                        return TsValue.from(result);
+                        var item = sourceArray.TryGetAt(index, out var current) ? current : null;
+                        var child = ApplyReplacer(index.ToString(CultureInfo.InvariantCulture), item, replacer, context);
+                        result.push(child.unwrap());
                     }
-                    if (unwrapped is IDynamicArray sourceArray)
-                    {
-                        var result = new JSArray<object?>();
-                        for (var index = 0; index < sourceArray.Length; index++)
-                        {
-                            var item = sourceArray.TryGetAt(index, out var current) ? current : null;
-                            var child = ApplyReplacer(index.ToString(CultureInfo.InvariantCulture), item, replacer, sourceArray, context);
-                            result.push(child.unwrap());
-                        }
-                        return TsValue.from(result);
-                    }
-                    return replaced;
+                    return TsValue.from(result);
                 }
-                finally
-                {
-                    if (trackReplacement)
-                    {
-                        context.exit(replacementIdentity!);
-                    }
-                }
+                return replaced;
             }
             finally
             {
-                if (sourceIdentity != null)
+                if (identity != null)
                 {
-                    context.exit(sourceIdentity);
+                    context.exit(identity);
                 }
             }
         }
@@ -366,14 +391,16 @@ namespace Tsonic.CSharp.Js
             try
             {
                 value = NormalizeJsonValue(value, key);
-                if (value is JSObject sourceObject)
+                var keys = RecordKeys(value);
+                if (keys != null)
                 {
                     var result = new JSObject();
-                    foreach (var (property, propertyValue) in sourceObject.entries())
+                    var record = TsValue.from(value);
+                    foreach (var property in keys)
                     {
                         if (names.Contains(property))
                         {
-                            var selected = FilterProperties(propertyValue, names, property, context);
+                            var selected = FilterProperties(record.ReadDynamicSlot(property), names, property, context);
                             result[property] = selected;
                         }
                     }
@@ -471,7 +498,22 @@ namespace Tsonic.CSharp.Js
         private static object? TrackableJsonIdentity(object? value)
         {
             value = TsValue.UnwrapClosedValue(value);
-            return value is IJsonValue or JSObject or IDynamicArray ? value : null;
+            return value is IJsonValue or JSObject or IDynamicArray or
+                IDictionary<string, TsValue> or IReadOnlyDictionary<string, TsValue> or
+                IDictionary<string, object?> or IReadOnlyDictionary<string, object?> ? value : null;
+        }
+
+        private static IEnumerable<string>? RecordKeys(object? value)
+        {
+            return value switch
+            {
+                JSObject record => record.asReadOnlyDictionary().Keys,
+                IDictionary<string, TsValue> record => record.Keys,
+                IReadOnlyDictionary<string, TsValue> record => record.Keys,
+                IDictionary<string, object?> record => record.Keys,
+                IReadOnlyDictionary<string, object?> record => record.Keys,
+                _ => null,
+            };
         }
 
         private static string FormatWithSpace(string compact, TsValue space)
