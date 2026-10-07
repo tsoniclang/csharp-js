@@ -79,9 +79,22 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void Reject_RejectsUnclosedNativeObjectRatherThanAddingReflection()
+        public async Task Reject_TransportsOpaqueNativeIdentityWithoutAdmittingReflection()
         {
-            Assert.Throws<NotSupportedException>(() => { _ = PromiseRuntime<int>.Reject(new object()); });
+            var reason = new object();
+            var task = PromiseRuntime<int>.Reject(reason);
+            var exception = await Assert.ThrowsAsync<TsThrownValueException>(async () => await task);
+            Assert.Same(reason, exception.value);
+            Assert.Throws<NotSupportedException>(() => TsThrownValueException.toValue(exception));
+            Assert.Throws<NotSupportedException>(() => TsValue.from(reason));
+            Assert.Equal(7, await PromiseRuntime<int>.Catch(task, value => {
+                Assert.Same(reason, value);
+                return 7;
+            }));
+            var untyped = await PromiseRuntime.AllSettled(new[] { PromiseRuntime.Reject(reason) });
+            var typed = await PromiseRuntime<int>.AllSettled(new[] { PromiseRuntime<int>.Reject(reason) });
+            Assert.Same(reason, untyped[0].As2().reason);
+            Assert.Same(reason, typed[0].As2().reason);
         }
 
         [Fact]

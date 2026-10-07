@@ -131,7 +131,7 @@ namespace Tsonic.CSharp.Js
 
         internal static Exception ToException(object? reason)
         {
-            return TsThrownValueException.from(TsValue.from(reason));
+            return TsThrownValueException.from(reason);
         }
     }
 

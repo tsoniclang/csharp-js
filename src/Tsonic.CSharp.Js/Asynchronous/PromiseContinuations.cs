@@ -59,7 +59,7 @@ public static partial class PromiseRuntime
     }
 
     internal static object? RejectionReason(Exception exception) =>
-        exception is TsThrownValueException thrown ? TsValue.UnwrapClosedValue(thrown.value) : exception;
+        exception is TsThrownValueException thrown ? thrown.value : exception;
 }
 
 public static partial class PromiseRuntime<T>
