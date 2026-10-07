@@ -7,16 +7,17 @@ namespace Tsonic.CSharp.Js.Tests
     public class TsUnionTests
     {
         [Fact]
-        public void RuntimeUnionBoxing_UsesClosedTsUnionCarrierAndActiveArmOperations()
+        public void RuntimeUnionBoxing_RetainsNativeCarrierAndActiveArmOperations()
         {
             var runtimeUnion = Union<int, string>.From2("ready");
 
             var value = TsValue.from(runtimeUnion);
 
-            var union = Assert.IsType<TsUnion>(value.unwrap());
-            Assert.Equal(2, union.ArmIndex);
-            Assert.Equal(2, union.ArmCount);
-            Assert.Equal("ready", union.value().unwrap());
+            var union = Assert.IsType<Union<int, string>>(value.unwrap());
+            Assert.True(union.Is2());
+            Assert.False(union.Is1());
+            Assert.Equal("ready", union.As2());
+            Assert.Equal(runtimeUnion, union);
             Assert.Equal(5, value.ReadDynamicSlot("length").unwrap());
             Assert.Equal("string", TsValue.ApplyDynamicTypeof(value));
         }
