@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Tsonic.CSharp.Runtime;
 using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests
@@ -23,140 +24,64 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public async Task Create_ResolvesVoidPromise()
+        public async Task NativeCompletion_UsesExistingJsContinuationContract()
         {
-            var task = PromiseRuntime.Create((resolve, _) => resolve());
-
-            await task;
-
-            Assert.True(task.IsCompletedSuccessfully);
+            var task = TaskCompletion<int>.Create((resolve, _) => resolve(42));
+            Assert.Equal(43, await PromiseRuntime<int>.Then(task, value => value + 1));
         }
 
         [Fact]
-        public async Task Create_ResolvesTypedPromise()
+        public async Task NativeCompletion_ProjectsCanonicalClosedRejectionReason()
         {
-            var task = PromiseRuntime<int>.Create((resolve, _) => resolve(42));
-
-            Assert.Equal(42, await task);
+            var reason = new Reason();
+            var task = TaskCompletion<object>.Create((_, reject) => reject(TsValue.from(reason)));
+            Assert.Same(reason, await PromiseRuntime<object>.Catch(task, value => value!));
         }
 
         [Fact]
-        public async Task Create_AssimilatesTypedTask()
+        public async Task Reject_PreservesOriginalExceptionIdentity()
         {
-            var nested = new TaskCompletionSource<int>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-            var task = PromiseRuntime<int>.Create(
-                (resolve, _) => resolve(nested.Task));
-
-            Assert.False(task.IsCompleted);
-            nested.SetResult(42);
-
-            Assert.Equal(42, await task);
+            var reason = new InvalidOperationException("original");
+            var task = PromiseRuntime<object>.Reject(reason);
+            Assert.Same(reason, await Assert.ThrowsAsync<InvalidOperationException>(async () => await task));
+            Assert.Same(reason, await PromiseRuntime<object>.Catch(task, value => value!));
         }
 
         [Fact]
-        public async Task Create_AssimilatesVoidTask()
+        public async Task Reject_UsesCanonicalThrownValueException()
         {
-            var nested = new TaskCompletionSource(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-            var task = PromiseRuntime.Create(
-                (resolve, _) => resolve(nested.Task));
-
-            Assert.False(task.IsCompleted);
-            nested.SetResult();
-            await task;
-
-            Assert.True(task.IsCompletedSuccessfully);
+            var task = PromiseRuntime<int>.Reject("reason");
+            var exception = await Assert.ThrowsAsync<TsThrownValueException>(async () => await task);
+            Assert.Equal("reason", TsValue.UnwrapClosedValue(exception.value));
+            Assert.Equal("reason", await PromiseRuntime<int>.Then(task, _ => "unreachable", value => (string)value!));
         }
 
         [Fact]
-        public async Task Create_UsesFirstSettlement()
+        public async Task Reject_ClosedValueAndAbsenceSurviveVoidContinuations()
         {
-            var task = PromiseRuntime<int>.Create((resolve, reject) =>
-            {
-                resolve(7);
-                reject(new InvalidOperationException("late rejection"));
-                resolve(9);
-            });
-
-            Assert.Equal(7, await task);
+            var reason = new Reason();
+            object? observed = null;
+            await PromiseRuntime.Catch(PromiseRuntime.Reject(TsValue.from(reason)), value => observed = value);
+            Assert.Same(reason, observed);
+            observed = reason;
+            await PromiseRuntime.Catch(PromiseRuntime.Reject(), value => observed = value);
+            Assert.Null(observed);
         }
 
         [Fact]
-        public async Task Create_PendingTypedAdoptionReservesFirstSettlement()
+        public async Task AllSettled_ProjectsCanonicalReasonForVoidAndTypedTasks()
         {
-            var pending = new TaskCompletionSource<ulong>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var task = PromiseRuntime<ulong>.Create((resolve, reject) =>
-            {
-                resolve(pending.Task);
-                reject(new InvalidOperationException("late rejection"));
-                resolve(0UL);
-                throw new InvalidOperationException("late throw");
-            });
-            Assert.False(task.IsCompleted);
-            pending.SetResult(9007199254740993UL);
-            Assert.Equal(9007199254740993UL, await task);
+            var reason = new Reason();
+            var untyped = await PromiseRuntime.AllSettled(new[] { PromiseRuntime.Reject(reason) });
+            var typed = await PromiseRuntime<int>.AllSettled(new[] { PromiseRuntime<int>.Reject(reason) });
+            Assert.Same(reason, untyped[0].As2().reason);
+            Assert.Same(reason, typed[0].As2().reason);
         }
 
         [Fact]
-        public async Task Create_PendingVoidAdoptionReservesFirstSettlement()
+        public void Reject_RejectsUnclosedNativeObjectRatherThanAddingReflection()
         {
-            var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var task = PromiseRuntime.Create((resolve, reject) =>
-            {
-                resolve(pending.Task);
-                reject(new InvalidOperationException("late rejection"));
-                resolve();
-                throw new InvalidOperationException("late throw");
-            });
-            Assert.False(task.IsCompleted);
-            var expected = new InvalidOperationException("adopted rejection");
-            pending.SetException(expected);
-            Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(async () => await task));
-        }
-
-        [Fact]
-        public async Task Create_RejectsWithExceptionReason()
-        {
-            var expected = new InvalidOperationException("rejected");
-            var task = PromiseRuntime<int>.Create((_, reject) => reject(expected));
-
-            var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () => await task);
-
-            Assert.Same(expected, actual);
-        }
-
-        [Fact]
-        public async Task Create_WrapsNonExceptionReason()
-        {
-            var task = PromiseRuntime<int>.Create((_, reject) => reject("reason"));
-
-            var actual = await Assert.ThrowsAsync<PromiseRejectionException>(async () => await task);
-
-            Assert.Equal("reason", actual.Reason);
-        }
-
-        [Fact]
-        public async Task Create_RejectsSynchronousExecutorThrow()
-        {
-            var expected = new InvalidOperationException("executor failed");
-            var task = PromiseRuntime<int>.Create((_, _) => throw expected);
-
-            var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () => await task);
-
-            Assert.Same(expected, actual);
-        }
-
-        [Fact]
-        public async Task Create_IgnoresThrowAfterResolution()
-        {
-            var task = PromiseRuntime<int>.Create((resolve, _) =>
-            {
-                resolve(11);
-                throw new InvalidOperationException("late throw");
-            });
-
-            Assert.Equal(11, await task);
+            Assert.Throws<NotSupportedException>(() => { _ = PromiseRuntime<int>.Reject(new object()); });
         }
 
         [Fact]
@@ -216,5 +141,7 @@ namespace Tsonic.CSharp.Js.Tests
 
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await combined);
         }
+
+        private sealed class Reason : ITsClosedValueCarrier {}
     }
 }

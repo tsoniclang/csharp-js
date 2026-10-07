@@ -7,27 +7,6 @@ using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Js
 {
-    public delegate void PromiseResolve(object? value = null);
-
-    public delegate void PromiseResolve<T>(Union<T, Task<T>> value);
-
-    public delegate void PromiseReject(object? reason = null);
-
-    public delegate void PromiseExecutor(PromiseResolve resolve, PromiseReject reject);
-
-    public delegate void PromiseExecutor<T>(PromiseResolve<T> resolve, PromiseReject reject);
-
-    public sealed class PromiseRejectionException : Exception
-    {
-        public PromiseRejectionException(object? reason)
-            : base("Promise rejected with a non-Exception reason.")
-        {
-            Reason = reason;
-        }
-
-        public object? Reason { get; }
-    }
-
     public sealed class PromiseFulfilledResult
     {
         public string status => "fulfilled";
@@ -57,54 +36,6 @@ namespace Tsonic.CSharp.Js
 
     public static partial class PromiseRuntime
     {
-        public static Task Create(PromiseExecutor executor)
-        {
-            ArgumentNullException.ThrowIfNull(executor);
-
-            var completion = new TaskCompletionSource(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-            var resolved = 0;
-
-            void Resolve(object? value = null)
-            {
-                if (Interlocked.Exchange(ref resolved, 1) != 0) return;
-                if (value is Task task)
-                {
-                    _ = CompleteFromTask(task);
-                    return;
-                }
-                completion.TrySetResult();
-            }
-            async Task CompleteFromTask(Task task)
-            {
-                try
-                {
-                    await task.ConfigureAwait(false);
-                    completion.TrySetResult();
-                }
-                catch (Exception exception)
-                {
-                    completion.TrySetException(exception);
-                }
-            }
-            void Reject(object? reason = null)
-            {
-                if (Interlocked.Exchange(ref resolved, 1) == 0)
-                    completion.TrySetException(ToException(reason));
-            }
-
-            try
-            {
-                executor(Resolve, Reject);
-            }
-            catch (Exception exception)
-            {
-                Reject(exception);
-            }
-
-            return completion.Task;
-        }
-
         public static Task Resolve() => Task.CompletedTask;
 
         public static Task Resolve(Task value)
@@ -167,7 +98,7 @@ namespace Tsonic.CSharp.Js
                 }
                 catch (Exception exception)
                 {
-                    results.push(new PromiseRejectedResult(exception));
+                    results.push(new PromiseRejectedResult(RejectionReason(exception)));
                 }
             }
             return results;
@@ -200,67 +131,12 @@ namespace Tsonic.CSharp.Js
 
         internal static Exception ToException(object? reason)
         {
-            return reason as Exception ?? new PromiseRejectionException(reason);
+            return TsThrownValueException.from(TsValue.from(reason));
         }
     }
 
     public static partial class PromiseRuntime<T>
     {
-        public static Task<T> Create(PromiseExecutor<T> executor)
-        {
-            ArgumentNullException.ThrowIfNull(executor);
-
-            var completion = new TaskCompletionSource<T>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-            var resolved = 0;
-
-            void Resolve(Union<T, Task<T>> value)
-            {
-                if (Interlocked.Exchange(ref resolved, 1) != 0) return;
-                if (value.Is1())
-                {
-                    completion.TrySetResult(value.As1());
-                    return;
-                }
-                var task = value.As2();
-                if (task is null)
-                {
-                    completion.TrySetException(
-                        new TypeError("Promise resolve received a null Task carrier."));
-                    return;
-                }
-                _ = CompleteFromTask(task);
-            }
-            async Task CompleteFromTask(Task<T> task)
-            {
-                try
-                {
-                    completion.TrySetResult(
-                        await task.ConfigureAwait(false));
-                }
-                catch (Exception exception)
-                {
-                    completion.TrySetException(exception);
-                }
-            }
-            void Reject(object? reason = null)
-            {
-                if (Interlocked.Exchange(ref resolved, 1) == 0)
-                    completion.TrySetException(PromiseRuntime.ToException(reason));
-            }
-
-            try
-            {
-                executor(Resolve, Reject);
-            }
-            catch (Exception exception)
-            {
-                Reject(exception);
-            }
-
-            return completion.Task;
-        }
-
         public static Task<T> Resolved(T value) => Task.FromResult(value);
 
         public static Task<T> Resolve(Task<T> value)
@@ -385,7 +261,7 @@ namespace Tsonic.CSharp.Js
                 }
                 catch (Exception exception)
                 {
-                    results.push(new PromiseRejectedResult(exception));
+                    results.push(new PromiseRejectedResult(PromiseRuntime.RejectionReason(exception)));
                 }
             }
             return results;
