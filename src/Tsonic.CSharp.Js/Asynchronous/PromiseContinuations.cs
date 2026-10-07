@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Js;
 
@@ -58,7 +59,7 @@ public static partial class PromiseRuntime
     }
 
     internal static object? RejectionReason(Exception exception) =>
-        exception is PromiseRejectionException rejection ? rejection.Reason : exception;
+        exception is TsThrownValueException thrown ? TsValue.UnwrapClosedValue(thrown.value) : exception;
 }
 
 public static partial class PromiseRuntime<T>
