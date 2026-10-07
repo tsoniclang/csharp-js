@@ -18,33 +18,101 @@ namespace Tsonic.CSharp.Js
         private static int _nextId = 1;
         private static readonly ConcurrentDictionary<int, TimerHandle> _timers = new();
 
-        private sealed class TimerHandle : IDisposable
+        internal sealed class TimerHandle : IDisposable
         {
+            private readonly int _id;
+            private readonly TimerCallback _callback;
+            private readonly object?[] _arguments;
+            private readonly int _period;
+            private readonly Action _dispatch;
+            private readonly Timer _timer;
             private int _disposed;
-            private Timer? _timer;
 
-            public TimerHandle()
+            internal TimerHandle(int id, TimerCallback callback, object?[] arguments, int period)
             {
+                _id = id;
+                _callback = callback;
+                _arguments = arguments;
+                _period = period;
+                _dispatch = Dispatch;
+                _timer = new Timer(static state => ((TimerHandle)state!).QueueCallback(), this,
+                    Timeout.Infinite, Timeout.Infinite);
                 ProcessKeepAlive.Acquire();
             }
 
-            public bool IsDisposed => Volatile.Read(ref _disposed) != 0;
+            internal bool IsDisposed => Volatile.Read(ref _disposed) != 0;
 
-            public void SetTimer(Timer timer)
+            internal void Start(int delay)
             {
-                _timer = timer;
+                lock (_timer)
+                {
+                    if (!IsDisposed)
+                    {
+                        _timer.Change(delay, _period);
+                    }
+                }
             }
 
-            public void Dispose()
+            internal void QueueCallback()
             {
-                if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                if (!IsDisposed)
+                {
+                    JsEventLoop.EnqueueHandleOwned(_dispatch);
+                }
+            }
+
+            private void Dispatch()
+            {
+                if (IsDisposed)
                 {
                     return;
                 }
 
-                var timer = Interlocked.Exchange(ref _timer, null);
-                timer?.Dispose();
+                try
+                {
+                    _callback(new TimerCallbackArguments(_arguments));
+                }
+                finally
+                {
+                    if (_period == Timeout.Infinite)
+                    {
+                        Dispose();
+                    }
+                }
+            }
+
+            public void Dispose()
+            {
+                lock (_timer)
+                {
+                    if (IsDisposed)
+                    {
+                        return;
+                    }
+
+                    Volatile.Write(ref _disposed, 1);
+                    _timer.Dispose();
+                    _timers.TryRemove(_id, out TimerHandle? _);
+                }
+
                 ProcessKeepAlive.Release();
+            }
+        }
+
+        private static int Schedule(TimerCallback callback, int delay, object?[] arguments, int period)
+        {
+            var id = Interlocked.Increment(ref _nextId);
+            var handle = new TimerHandle(id, callback, arguments, period);
+            try
+            {
+                _timers[id] = handle;
+                handle.Start(delay);
+                return id;
+            }
+            catch
+            {
+                handle.Dispose();
+                throw;
             }
         }
 
@@ -91,33 +159,7 @@ namespace Tsonic.CSharp.Js
             double delayMs = 0,
             params object?[] arguments)
         {
-            var id = Interlocked.Increment(ref _nextId);
-            var handle = new TimerHandle();
-
-            var timer = new Timer(_ =>
-            {
-                if (handle.IsDisposed)
-                {
-                    return;
-                }
-
-                JsEventLoop.EnqueueReferenced(() =>
-                {
-                    try
-                    {
-                        callback(new TimerCallbackArguments(arguments));
-                    }
-                    finally
-                    {
-                        _timers.TryRemove(id, out TimerHandle? _);
-                        handle.Dispose();
-                    }
-                });
-            }, null, NormalizeDelay(delayMs), Timeout.Infinite);
-
-            handle.SetTimer(timer);
-            _timers[id] = handle;
-            return id;
+            return Schedule(callback, NormalizeDelay(delayMs), arguments, Timeout.Infinite);
         }
 
         /// <summary>
@@ -130,7 +172,7 @@ namespace Tsonic.CSharp.Js
                 return;
             }
 
-            if (_timers.TryRemove(timerId, out var timer))
+            if (_timers.TryGetValue(timerId, out var timer))
             {
                 timer.Dispose();
             }
@@ -144,27 +186,8 @@ namespace Tsonic.CSharp.Js
             double intervalMs = 0,
             params object?[] arguments)
         {
-            var id = Interlocked.Increment(ref _nextId);
-            var handle = new TimerHandle();
-            var normalizedInterval = NormalizeDelay(intervalMs);
-
-            var timer = new Timer(_ =>
-            {
-                if (!handle.IsDisposed)
-                {
-                    JsEventLoop.EnqueueReferenced(() =>
-                    {
-                        if (!handle.IsDisposed)
-                        {
-                            callback(new TimerCallbackArguments(arguments));
-                        }
-                    });
-                }
-            }, null, normalizedInterval, normalizedInterval);
-
-            handle.SetTimer(timer);
-            _timers[id] = handle;
-            return id;
+            var normalizedInterval = System.Math.Max(1, NormalizeDelay(intervalMs));
+            return Schedule(callback, normalizedInterval, arguments, normalizedInterval);
         }
 
         /// <summary>
