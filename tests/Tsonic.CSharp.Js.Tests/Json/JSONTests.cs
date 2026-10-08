@@ -8,6 +8,17 @@ namespace Tsonic.CSharp.Js.Tests
     public class JSONTests
     {
         [Fact]
+        public void stringify_NativeProducerReturnsANonAbsentString()
+        {
+            string objectResult = JSON.stringify((object?)null);
+            string valueResult = JSON.stringify(TsValue.undefined());
+            string replacerResult = JSON.stringify((object?)null, null);
+            Assert.Equal("null", objectResult);
+            Assert.Equal(objectResult, valueResult);
+            Assert.Equal(objectResult, replacerResult);
+        }
+
+        [Fact]
         public void stringify_SerializesJsObject()
         {
             var obj = new JSObject

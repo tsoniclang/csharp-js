@@ -64,7 +64,7 @@ namespace Tsonic.CSharp.Js
             throw new JsonException("Incomplete or invalid JSON value.");
         }
 
-        public static string? stringify(object? value)
+        public static string stringify(object? value)
         {
             value = NormalizeDirectJsonValue(value);
             var stream = new ArrayBufferWriter<byte>();
@@ -74,12 +74,12 @@ namespace Tsonic.CSharp.Js
             return Encoding.UTF8.GetString(stream.WrittenSpan);
         }
 
-        public static string? stringify(TsValue value)
+        public static string stringify(TsValue value)
         {
             return stringify(value.unwrap());
         }
 
-        public static string? stringify(object? value, object? replacer, TsValue space = default)
+        public static string stringify(object? value, object? replacer, TsValue space = default)
         {
             replacer = replacer is TsValue wrapped ? wrapped.unwrap() : replacer;
             object? selected;
@@ -97,7 +97,7 @@ namespace Tsonic.CSharp.Js
                 default:
                     throw new TypeError("JSON.stringify replacer requires a closed callback, property-name sequence, null, or undefined.");
             }
-            return FormatWithSpace(stringify(selected)!, space);
+            return FormatWithSpace(stringify(selected), space);
         }
 
         public static string stringify<TValue>(IDictionary<string, TValue>? value)
