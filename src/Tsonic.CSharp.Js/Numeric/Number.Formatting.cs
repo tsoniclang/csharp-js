@@ -1,6 +1,8 @@
 using System;
+using System.Buffers;
 using System.Globalization;
 using System.Numerics;
+using System.Text;
 
 namespace Tsonic.CSharp.Js;
 
@@ -12,16 +14,60 @@ public static partial class Number
     private static string FormatDecimal<T>(T value) where T : INumberBase<T>
     {
         if (!IsFloating<T>()) return value.ToString(null, CultureInfo.InvariantCulture);
-        if (T.IsNaN(value)) return "NaN";
-        if (T.IsPositiveInfinity(value)) return "Infinity";
-        if (T.IsNegativeInfinity(value)) return "-Infinity";
-        if (T.IsZero(value)) return "0";
+        if (DecimalSpecial(value) is { } special) return special;
+        Span<char> output = stackalloc char[432];
+        return new string(output[..WriteFiniteFloatingDecimal(value, output)]);
+    }
+
+    internal static void AppendDecimal<T>(T value, StringBuilder output) where T : INumberBase<T>
+    {
+        if (!IsFloating<T>())
+        {
+            AppendNative(value, output);
+            return;
+        }
+        if (DecimalSpecial(value) is { } special)
+        {
+            output.Append(special);
+            return;
+        }
+        Span<char> buffer = stackalloc char[432];
+        output.Append(buffer[..WriteFiniteFloatingDecimal(value, buffer)]);
+    }
+
+    internal static void AppendNative<T>(T value, StringBuilder output) where T : ISpanFormattable
+    {
+        Span<char> buffer = stackalloc char[128];
+        if (value.TryFormat(buffer, out var length, default, CultureInfo.InvariantCulture))
+        {
+            output.Append(buffer[..length]);
+            return;
+        }
+        for (var capacity = 256; ; capacity = checked(capacity * 2))
+        {
+            var rented = ArrayPool<char>.Shared.Rent(capacity);
+            try
+            {
+                if (!value.TryFormat(rented, out length, default, CultureInfo.InvariantCulture)) continue;
+                output.Append(rented.AsSpan(0, length));
+                return;
+            }
+            finally { ArrayPool<char>.Shared.Return(rented); }
+        }
+    }
+
+    private static string? DecimalSpecial<T>(T value) where T : INumberBase<T> =>
+        T.IsNaN(value) ? "NaN" : T.IsPositiveInfinity(value) ? "Infinity" :
+        T.IsNegativeInfinity(value) ? "-Infinity" : T.IsZero(value) ? "0" : null;
+
+    private static int WriteFiniteFloatingDecimal<T>(T value, Span<char> output) where T : INumberBase<T>
+    {
         Span<char> source = stackalloc char[64];
         if (!value.TryFormat(source, out var length, "R", CultureInfo.InvariantCulture))
             throw new InvalidOperationException("Native floating formatting exceeded its bounded buffer.");
         Span<char> digits = stackalloc char[101];
         var count = ReadDigits(source[..length], digits, out var exponent, out var negative);
-        return RenderDigits(digits[..count], exponent, negative, exponent < -6 || exponent >= 21);
+        return WriteDigits(digits[..count], exponent, negative, exponent < -6 || exponent >= 21, output);
     }
 
     private static string FormatSignificant<T>(T value, int? precision, bool exponential) where T : INumberBase<T>
@@ -116,6 +162,11 @@ public static partial class Number
     private static string RenderDigits(ReadOnlySpan<char> digits, int exponent, bool negative, bool exponential)
     {
         Span<char> output = stackalloc char[432];
+        return new string(output[..WriteDigits(digits, exponent, negative, exponential, output)]);
+    }
+
+    private static int WriteDigits(ReadOnlySpan<char> digits, int exponent, bool negative, bool exponential, Span<char> output)
+    {
         var written = 0;
         if (negative) output[written++] = '-';
         if (exponential)
@@ -153,6 +204,6 @@ public static partial class Number
                 written += point - digits.Length;
             }
         }
-        return new string(output[..written]);
+        return written;
     }
 }

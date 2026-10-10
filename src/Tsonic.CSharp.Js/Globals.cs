@@ -12,7 +12,7 @@ namespace Tsonic.CSharp.Js
     /// <summary>
     /// Global functions (parseInt, parseFloat, encoding, etc.)
     /// </summary>
-    public static class Globals
+    public static partial class Globals
     {
         private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
@@ -304,94 +304,6 @@ namespace Tsonic.CSharp.Js
             return double.NaN;
         }
 
-        /// <summary>
-        /// Convert value to string
-        /// </summary>
-        public static string String()
-        {
-            return "";
-        }
-
-        public static string String<T1, T2>(Tsonic.CSharp.Runtime.Union<T1, T2>? value)
-            => value is null ? "null" : value.Value.Match<string>(String, String);
-
-        public static string String<T1, T2, T3>(Tsonic.CSharp.Runtime.Union<T1, T2, T3>? value)
-            => value is null ? "null" : value.Value.Match<string>(String, String, String);
-
-        public static string String<T1, T2, T3, T4>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4>? value)
-            => value is null ? "null" : value.Value.Match<string>(String, String, String, String);
-
-        public static string String<T1, T2, T3, T4, T5>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5>? value)
-            => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String);
-
-        public static string String<T1, T2, T3, T4, T5, T6>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6>? value)
-            => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String, String);
-
-        public static string String<T1, T2, T3, T4, T5, T6, T7>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6, T7>? value)
-            => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String, String, String);
-
-        public static string String<T1, T2, T3, T4, T5, T6, T7, T8>(Tsonic.CSharp.Runtime.Union<T1, T2, T3, T4, T5, T6, T7, T8>? value)
-            => value is null ? "null" : value.Value.Match<string>(String, String, String, String, String, String, String, String);
-
-        public static string String(sbyte value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(byte value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(short value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(ushort value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(int value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(uint value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(long value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(ulong value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(nint value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(nuint value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(Int128 value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(UInt128 value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(Half value) => Tsonic.CSharp.Js.Number.toString(value);
-        public static string String(float value) => Tsonic.CSharp.Js.Number.toString(value);
-        public static string String(double value) => Tsonic.CSharp.Js.Number.toString(value);
-        public static string String(decimal value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(System.Numerics.BigInteger value) => value.ToString(CultureInfo.InvariantCulture);
-        public static string String(bool value) => value ? "true" : "false";
-        public static string String(bool? value) => value.HasValue ? String(value.Value) : "null";
-        public static string String<T>(T? value) where T : struct, System.Numerics.INumberBase<T> =>
-            value.HasValue ? Tsonic.CSharp.Js.Number.toString(value.Value) : "null";
-
-        public static string String<TValue>(TValue input)
-        {
-            object? value = unwrapClosedValue(input);
-
-            if (value == null) return "null";
-            if (value is string s) return s;
-            if (value is bool b) return b ? "true" : "false";
-            if (value is double number) return Tsonic.CSharp.Js.Number.toString(number);
-            if (value is float single) return Tsonic.CSharp.Js.Number.toString(single);
-            if (value is Tsonic.CSharp.Runtime.Error error)
-                return error.message.Length == 0 ? error.name : error.name + ": " + error.message;
-            if (value is IDynamicArray array)
-            {
-                var result = new StringBuilder();
-                writeStringArray(array, result, new HashSet<object>(ReferenceEqualityComparer.Instance));
-                return result.ToString();
-            }
-            if (value is IFormattable formatted) return formatted.ToString(null, CultureInfo.InvariantCulture);
-            return value.ToString() ?? "";
-        }
-
-        private static void writeStringArray(IDynamicArray array, StringBuilder output, HashSet<object> ancestors)
-        {
-            if (!ancestors.Add(array)) throw new TypeError("String conversion does not support cyclic arrays");
-            try
-            {
-                for (var index = 0; index < array.Length; index++)
-                {
-                    if (index != 0) output.Append(',');
-                    array.TryGetAt(index, out var entry);
-                    var value = unwrapClosedValue(entry);
-                    if (value is IDynamicArray nested) writeStringArray(nested, output, ancestors);
-                    else if (value is not null) output.Append(String(value));
-                }
-            }
-            finally { ancestors.Remove(array); }
-        }
 
         /// <summary>
         /// Convert value to boolean

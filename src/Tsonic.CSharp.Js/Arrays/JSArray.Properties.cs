@@ -96,6 +96,11 @@ public partial class JSArray<T>
         return false;
     }
 
+    void IDynamicArray.VisitElements<TVisitor>(ref TVisitor visitor)
+    {
+        for (var index = 0; index < _values.Count; index++) visitor.Visit(_values[index]);
+    }
+
     void IDynamicObject.WriteDynamicSlot(string key, object? value)
     {
         if (key == "length")
