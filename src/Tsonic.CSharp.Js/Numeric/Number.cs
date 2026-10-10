@@ -16,7 +16,16 @@ namespace Tsonic.CSharp.Js
         public const double EPSILON = 2.220446049250313e-16; // 2^-52
 
 
-        public static double parseInt(string str, int? radix = null)
+        public static double parseInt(string str, double? radix = null) =>
+            ParseInt(str, radix.HasValue ? unchecked((int)NativeInteger.Bits32(radix.Value)) : 0);
+
+        public static double parseInt<T>(string str, T radix) where T : INumberBase<T> =>
+            ParseInt(str, unchecked((int)NativeInteger.Bits32(radix)));
+
+        public static double parseInt<T>(string str, T? radix) where T : struct, INumberBase<T> =>
+            ParseInt(str, radix.HasValue ? unchecked((int)NativeInteger.Bits32(radix.Value)) : 0);
+
+        private static double ParseInt(string str, int actualRadix)
         {
             if (string.IsNullOrEmpty(str))
             {
@@ -44,7 +53,6 @@ namespace Tsonic.CSharp.Js
                 }
             }
 
-            var actualRadix = radix ?? 0;
             if (actualRadix != 0 && (actualRadix < 2 || actualRadix > 36))
             {
                 return double.NaN;

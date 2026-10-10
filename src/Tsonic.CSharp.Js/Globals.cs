@@ -21,7 +21,13 @@ namespace Tsonic.CSharp.Js
         public const double NaN = double.NaN;
         public static readonly object? undefined = null;
 
-        public static double parseInt(string str, int? radix = null) => Tsonic.CSharp.Js.Number.parseInt(str, radix);
+        public static double parseInt(string str, double? radix = null) => Tsonic.CSharp.Js.Number.parseInt(str, radix);
+
+        public static double parseInt<T>(string str, T radix) where T : System.Numerics.INumberBase<T> =>
+            Tsonic.CSharp.Js.Number.parseInt(str, radix);
+
+        public static double parseInt<T>(string str, T? radix) where T : struct, System.Numerics.INumberBase<T> =>
+            Tsonic.CSharp.Js.Number.parseInt(str, radix);
 
         public static double parseFloat(string str) => Tsonic.CSharp.Js.Number.parseFloat(str);
 
