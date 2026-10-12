@@ -423,7 +423,7 @@ namespace Tsonic.CSharp.Js.Tests
             );
             Timers.setTimeout(_ => completion.SetResult(), 0);
 
-            JsEventLoop.Run(completion.Task);
+            JsEventLoop.Run(() => completion.Task);
 
             Assert.True(completion.Task.IsCompletedSuccessfully);
         }

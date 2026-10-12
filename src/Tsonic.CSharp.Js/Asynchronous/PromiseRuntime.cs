@@ -115,7 +115,7 @@ namespace Tsonic.CSharp.Js
             Exception? failure = null;
             try
             {
-                await source.ConfigureAwait(false);
+                await source.ConfigureAwait(ContinuationOptions);
             }
             catch (Exception exception)
             {
@@ -279,7 +279,7 @@ namespace Tsonic.CSharp.Js
             T? value = default;
             try
             {
-                value = await source.ConfigureAwait(false);
+                value = await source.ConfigureAwait(PromiseRuntime.ContinuationOptions);
             }
             catch (Exception exception)
             {

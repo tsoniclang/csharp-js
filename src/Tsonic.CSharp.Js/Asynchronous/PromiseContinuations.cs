@@ -6,13 +6,14 @@ namespace Tsonic.CSharp.Js;
 
 public static partial class PromiseRuntime
 {
+    internal const ConfigureAwaitOptions ContinuationOptions = ConfigureAwaitOptions.ForceYielding | ConfigureAwaitOptions.ContinueOnCapturedContext;
     public static async Task Then(Task source, Action fulfilled, Action<object?>? rejected = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(fulfilled);
         try
         {
-            await source.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+            await source.ConfigureAwait(ContinuationOptions);
         }
         catch (Exception exception)
         {
@@ -30,7 +31,7 @@ public static partial class PromiseRuntime
         ArgumentNullException.ThrowIfNull(fulfilled);
         try
         {
-            await source.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+            await source.ConfigureAwait(ContinuationOptions);
         }
         catch (Exception exception)
         {
@@ -50,7 +51,7 @@ public static partial class PromiseRuntime
         ArgumentNullException.ThrowIfNull(rejected);
         try
         {
-            await source.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+            await source.ConfigureAwait(ContinuationOptions);
         }
         catch (Exception exception)
         {
@@ -72,7 +73,7 @@ public static partial class PromiseRuntime<T>
         T value;
         try
         {
-            value = await source.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+            value = await source.ConfigureAwait(PromiseRuntime.ContinuationOptions);
         }
         catch (Exception exception)
         {
@@ -89,7 +90,7 @@ public static partial class PromiseRuntime<T>
         T value;
         try
         {
-            value = await source.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+            value = await source.ConfigureAwait(PromiseRuntime.ContinuationOptions);
         }
         catch (Exception exception)
         {
@@ -110,7 +111,7 @@ public static partial class PromiseRuntime<T>
         ArgumentNullException.ThrowIfNull(rejected);
         try
         {
-            return await source.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+            return await source.ConfigureAwait(PromiseRuntime.ContinuationOptions);
         }
         catch (Exception exception)
         {

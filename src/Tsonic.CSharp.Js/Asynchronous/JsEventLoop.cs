@@ -18,7 +18,7 @@ namespace Tsonic.CSharp.Js
         {
             ArgumentNullException.ThrowIfNull(callback);
             ProcessKeepAlive.Acquire();
-            if (!TryEnqueue(new PendingCallback(callback, true)))
+            if (!TryEnqueue(new PendingCallback(callback, null, true)))
             {
                 ProcessKeepAlive.Release();
                 throw new InvalidOperationException("Pending JavaScript callback count exceeds the finite event-loop limit.");
@@ -36,7 +36,7 @@ namespace Tsonic.CSharp.Js
         internal static bool TryEnqueueHandleOwned(Action callback)
         {
             ArgumentNullException.ThrowIfNull(callback);
-            return TryEnqueue(new PendingCallback(callback, false));
+            return TryEnqueue(new PendingCallback(callback, null, false));
         }
 
         internal static void ReportFailure(Exception failure)
@@ -50,14 +50,19 @@ namespace Tsonic.CSharp.Js
 
         public static void Run()
         {
-            RunCore(null);
+            RunCore(null, null);
         }
 
-        public static void Run(Task entrypoint)
+        public static void Run(Action entrypoint)
         {
             ArgumentNullException.ThrowIfNull(entrypoint);
-            RunCore(entrypoint);
-            entrypoint.GetAwaiter().GetResult();
+            RunCore(entrypoint, null);
+        }
+
+        public static void Run(Func<Task> entrypoint)
+        {
+            ArgumentNullException.ThrowIfNull(entrypoint);
+            RunCore(null, entrypoint);
         }
 
         internal static void NotifyStateChanged()
@@ -83,20 +88,23 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        private static void RunCore(Task? entrypoint)
+        private static void RunCore(Action? initialize, Func<Task>? start)
         {
             if (Interlocked.Exchange(ref _running, 1) != 0)
             {
                 throw new InvalidOperationException("The JavaScript event loop is already running.");
             }
 
-            if (entrypoint is { IsCompleted: false })
-            {
-                entrypoint.GetAwaiter().OnCompleted(NotifyStateChanged);
-            }
-
+            var previousContext = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(new LoopContext(Environment.CurrentManagedThreadId));
             try
             {
+                initialize?.Invoke();
+                var entrypoint = start?.Invoke();
+                if (start is not null && entrypoint is null)
+                    throw new InvalidOperationException("The JavaScript entry factory returned no Task.");
+                if (entrypoint is { IsCompleted: false })
+                    entrypoint.GetAwaiter().OnCompleted(NotifyStateChanged);
                 while (true)
                 {
                     PendingCallback pending;
@@ -111,7 +119,7 @@ namespace Tsonic.CSharp.Js
                             }
                             if (entrypoint is { IsCompleted: true, IsCompletedSuccessfully: false })
                             {
-                                return;
+                                entrypoint.GetAwaiter().GetResult();
                             }
                             if (Pending.Count != 0)
                             {
@@ -131,7 +139,7 @@ namespace Tsonic.CSharp.Js
 
                     try
                     {
-                        pending.Callback();
+                        pending.Invoke();
                     }
                     finally
                     {
@@ -144,12 +152,49 @@ namespace Tsonic.CSharp.Js
             }
             finally
             {
+                SynchronizationContext.SetSynchronizationContext(previousContext);
                 Volatile.Write(ref _running, 0);
             }
         }
 
+        private sealed class LoopContext(int threadId) : SynchronizationContext
+        {
+            public override void Post(SendOrPostCallback callback, object? state)
+            {
+                ArgumentNullException.ThrowIfNull(callback);
+                ProcessKeepAlive.Acquire();
+                if (TryEnqueue(new PendingCallback(callback, state, true))) return;
+                ProcessKeepAlive.Release();
+                ReportFailure(new InvalidOperationException("Pending JavaScript callback count exceeds the finite event-loop limit."));
+            }
+
+            public override void Send(SendOrPostCallback callback, object? state)
+            {
+                ArgumentNullException.ThrowIfNull(callback);
+                if (Environment.CurrentManagedThreadId == threadId) { callback(state); return; }
+                using var completed = new ManualResetEventSlim();
+                ExceptionDispatchInfo? failure = null;
+                EnqueueReferenced(() =>
+                {
+                    try { callback(state); }
+                    catch (Exception exception) { failure = ExceptionDispatchInfo.Capture(exception); }
+                    finally { completed.Set(); }
+                });
+                completed.Wait();
+                failure?.Throw();
+            }
+        }
+
         private readonly record struct PendingCallback(
-            Action Callback,
-            bool ReleasesReference);
+            Delegate Callback,
+            object? State,
+            bool ReleasesReference)
+        {
+            public void Invoke()
+            {
+                if (Callback is Action action) action();
+                else ((SendOrPostCallback)Callback)(State);
+            }
+        }
     }
 }
