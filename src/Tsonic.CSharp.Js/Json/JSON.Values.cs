@@ -27,10 +27,12 @@ namespace Tsonic.CSharp.Js
                     writer.WriteStringValue(text);
                     break;
                 case double number:
-                    writer.WriteNumberValue(number);
+                    if (double.IsFinite(number)) writer.WriteNumberValue(number);
+                    else writer.WriteNullValue();
                     break;
                 case float single:
-                    writer.WriteNumberValue(single);
+                    if (float.IsFinite(single)) writer.WriteNumberValue(single);
+                    else writer.WriteNullValue();
                     break;
                 case int integer:
                     writer.WriteNumberValue(integer);
@@ -69,7 +71,8 @@ namespace Tsonic.CSharp.Js
                     WriteWideInteger(writer, wideUnsignedInteger);
                     break;
                 case Half half:
-                    writer.WriteNumberValue((float)half);
+                    if (Half.IsFinite(half)) writer.WriteNumberValue((float)half);
+                    else writer.WriteNullValue();
                     break;
                 case decimal precise:
                     writer.WriteNumberValue(precise);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Tsonic.CSharp.Runtime;
 using Xunit;
 
@@ -37,5 +38,22 @@ public class NativeNumericJsonTests
         Assert.Equal("0.5", JSON.stringify(0.5d));
         Assert.Equal("79228162514264337593543950335", JSON.stringify(decimal.MaxValue));
         Assert.Equal("-79228162514264337593543950335", JSON.stringify(TsValue.from(decimal.MinValue)));
+    }
+
+    [Fact]
+    public void NonfiniteNativeFloatsWriteNullAtEverySelectedJsonBoundary()
+    {
+        object[] values = [double.NaN, double.PositiveInfinity, double.NegativeInfinity,
+            float.NaN, float.PositiveInfinity, float.NegativeInfinity,
+            Half.NaN, Half.PositiveInfinity, Half.NegativeInfinity];
+        foreach (var value in values)
+        {
+            Assert.Equal("null", JSON.stringify(value));
+            Assert.Equal("null", JSON.stringify(TsValue.from(value)));
+            Assert.Equal("[null]", JSON.stringify(JSArray<object>.of([value])));
+            Assert.Equal("{\"value\":null}", JSON.stringify(new Dictionary<string, object?> { ["value"] = value }));
+        }
+        Assert.Equal("[null,null,null,1.5]", JSON.stringify(JSArray<double>.of([
+            double.NaN, double.PositiveInfinity, double.NegativeInfinity, 1.5])));
     }
 }

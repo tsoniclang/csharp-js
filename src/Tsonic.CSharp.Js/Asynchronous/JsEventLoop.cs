@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,6 +12,7 @@ namespace Tsonic.CSharp.Js
         private static readonly object Sync = new();
         private static readonly Queue<PendingCallback> Pending = new();
         private static int _running;
+        private static ExceptionDispatchInfo? _failure;
 
         public static void EnqueueReferenced(Action callback)
         {
@@ -25,10 +27,24 @@ namespace Tsonic.CSharp.Js
 
         public static void EnqueueHandleOwned(Action callback)
         {
-            ArgumentNullException.ThrowIfNull(callback);
-            if (!TryEnqueue(new PendingCallback(callback, false)))
+            if (!TryEnqueueHandleOwned(callback))
             {
                 throw new InvalidOperationException("Pending JavaScript callback count exceeds the finite event-loop limit.");
+            }
+        }
+
+        internal static bool TryEnqueueHandleOwned(Action callback)
+        {
+            ArgumentNullException.ThrowIfNull(callback);
+            return TryEnqueue(new PendingCallback(callback, false));
+        }
+
+        internal static void ReportFailure(Exception failure)
+        {
+            lock (Sync)
+            {
+                _failure ??= ExceptionDispatchInfo.Capture(failure);
+                Monitor.PulseAll(Sync);
             }
         }
 
@@ -88,6 +104,11 @@ namespace Tsonic.CSharp.Js
                     {
                         while (true)
                         {
+                            if (_failure is { } failure)
+                            {
+                                _failure = null;
+                                failure.Throw();
+                            }
                             if (entrypoint is { IsCompleted: true, IsCompletedSuccessfully: false })
                             {
                                 return;

@@ -61,4 +61,30 @@ public sealed class DispatchRetentionTests
         Assert.Equal(2, observed);
         Assert.False(ProcessKeepAlive.HasReferences);
     }
+
+    [Fact]
+    public void NativeReferencesRejectUnderflowAndAllocateNoKeeperState()
+    {
+        JsEventLoop.Run();
+        Assert.False(ProcessKeepAlive.HasReferences);
+        Assert.Throws<InvalidOperationException>(ProcessKeepAlive.Release);
+        ProcessKeepAlive.Acquire();
+        ProcessKeepAlive.Acquire();
+        ProcessKeepAlive.Release();
+        Assert.True(ProcessKeepAlive.HasReferences);
+        ProcessKeepAlive.Release();
+        Assert.False(ProcessKeepAlive.HasReferences);
+        for (var index = 0; index < 100; index++)
+        {
+            ProcessKeepAlive.Acquire();
+            ProcessKeepAlive.Release();
+        }
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var index = 0; index < 10_000; index++)
+        {
+            ProcessKeepAlive.Acquire();
+            ProcessKeepAlive.Release();
+        }
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
 }

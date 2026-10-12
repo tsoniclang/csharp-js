@@ -4,83 +4,30 @@ using System.Threading;
 namespace Tsonic.CSharp.Js
 {
     /// <summary>
-    /// Holds a foreground thread while ref-counted runtime handles are active.
-    /// This gives Node/JS-style timers and servers the ability to keep the
-    /// process alive until the last referenced handle is released.
+    /// Tracks native handles owned by the selected JavaScript event loop.
     /// </summary>
     public static class ProcessKeepAlive
     {
-        private static readonly object Sync = new();
         private static int _refCount;
-        private static ManualResetEventSlim? _releaseSignal;
-        private static Thread? _keeperThread;
 
-        public static bool HasReferences
+        public static bool HasReferences => Volatile.Read(ref _refCount) != 0;
+
+        public static void Acquire() => ChangeReferences(1);
+
+        public static void Release() => ChangeReferences(-1);
+
+        private static void ChangeReferences(int delta)
         {
-            get
+            while (true)
             {
-                lock (Sync)
-                {
-                    return _refCount != 0;
-                }
-            }
-        }
-
-        public static void Acquire()
-        {
-            var changed = false;
-            lock (Sync)
-            {
-                _refCount++;
-                if (_refCount == 1)
-                {
-                    var releaseSignal = new ManualResetEventSlim(false);
-                    var keeperThread = new Thread(() => releaseSignal.Wait())
-                    {
-                        IsBackground = false,
-                        Name = "Tsonic.ProcessKeepAlive",
-                    };
-
-                    _releaseSignal = releaseSignal;
-                    _keeperThread = keeperThread;
-                    keeperThread.Start();
-                    changed = true;
-                }
-            }
-            if (changed)
-            {
-                JsEventLoop.NotifyStateChanged();
-            }
-        }
-
-        public static void Release()
-        {
-            ManualResetEventSlim? releaseSignal = null;
-            var changed = false;
-
-            lock (Sync)
-            {
-                if (_refCount == 0)
-                {
-                    return;
-                }
-
-                _refCount--;
-                if (_refCount != 0)
-                {
-                    return;
-                }
-
-                releaseSignal = _releaseSignal;
-                _releaseSignal = null;
-                _keeperThread = null;
-                changed = true;
-            }
-
-            releaseSignal?.Set();
-            if (changed)
-            {
-                JsEventLoop.NotifyStateChanged();
+                var current = Volatile.Read(ref _refCount);
+                var next = checked(current + delta);
+                if (next < 0)
+                    throw new InvalidOperationException("Native event-loop references cannot underflow.");
+                if (Interlocked.CompareExchange(ref _refCount, next, current) != current)
+                    continue;
+                if ((current == 0) != (next == 0)) JsEventLoop.NotifyStateChanged();
+                return;
             }
         }
     }

@@ -27,6 +27,7 @@ namespace Tsonic.CSharp.Js
             private readonly Action _dispatch;
             private readonly Timer _timer;
             private int _disposed;
+            private int _queued;
 
             internal TimerHandle(int id, TimerCallback callback, object?[] arguments, int period)
             {
@@ -48,16 +49,20 @@ namespace Tsonic.CSharp.Js
                 {
                     if (!IsDisposed)
                     {
-                        _timer.Change(delay, _period);
+                        _timer.Change(delay, Timeout.Infinite);
                     }
                 }
             }
 
             internal void QueueCallback()
             {
-                if (!IsDisposed)
+                if (!IsDisposed && Interlocked.CompareExchange(ref _queued, 1, 0) == 0)
                 {
-                    JsEventLoop.EnqueueHandleOwned(_dispatch);
+                    if (JsEventLoop.TryEnqueueHandleOwned(_dispatch)) return;
+                    Volatile.Write(ref _queued, 0);
+                    Dispose();
+                    JsEventLoop.ReportFailure(new InvalidOperationException(
+                        "Pending JavaScript callback count exceeds the finite event-loop limit."));
                 }
             }
 
@@ -65,6 +70,7 @@ namespace Tsonic.CSharp.Js
             {
                 if (IsDisposed)
                 {
+                    Volatile.Write(ref _queued, 0);
                     return;
                 }
 
@@ -74,10 +80,12 @@ namespace Tsonic.CSharp.Js
                 }
                 finally
                 {
+                    Volatile.Write(ref _queued, 0);
                     if (_period == Timeout.Infinite)
                     {
                         Dispose();
                     }
+                    else Start(_period);
                 }
             }
 

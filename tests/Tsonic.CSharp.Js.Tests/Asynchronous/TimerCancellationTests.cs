@@ -234,4 +234,54 @@ public sealed class TimerCancellationTests
         Assert.True(completed);
         Assert.False(ProcessKeepAlive.HasReferences);
     }
+
+    [Fact]
+    public void IntervalAdmissionCoalescesTicksUntilTheQueuedCallbackCompletes()
+    {
+        var calls = 0;
+        Timers.TimerHandle? handle = null;
+        using (handle = new Timers.TimerHandle(0, _ =>
+        {
+            calls++;
+            handle!.Dispose();
+        }, [], 1))
+        {
+            for (var index = 0; index < 10_000; index++) handle.QueueCallback();
+            JsEventLoop.Run();
+        }
+        Assert.Equal(1, calls);
+        Assert.False(ProcessKeepAlive.HasReferences);
+    }
+
+    [Fact]
+    public void NativeIntervalRearmsOnlyAfterItsCallbackHasRun()
+    {
+        var calls = 0;
+        var id = 0;
+        id = Timers.setInterval(_ =>
+        {
+            if (++calls == 1) JsEventLoop.EnqueueHandleOwned(() => Timers.clearInterval(id));
+        }, 2);
+        try
+        {
+            Thread.Sleep(100);
+            JsEventLoop.Run();
+            Assert.Equal(1, calls);
+        }
+        finally { Timers.clearInterval(id); }
+        Assert.False(ProcessKeepAlive.HasReferences);
+    }
+
+    [Fact]
+    public void FullQueueIsReportedOnTheLoopInsteadOfEscapingTheTimerProducer()
+    {
+        Action empty = static () => {};
+        for (var index = 0; index < 1 << 20; index++) JsEventLoop.EnqueueHandleOwned(empty);
+        using var handle = new Timers.TimerHandle(0, _ => throw new Exception("overflow callback ran"), [], 1);
+        handle.QueueCallback();
+        Assert.True(handle.IsDisposed);
+        Assert.Contains("finite event-loop limit", Assert.Throws<InvalidOperationException>(JsEventLoop.Run).Message);
+        JsEventLoop.Run();
+        Assert.False(ProcessKeepAlive.HasReferences);
+    }
 }
