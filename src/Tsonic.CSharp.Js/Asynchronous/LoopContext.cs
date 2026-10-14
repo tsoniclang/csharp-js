@@ -16,6 +16,7 @@ internal sealed class LoopContext
     private readonly List<NativeTaskWaiter?> _waiters = new();
     private readonly Stack<int> _freeWaiters = new();
     private LoopSynchronizationContext? _activation;
+    private LoopSynchronizationContext? _nativeCompletion;
     private long _generation;
     private long _nextRegistration;
     private int _running;
@@ -187,7 +188,10 @@ internal sealed class LoopContext
                 : new ReactionTaskWaiter(_activation!, identity, continuation);
             if (identity == _waiters.Count) _waiters.Add(waiter);
             else _waiters[identity] = waiter;
-            source.GetAwaiter().UnsafeOnCompleted(waiter.Complete);
+            var previous = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(_nativeCompletion ??= new(this, _generation));
+            try { source.GetAwaiter().UnsafeOnCompleted(waiter.Complete); }
+            finally { SynchronizationContext.SetSynchronizationContext(previous); }
         }
         catch
         {
@@ -210,12 +214,6 @@ internal sealed class LoopContext
                 throw new InvalidOperationException("JavaScript event-loop registration count exceeds its finite limit.");
             if (Interlocked.CompareExchange(ref _registrationCount, current + 1, current) == current) return;
         }
-    }
-
-    internal void CompleteWaiter(long generation, NativeTaskWaiter waiter)
-    {
-        if (!TryEnqueue(generation, 0, new PendingCallback(NativeTaskWaiter.InvokeCallback, waiter)) && IsActive(generation))
-            ReportFailure(new InvalidOperationException(JsEventLoop.CapacityMessage), generation);
     }
 
     internal void InvokeWaiter(long generation, NativeTaskWaiter waiter)
@@ -332,6 +330,7 @@ internal sealed class LoopContext
         Volatile.Write(ref _registrationCount, 0);
         Volatile.Write(ref _references, 0);
         _activation = null;
+        _nativeCompletion = null;
         return failure;
     }
 

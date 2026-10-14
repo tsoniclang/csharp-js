@@ -1,15 +1,12 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Tsonic.CSharp.Js;
 
 internal abstract class NativeTaskWaiter(LoopSynchronizationContext context, int identity)
 {
-    internal static readonly SendOrPostCallback InvokeCallback = static state => ((NativeTaskWaiter)state!).Dispatch();
     internal int Identity => identity;
-    internal void Complete() => context.Complete(this);
-    private void Dispatch() => context.Invoke(this);
+    internal void Complete() => context.Invoke(this);
     internal abstract void Invoke();
     internal abstract void Cancel();
 }
