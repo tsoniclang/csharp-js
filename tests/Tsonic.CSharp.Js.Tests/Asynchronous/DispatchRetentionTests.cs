@@ -11,8 +11,8 @@ public sealed class DispatchRetentionTests
     {
         var original = new InvalidOperationException("original queued failure");
         var observed = false;
-        JsEventLoop.EnqueueReferenced(() => throw original);
-        JsEventLoop.EnqueueReferenced(() => observed = true);
+        JsEventLoop.Enqueue(() => throw original);
+        JsEventLoop.Enqueue(() => observed = true);
         var returned = Assert.Throws<InvalidOperationException>(JsEventLoop.Run);
         Assert.Same(original, returned);
         Assert.False(observed);
@@ -26,17 +26,17 @@ public sealed class DispatchRetentionTests
     public void ReentrantAdmissionRetainsExactOrderAndReleasesReferences()
     {
         var observed = 0;
-        JsEventLoop.EnqueueReferenced(() =>
+        JsEventLoop.Enqueue(() =>
         {
             Assert.Equal(0, observed);
-            JsEventLoop.EnqueueReferenced(() =>
+            JsEventLoop.Enqueue(() =>
             {
                 Assert.Equal(2, observed);
                 observed = 3;
             });
             observed = 1;
         });
-        JsEventLoop.EnqueueReferenced(() =>
+        JsEventLoop.Enqueue(() =>
         {
             Assert.Equal(1, observed);
             observed = 2;
@@ -52,8 +52,8 @@ public sealed class DispatchRetentionTests
         JsEventLoop.Run();
         var observed = 0;
         Action callback = () => observed++;
-        JsEventLoop.EnqueueHandleOwned(callback);
-        JsEventLoop.EnqueueHandleOwned(callback);
+        JsEventLoop.Enqueue(callback);
+        JsEventLoop.Enqueue(callback);
         var before = GC.GetAllocatedBytesForCurrentThread();
         JsEventLoop.Run();
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;

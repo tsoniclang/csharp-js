@@ -292,15 +292,15 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void ApplyDynamicBinary_UsesClosedPrimitiveOperatorSemantics()
+        public void TypedArithmetic_UsesClosedPrimitiveOperatorSemantics()
         {
-            Assert.Equal(3, Assert.IsType<int>(TsValue.ApplyDynamicBinary(1, "+", 2).unwrap()));
-            Assert.Equal("hello2", TsValue.ApplyDynamicBinary("hello", "+", 2).unwrap());
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinary("5", "-", 2));
+            Assert.Equal(3, Assert.IsType<int>(TsValue.Add(1, 2).unwrap()));
+            Assert.Equal("hello2", TsValue.Add("hello", 2).unwrap());
+            Assert.Throws<TypeError>(() => TsValue.Subtract("5", 2));
         }
 
         [Fact]
-        public void ApplyDynamicLogical_PreservesShortCircuitEvaluation()
+        public void TypedLogical_PreservesShortCircuitEvaluation()
         {
             var evaluations = 0;
             object? right()
@@ -311,53 +311,53 @@ namespace Tsonic.CSharp.Js.Tests
 
             Assert.Equal(
                 "fallback",
-                TsValue.ApplyDynamicLogical(TsValue.undefined().unwrap(), "??", () => "fallback").unwrap());
-            Assert.Equal("right", TsValue.ApplyDynamicLogical(true, "&&", right).unwrap());
-            Assert.Equal("left", TsValue.ApplyDynamicLogical("left", "||", right).unwrap());
+                TsValue.Coalesce(TsValue.undefined().unwrap(), () => "fallback").unwrap());
+            Assert.Equal("right", TsValue.And(true, right).unwrap());
+            Assert.Equal("left", TsValue.Or("left", right).unwrap());
             Assert.Equal(1, evaluations);
         }
 
         [Fact]
-        public void ApplyDynamicBinaryBoolean_UsesClosedPrimitiveComparisonSemantics()
+        public void TypedComparison_UsesClosedPrimitiveComparisonSemantics()
         {
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean("2", "==", 2));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean("2", "===", 2));
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean(2, "===", 2d));
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean("a", "<", "b"));
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(4, ">=", "4"));
+            Assert.False(TsValue.Equal("2", 2));
+            Assert.False(TsValue.StrictEqual("2", 2));
+            Assert.True(TsValue.StrictEqual(2, 2d));
+            Assert.True(TsValue.LessThan("a", "b"));
+            Assert.Throws<TypeError>(() => TsValue.GreaterThanOrEqual(4, "4"));
         }
 
         [Fact]
-        public void ApplyDynamicBinaryBoolean_UsesOneNativeAbsence()
+        public void TypedComparison_UsesOneNativeAbsence()
         {
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean(null, "==", TsValue.undefined().unwrap()));
-            Assert.True(TsValue.ApplyDynamicBinaryBoolean(null, "===", TsValue.undefined().unwrap()));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "==", false));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(TsValue.undefined().unwrap(), "==", false));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(null, "==", 0));
-            Assert.False(TsValue.ApplyDynamicBinaryBoolean(false, "==", 0));
+            Assert.True(TsValue.Equal(null, TsValue.undefined().unwrap()));
+            Assert.True(TsValue.StrictEqual(null, TsValue.undefined().unwrap()));
+            Assert.False(TsValue.Equal(null, false));
+            Assert.False(TsValue.Equal(TsValue.undefined().unwrap(), false));
+            Assert.False(TsValue.Equal(null, 0));
+            Assert.False(TsValue.Equal(false, 0));
         }
 
         [Fact]
-        public void ApplyDynamicBinaryBoolean_RelationalComparisonsRequireNativeOperands()
+        public void TypedComparison_RelationalComparisonsRequireNativeOperands()
         {
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(TsValue.undefined().unwrap(), "<", 0));
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(TsValue.undefined().unwrap(), "<=", 0));
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(TsValue.undefined().unwrap(), ">", 0));
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(TsValue.undefined().unwrap(), ">=", 0));
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicBinaryBoolean(null, "<=", 0));
+            Assert.Throws<TypeError>(() => TsValue.LessThan(TsValue.undefined().unwrap(), 0));
+            Assert.Throws<TypeError>(() => TsValue.LessThanOrEqual(TsValue.undefined().unwrap(), 0));
+            Assert.Throws<TypeError>(() => TsValue.GreaterThan(TsValue.undefined().unwrap(), 0));
+            Assert.Throws<TypeError>(() => TsValue.GreaterThanOrEqual(TsValue.undefined().unwrap(), 0));
+            Assert.Throws<TypeError>(() => TsValue.LessThanOrEqual(null, 0));
         }
 
         [Fact]
-        public void ApplyDynamicUnary_UsesClosedPrimitiveOperatorSemantics()
+        public void TypedUnary_UsesClosedPrimitiveOperatorSemantics()
         {
-            Assert.Equal(7, Assert.IsType<int>(TsValue.ApplyDynamicUnary(7, "+").unwrap()));
-            Assert.Equal(-7, Assert.IsType<int>(TsValue.ApplyDynamicUnary(7, "-").unwrap()));
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicUnary("7", "+"));
-            Assert.Throws<TypeError>(() => TsValue.ApplyDynamicUnary("7", "-"));
-            Assert.Equal(~7, TsValue.ApplyDynamicUnary(7, "~").unwrap());
-            Assert.True(TsValue.ApplyDynamicUnaryBoolean(0, "!"));
-            Assert.False(TsValue.ApplyDynamicUnaryBoolean("value", "!"));
+            Assert.Equal(7, Assert.IsType<int>(TsValue.Positive(7).unwrap()));
+            Assert.Equal(-7, Assert.IsType<int>(TsValue.Negate(7).unwrap()));
+            Assert.Throws<TypeError>(() => TsValue.Positive("7"));
+            Assert.Throws<TypeError>(() => TsValue.Negate("7"));
+            Assert.Equal(~7, TsValue.BitwiseNot(7).unwrap());
+            Assert.True(TsValue.LogicalNot(0));
+            Assert.False(TsValue.LogicalNot("value"));
         }
 
         [Fact]
@@ -417,8 +417,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ApplyDynamicOperator_RejectsUnsupportedOperatorsDeterministically()
         {
-            Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyDynamicBinary(1, "<<", 2));
-            Assert.Throws<System.NotSupportedException>(() => TsValue.ApplyDynamicUnary(1, "delete"));
+            Assert.Null(typeof(TsValue).GetMethod("ApplyDynamicBinary"));
+            Assert.Null(typeof(TsValue).GetMethod("ApplyDynamicUnary"));
         }
 
         [Fact]

@@ -260,7 +260,7 @@ public sealed class TimerCancellationTests
         var id = 0;
         id = Timers.setInterval(_ =>
         {
-            if (++calls == 1) JsEventLoop.EnqueueHandleOwned(() => Timers.clearInterval(id));
+            if (++calls == 1) JsEventLoop.Enqueue(() => Timers.clearInterval(id));
         }, 2);
         try
         {
@@ -276,7 +276,7 @@ public sealed class TimerCancellationTests
     public void FullQueueIsReportedOnTheLoopInsteadOfEscapingTheTimerProducer()
     {
         Action empty = static () => {};
-        for (var index = 0; index < 1 << 20; index++) JsEventLoop.EnqueueHandleOwned(empty);
+        for (var index = 0; index < 1 << 20; index++) JsEventLoop.Enqueue(empty);
         using var handle = new Timers.TimerHandle(0, _ => throw new Exception("overflow callback ran"), [], 1);
         handle.QueueCallback();
         Assert.True(handle.IsDisposed);

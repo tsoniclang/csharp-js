@@ -17,6 +17,7 @@ namespace Tsonic.CSharp.Js
     {
         private static int _nextId = 1;
         private static readonly ConcurrentDictionary<int, TimerHandle> _timers = new();
+        private static readonly DispatchPhase[] PhaseOrder = [JsEventLoop.TimerPhase];
 
         internal sealed class TimerHandle : IDisposable
         {
@@ -24,8 +25,10 @@ namespace Tsonic.CSharp.Js
             private readonly TimerCallback _callback;
             private readonly object?[] _arguments;
             private readonly int _period;
-            private readonly Action _dispatch;
+            private static readonly SendOrPostCallback DispatchCallback = static state => ((TimerHandle)state!).Dispatch();
             private readonly Timer _timer;
+            private readonly LoopDispatch _owner;
+            private readonly LoopRegistration _registration;
             private int _disposed;
             private int _queued;
 
@@ -35,10 +38,18 @@ namespace Tsonic.CSharp.Js
                 _callback = callback;
                 _arguments = arguments;
                 _period = period;
-                _dispatch = Dispatch;
-                _timer = new Timer(static state => ((TimerHandle)state!).QueueCallback(), this,
-                    Timeout.Infinite, Timeout.Infinite);
-                ProcessKeepAlive.Acquire();
+                _owner = JsEventLoop.RegisterPhase(JsEventLoop.TimerPhase, PhaseOrder);
+                _registration = _owner.Register(Dispose, true);
+                try
+                {
+                    _timer = new Timer(static state => ((TimerHandle)state!).QueueCallback(), this,
+                        Timeout.Infinite, Timeout.Infinite);
+                }
+                catch
+                {
+                    _registration.Dispose();
+                    throw;
+                }
             }
 
             internal bool IsDisposed => Volatile.Read(ref _disposed) != 0;
@@ -58,10 +69,10 @@ namespace Tsonic.CSharp.Js
             {
                 if (!IsDisposed && Interlocked.CompareExchange(ref _queued, 1, 0) == 0)
                 {
-                    if (JsEventLoop.TryEnqueueHandleOwned(_dispatch)) return;
+                    if (_owner.TryEnqueue(DispatchCallback, this)) return;
                     Volatile.Write(ref _queued, 0);
                     Dispose();
-                    JsEventLoop.ReportFailure(new InvalidOperationException(
+                    _owner.ReportFailure(new InvalidOperationException(
                         "Pending JavaScript callback count exceeds the finite event-loop limit."));
                 }
             }
@@ -103,7 +114,7 @@ namespace Tsonic.CSharp.Js
                     _timers.TryRemove(_id, out TimerHandle? _);
                 }
 
-                ProcessKeepAlive.Release();
+                _registration.Dispose();
             }
         }
 

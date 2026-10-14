@@ -6,16 +6,16 @@ namespace Tsonic.CSharp.Js;
 
 public static partial class PromiseRuntime
 {
-    internal const ConfigureAwaitOptions ContinuationOptions = ConfigureAwaitOptions.ForceYielding | ConfigureAwaitOptions.ContinueOnCapturedContext;
     public static async Task Then(Task source, Action fulfilled, Action<object?>? rejected = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(fulfilled);
+        var deferred = DeferredTaskAwaiter.Create(source);
         try
         {
-            await source.ConfigureAwait(ContinuationOptions);
+            await deferred;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (JsEventLoop.IsRunning)
         {
             if (rejected is null) throw;
             rejected(RejectionReason(exception));
@@ -29,11 +29,12 @@ public static partial class PromiseRuntime
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(fulfilled);
+        var deferred = DeferredTaskAwaiter.Create(source);
         try
         {
-            await source.ConfigureAwait(ContinuationOptions);
+            await deferred;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (JsEventLoop.IsRunning)
         {
             if (rejected is null) throw;
             return rejected(RejectionReason(exception));
@@ -49,11 +50,12 @@ public static partial class PromiseRuntime
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(rejected);
+        var deferred = DeferredTaskAwaiter.Create(source);
         try
         {
-            await source.ConfigureAwait(ContinuationOptions);
+            await deferred;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (JsEventLoop.IsRunning)
         {
             rejected(RejectionReason(exception));
         }
@@ -70,12 +72,13 @@ public static partial class PromiseRuntime<T>
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(fulfilled);
+        var deferred = DeferredTaskAwaiter<T>.Create(source);
         T value;
         try
         {
-            value = await source.ConfigureAwait(PromiseRuntime.ContinuationOptions);
+            value = await deferred;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (JsEventLoop.IsRunning)
         {
             if (rejected is null) throw;
             return rejected(PromiseRuntime.RejectionReason(exception));
@@ -87,12 +90,13 @@ public static partial class PromiseRuntime<T>
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(fulfilled);
+        var deferred = DeferredTaskAwaiter<T>.Create(source);
         T value;
         try
         {
-            value = await source.ConfigureAwait(PromiseRuntime.ContinuationOptions);
+            value = await deferred;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (JsEventLoop.IsRunning)
         {
             if (rejected is null) throw;
             rejected(PromiseRuntime.RejectionReason(exception));
@@ -109,11 +113,12 @@ public static partial class PromiseRuntime<T>
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(rejected);
+        var deferred = DeferredTaskAwaiter<T>.Create(source);
         try
         {
-            return await source.ConfigureAwait(PromiseRuntime.ContinuationOptions);
+            return await deferred;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (JsEventLoop.IsRunning)
         {
             return rejected(PromiseRuntime.RejectionReason(exception));
         }
