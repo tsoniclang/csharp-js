@@ -112,12 +112,13 @@ namespace Tsonic.CSharp.Js
 
         private static async Task CompleteFinally(Task source, Action? onFinally)
         {
+            var deferred = DeferredTaskAwaiter.Create(source);
             Exception? failure = null;
             try
             {
-                await source.ConfigureAwait(ContinuationOptions);
+                await deferred;
             }
-            catch (Exception exception)
+            catch (Exception exception) when (JsEventLoop.IsRunning)
             {
                 failure = exception;
             }
@@ -275,13 +276,14 @@ namespace Tsonic.CSharp.Js
 
         private static async Task<T> CompleteFinally(Task<T> source, Action? onFinally)
         {
+            var deferred = DeferredTaskAwaiter<T>.Create(source);
             Exception? failure = null;
             T? value = default;
             try
             {
-                value = await source.ConfigureAwait(PromiseRuntime.ContinuationOptions);
+                value = await deferred;
             }
-            catch (Exception exception)
+            catch (Exception exception) when (JsEventLoop.IsRunning)
             {
                 failure = exception;
             }

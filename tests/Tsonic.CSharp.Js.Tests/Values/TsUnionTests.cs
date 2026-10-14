@@ -32,7 +32,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Same(TsValue.undefined().unwrap(), union.value().unwrap());
             Assert.Equal(
                 "fallback",
-                TsValue.ApplyDynamicLogical(value, "??", () => "fallback").unwrap());
+                TsValue.Coalesce(value, () => "fallback").unwrap());
             Assert.Equal("object", TsValue.ApplyDynamicTypeof(value));
         }
 
@@ -105,9 +105,9 @@ namespace Tsonic.CSharp.Js.Tests
             var value = new OpenClrObject();
 
             Assert.Throws<NotSupportedException>(() => TsValue.ApplyDynamicTypeof(value));
-            Assert.Throws<NotSupportedException>(() => TsValue.ApplyDynamicBinary(value, "+", 1));
-            Assert.Throws<NotSupportedException>(() => TsValue.ApplyDynamicBinaryBoolean(value, "===", value));
-            Assert.Throws<NotSupportedException>(() => TsValue.ApplyDynamicUnaryBoolean(value, "!"));
+            Assert.Throws<NotSupportedException>(() => TsValue.Add(value, 1));
+            Assert.Throws<NotSupportedException>(() => TsValue.StrictEqual(value, value));
+            Assert.Throws<NotSupportedException>(() => TsValue.LogicalNot(value));
         }
 
         private sealed class OpenClrObject

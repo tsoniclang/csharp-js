@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Tsonic.CSharp.Js/Tsonic.CSharp.Js.csproj" />
+  </ItemGroup>
+</Project>
