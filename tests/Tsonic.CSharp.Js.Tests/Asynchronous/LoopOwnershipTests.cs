@@ -187,6 +187,115 @@ public sealed class LoopOwnershipTests
     }
 
     [Fact]
+    public void PendingReactionAndForeignResourceShareOneFiniteAdmissionLimit()
+    {
+        for (var iteration = 0; iteration < 64; iteration++)
+        {
+            using var start = new ManualResetEventSlim();
+            var source = new TaskCompletionSource<int>();
+            var foreignAdmitted = false;
+            var localAdmitted = false;
+            Exception? failure = null;
+            var registration = default(LoopRegistration);
+            JsEventLoop.Run(() =>
+            {
+                var dispatch = JsEventLoop.Capture();
+                var foreign = new Thread(() =>
+                {
+                    try
+                    {
+                        if (!start.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException();
+                        registration = dispatch.Register(static () => { });
+                        foreignAdmitted = true;
+                    }
+                    catch (InvalidOperationException error) when (error.Message.Contains("registration count")) { }
+                    catch (Exception error) { failure = error; }
+                });
+                foreign.Start();
+                start.Set();
+                try { PromiseRuntime.ObserveDiscarded(source.Task); localAdmitted = true; }
+                catch (InvalidOperationException error) when (error.Message.Contains("registration count")) { }
+                Assert.True(foreign.Join(TimeSpan.FromSeconds(5)));
+                Assert.Null(failure);
+                Assert.NotEqual(foreignAdmitted, localAdmitted);
+                registration.Dispose();
+            }, 8, 8, 1);
+        }
+    }
+
+    [Fact]
+    public void CompletingAPendingReactionReleasesItsAdmissionBeforeTheUserCallback()
+    {
+        var source = new TaskCompletionSource<int>();
+        var called = false;
+        JsEventLoop.Run(() =>
+        {
+            var dispatch = JsEventLoop.Capture();
+            _ = PromiseRuntime<int>.Then(source.Task, value =>
+            {
+                using var reused = dispatch.Register(static () => { });
+                called = true;
+                return value;
+            });
+            Assert.Throws<InvalidOperationException>(() => dispatch.Register(static () => { }));
+            source.SetResult(1);
+        }, 8, 8, 1);
+        Assert.True(called);
+    }
+
+    [Fact]
+    public void OldRegistrationDisposalCannotReleaseTheNextEpochsAdmission()
+    {
+        var old = default(LoopRegistration);
+        JsEventLoop.Run(() => old = JsEventLoop.Capture().Register(static () => { }), 8, 8, 1);
+        JsEventLoop.Run(() =>
+        {
+            var dispatch = JsEventLoop.Capture();
+            using var current = dispatch.Register(static () => { });
+            old.Dispose();
+            Assert.Throws<InvalidOperationException>(() => dispatch.Register(static () => { }));
+        }, 8, 8, 1);
+    }
+
+    [Fact]
+    public void ForeignReferencedResourceReleaseWakesItsWaitingOwner()
+    {
+        using var admitted = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        Exception? failure = null;
+        Thread? producer = null;
+        try
+        {
+            JsEventLoop.Run(() =>
+            {
+                var dispatch = JsEventLoop.Capture();
+                producer = new Thread(() =>
+                {
+                    try
+                    {
+                        using var registration = dispatch.Register(static () => { }, referenced: true);
+                        admitted.Set();
+                        if (!release.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException();
+                    }
+                    catch (Exception error) { failure = error; admitted.Set(); }
+                });
+                producer.Start();
+                Assert.True(admitted.Wait(TimeSpan.FromSeconds(5)));
+                Assert.Null(failure);
+                Assert.True(ProcessKeepAlive.HasReferences);
+                dispatch.Enqueue(release.Set);
+            });
+        }
+        finally
+        {
+            release.Set();
+            if (producer is not null) Assert.True(producer.Join(TimeSpan.FromSeconds(5)));
+        }
+        Assert.Null(failure);
+        Assert.False(ProcessKeepAlive.HasReferences);
+    }
+
+    [Fact]
     public void InvalidLimitsDoNotActivateAnOwner()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => JsEventLoop.Run(static () => { }, 0, 1, 1));

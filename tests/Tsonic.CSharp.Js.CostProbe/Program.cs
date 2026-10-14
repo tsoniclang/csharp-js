@@ -23,6 +23,8 @@ public static class Program
         var native = new NativeControl();
         Validate(native.Run, NativeControl.Then);
         Validate(JsEventLoop.Run, PromiseRuntime<int>.Then<int>);
+        ValidateFinally(native.Run, NativeControl.Finally);
+        ValidateFinally(JsEventLoop.Run, PromiseRuntime<int>.Finally);
         var empty = (Action)(static () => { });
         for (var warm = 0; warm < 128; warm++) { native.Run(empty); JsEventLoop.Run(empty); }
         var coldBefore = GC.GetTotalAllocatedBytes(true);
@@ -108,6 +110,29 @@ public static class Program
         if (!result!.IsCanceled) throw new InvalidOperationException("pending owner state was not canceled");
         run(() => unresolved.SetResult(1));
         if (called) throw new InvalidOperationException("old native notification entered a new owner activation");
+    }
+
+    private static void ValidateFinally(Action<Action> run, Func<Task<int>, Action, Task<int>> complete)
+    {
+        var original = new InvalidOperationException("finally source");
+        var replacement = new InvalidOperationException("finally callback");
+        Task<int>? preserved = null;
+        Task<int>? overridden = null;
+        run(() =>
+        {
+            preserved = complete(Task.FromException<int>(original), static () => { });
+            overridden = complete(Source, () => throw replacement);
+        });
+        try { preserved!.GetAwaiter().GetResult(); throw new InvalidOperationException("finally source failure was lost"); }
+        catch (InvalidOperationException actual) when (ReferenceEquals(actual, original)) { }
+        try { overridden!.GetAwaiter().GetResult(); throw new InvalidOperationException("finally callback failure was lost"); }
+        catch (InvalidOperationException actual) when (ReferenceEquals(actual, replacement)) { }
+        var pending = new TaskCompletionSource<int>();
+        var called = false;
+        run(() => preserved = complete(pending.Task, () => called = true));
+        if (!preserved!.IsCanceled || called) throw new InvalidOperationException("finally shutdown ran user code");
+        run(() => pending.SetResult(1));
+        if (called) throw new InvalidOperationException("finally shutdown re-entered user code");
     }
 
     private static void Measure(string name, Action<Action> runNative, Action control, Action subject, Action? prepare = null)

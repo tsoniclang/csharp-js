@@ -26,6 +26,7 @@ internal sealed class LoopContext
     private int _maximumCallbacks;
     private int _maximumIngress;
     private int _maximumRegistrations;
+    private int _registrationCount;
     private bool _exitRequested;
     private ExceptionDispatchInfo? _failure;
 
@@ -84,11 +85,20 @@ internal sealed class LoopContext
         lock (_sync)
         {
             if (!IsActive(generation)) throw new InvalidOperationException(JsEventLoop.MissingLoopMessage);
-            RequireRegistrationCapacity();
             var identity = checked(++_nextRegistration);
-            _registrations.Add(identity, new(shutdown, referenced));
-            if (referenced) ChangeReferences(generation, 1);
-            return new(this, generation, identity);
+            ReserveRegistration();
+            try
+            {
+                _registrations.Add(identity, new(shutdown, referenced));
+                if (referenced) ChangeReferencesCore(generation, 1);
+                return new(this, generation, identity);
+            }
+            catch
+            {
+                _registrations.Remove(identity);
+                Interlocked.Decrement(ref _registrationCount);
+                throw;
+            }
         }
     }
 
@@ -97,7 +107,11 @@ internal sealed class LoopContext
         lock (_sync)
         {
             if (!IsActive(generation)) return;
-            if (_registrations.Remove(identity, out var registration) && registration.Referenced) ChangeReferences(generation, -1);
+            if (_registrations.Remove(identity, out var registration))
+            {
+                Interlocked.Decrement(ref _registrationCount);
+                if (registration.Referenced) ChangeReferencesCore(generation, -1);
+            }
         }
     }
 
@@ -123,7 +137,7 @@ internal sealed class LoopContext
             var next = checked(current + delta);
             if (next < 0) throw new InvalidOperationException("Native event-loop references cannot underflow.");
             if (Interlocked.CompareExchange(ref _references, next, current) != current) continue;
-            if (next == 0 && Environment.CurrentManagedThreadId != _threadId) NotifyStateChanged(generation);
+            if (next == 0 && Environment.CurrentManagedThreadId != _threadId) Monitor.Pulse(_sync);
             return;
         }
     }
@@ -147,6 +161,7 @@ internal sealed class LoopContext
     internal void RequestExit(long generation) { RequireOwner(generation); _exitRequested = true; }
     internal void NotifyStateChanged(long generation)
     {
+        if (Environment.CurrentManagedThreadId == _threadId) return;
         lock (_sync) { if (IsActive(generation)) Monitor.Pulse(_sync); }
     }
 
@@ -162,24 +177,39 @@ internal sealed class LoopContext
 
     internal void Observe(Task source, Action? continuation)
     {
-        NativeTaskWaiter waiter;
-        lock (_sync)
+        RequireOwner(_generation);
+        ReserveRegistration();
+        var identity = _freeWaiters.TryPop(out var free) ? free : _waiters.Count;
+        try
         {
-            RequireRegistrationCapacity();
-            var identity = _freeWaiters.TryPop(out var free) ? free : _waiters.Count;
-            waiter = continuation is null
+            NativeTaskWaiter waiter = continuation is null
                 ? new DiscardedTaskWaiter(_activation!, identity, source)
                 : new ReactionTaskWaiter(_activation!, identity, continuation);
             if (identity == _waiters.Count) _waiters.Add(waiter);
             else _waiters[identity] = waiter;
+            source.GetAwaiter().UnsafeOnCompleted(waiter.Complete);
         }
-        source.GetAwaiter().UnsafeOnCompleted(waiter.Complete);
+        catch
+        {
+            if (identity < _waiters.Count)
+            {
+                _waiters[identity] = null;
+                _freeWaiters.Push(identity);
+            }
+            Interlocked.Decrement(ref _registrationCount);
+            throw;
+        }
     }
 
-    private void RequireRegistrationCapacity()
+    private void ReserveRegistration()
     {
-        if (_registrations.Count + _waiters.Count - _freeWaiters.Count == _maximumRegistrations)
-            throw new InvalidOperationException("JavaScript event-loop registration count exceeds its finite limit.");
+        while (true)
+        {
+            var current = Volatile.Read(ref _registrationCount);
+            if (current == _maximumRegistrations)
+                throw new InvalidOperationException("JavaScript event-loop registration count exceeds its finite limit.");
+            if (Interlocked.CompareExchange(ref _registrationCount, current + 1, current) == current) return;
+        }
     }
 
     internal void CompleteWaiter(long generation, NativeTaskWaiter waiter)
@@ -191,11 +221,9 @@ internal sealed class LoopContext
     internal void InvokeWaiter(long generation, NativeTaskWaiter waiter)
     {
         RequireOwner(generation);
-        lock (_sync)
-        {
-            _waiters[waiter.Identity] = null;
-            _freeWaiters.Push(waiter.Identity);
-        }
+        _waiters[waiter.Identity] = null;
+        _freeWaiters.Push(waiter.Identity);
+        Interlocked.Decrement(ref _registrationCount);
         waiter.Invoke();
     }
 
@@ -301,6 +329,7 @@ internal sealed class LoopContext
             try { entry.Value.Shutdown.Invoke(); }
             catch (Exception exception) { failure ??= ExceptionDispatchInfo.Capture(exception); }
         }
+        Volatile.Write(ref _registrationCount, 0);
         Volatile.Write(ref _references, 0);
         _activation = null;
         return failure;
