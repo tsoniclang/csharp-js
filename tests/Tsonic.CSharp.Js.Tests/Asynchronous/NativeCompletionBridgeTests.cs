@@ -54,7 +54,7 @@ public sealed class NativeCompletionBridgeTests
     [InlineData(TaskCreationOptions.None, true)]
     [InlineData(TaskCreationOptions.RunContinuationsAsynchronously, false)]
     [InlineData(TaskCreationOptions.RunContinuationsAsynchronously, true)]
-    public void NativeNotificationAndDeferredReactionHaveDistinctFifoAdmissionTurns(
+    public void NativeCompletionAdmitsOneDeferredReactionWithNativeForeignIngressOrder(
         TaskCreationOptions options, bool foreign)
     {
         var seen = new List<string>();
@@ -78,8 +78,30 @@ public sealed class NativeCompletionBridgeTests
             Assert.Empty(seen);
             JsEventLoop.Enqueue(() => seen.Add("frontier"));
         });
-        var nativePostRequired = foreign || options == TaskCreationOptions.RunContinuationsAsynchronously;
-        Assert.Equal(nativePostRequired ? new[] { "frontier", "reaction" } : new[] { "reaction", "frontier" }, seen);
+        Assert.Equal(foreign ? new[] { "frontier", "reaction" } : new[] { "reaction", "frontier" }, seen);
+    }
+
+    [Fact]
+    public void RegisteringNativeWaitersRestoresTheExactAmbientContextAndRetiresTheirNotifications()
+    {
+        var source = new TaskCompletionSource<int>();
+        Task<int>? reaction = null;
+        SynchronizationContext? captured = null;
+        var called = false;
+        JsEventLoop.Run(() =>
+        {
+            captured = SynchronizationContext.Current;
+            reaction = PromiseRuntime<int>.Then(source.Task, value => { called = true; return value; });
+            Assert.Same(captured, SynchronizationContext.Current);
+        });
+        Assert.True(reaction!.IsCanceled);
+        JsEventLoop.Run(() =>
+        {
+            Assert.NotSame(captured, SynchronizationContext.Current);
+            source.SetResult(17);
+        });
+        Assert.False(called);
+        Assert.True(reaction.IsCanceled);
     }
 
     private sealed class NativeContext : SynchronizationContext

@@ -17,9 +17,10 @@ internal sealed class NativeControl
     private readonly List<Waiter?> _waiting = new();
     private readonly Stack<int> _released = new();
     private Epoch? _active;
+    private Epoch? _nativeCompletion;
     private long _epoch;
     internal bool Running => _active is not null;
-    internal void Post(Action callback) => Post(new(callback, null, null), _epoch);
+    internal void Post(Action callback) => Post(new(callback, null), _epoch);
 
     internal void Run(Action entry)
     {
@@ -51,6 +52,7 @@ internal sealed class NativeControl
         finally
         {
             lock (_gate) { _active = null; _foreign.Clear(); Volatile.Write(ref _foreignCount, 0); }
+            _nativeCompletion = null;
             foreach (var pending in _waiting) pending?.Cancel();
             _waiting.Clear();
             _released.Clear();
@@ -68,7 +70,10 @@ internal sealed class NativeControl
         var waiter = new Waiter(_active!, continuation, slot);
         if (slot == _waiting.Count) _waiting.Add(waiter);
         else _waiting[slot] = waiter;
-        source.GetAwaiter().UnsafeOnCompleted(waiter.Notify);
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(_nativeCompletion ??= new(this, _epoch));
+        try { source.GetAwaiter().UnsafeOnCompleted(waiter.Notify); }
+        finally { SynchronizationContext.SetSynchronizationContext(previous); }
     }
 
     private void Deliver(Waiter waiter)
@@ -95,23 +100,18 @@ internal sealed class NativeControl
         }
     }
 
-    private readonly record struct Job(Delegate? Callback, object? State, Waiter? Pending)
+    private readonly record struct Job(Delegate Callback, object? State)
     {
         internal void Invoke()
         {
-            if (Pending is not null) Pending.Dispatch();
-            else if (Callback is Action action) action();
-            else ((SendOrPostCallback)Callback!)(State);
+            if (Callback is Action action) action();
+            else ((SendOrPostCallback)Callback)(State);
         }
     }
 
     private sealed class Epoch(NativeControl owner, long identity) : SynchronizationContext
     {
-        public override void Post(SendOrPostCallback callback, object? state) => owner.Post(new(callback, state, null), identity);
-        internal void Notify(Waiter waiter)
-        {
-            owner.Post(new(null, null, waiter), identity);
-        }
+        public override void Post(SendOrPostCallback callback, object? state) => owner.Post(new(callback, state), identity);
         internal void Deliver(Waiter waiter) => owner.Deliver(waiter);
     }
 
@@ -119,8 +119,7 @@ internal sealed class NativeControl
     {
         private Action? _continuation = continuation;
         internal int Slot => slot;
-        internal void Notify() => owner.Notify(this);
-        internal void Dispatch() => owner.Deliver(this);
+        internal void Notify() => owner.Deliver(this);
         internal void Deliver() { var callback = _continuation; _continuation = null; callback?.Invoke(); }
         internal void Cancel() => Deliver();
     }
