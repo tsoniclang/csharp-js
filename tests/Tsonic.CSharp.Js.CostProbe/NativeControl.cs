@@ -161,12 +161,7 @@ internal sealed class NativeControl
     internal static async Task<int> Finally(Task<int> source, Action callback)
     {
         var pending = new Deferred<int>(source);
-        Exception? failure = null;
-        var value = 0;
-        try { value = await pending; }
-        catch (Exception error) when (Current?.Running == true) { failure = error; }
-        callback();
-        if (failure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
-        return value;
+        try { return await pending; }
+        finally { if (Current?.Running == true) callback(); }
     }
 }

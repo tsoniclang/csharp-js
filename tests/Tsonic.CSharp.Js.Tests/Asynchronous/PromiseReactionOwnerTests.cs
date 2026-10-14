@@ -12,6 +12,46 @@ namespace Tsonic.CSharp.Js.Tests;
 public sealed class PromiseReactionOwnerTests
 {
     [Fact]
+    public void FinallyPreservesTheOriginalRejectionUnlessItsOwnCallbackThrows()
+    {
+        var original = new InvalidOperationException("source");
+        var replacement = new InvalidOperationException("finally");
+        var called = 0;
+        Task<int>? generic = null;
+        Task? plain = null;
+        Task<int>? overridden = null;
+        JsEventLoop.Run(() =>
+        {
+            generic = PromiseRuntime<int>.Finally(Task.FromException<int>(original), () => called++);
+            plain = PromiseRuntime.Finally(Task.FromException(original), () => called++);
+            overridden = PromiseRuntime<int>.Finally(Task.FromException<int>(original), () => throw replacement);
+            Assert.Equal(0, called);
+        });
+        Assert.Equal(2, called);
+        Assert.Same(original, Assert.Throws<InvalidOperationException>(() => generic!.GetAwaiter().GetResult()));
+        Assert.Same(original, Assert.Throws<InvalidOperationException>(() => plain!.GetAwaiter().GetResult()));
+        Assert.Same(replacement, Assert.Throws<InvalidOperationException>(() => overridden!.GetAwaiter().GetResult()));
+    }
+
+    [Fact]
+    public void ShutdownDoesNotExecuteEitherKindOfPendingFinallyCallback()
+    {
+        var source = new TaskCompletionSource<int>();
+        var called = 0;
+        Task<int>? generic = null;
+        Task? plain = null;
+        JsEventLoop.Run(() =>
+        {
+            generic = PromiseRuntime<int>.Finally(source.Task, () => called++);
+            plain = PromiseRuntime.Finally(source.Task, () => called++);
+        });
+        Assert.True(generic!.IsCanceled);
+        Assert.True(plain!.IsCanceled);
+        JsEventLoop.Run(() => source.SetResult(7));
+        Assert.Equal(0, called);
+    }
+
+    [Fact]
     public void OwnedCompletionPreservesSettlementOrderRatherThanRegistrationOrder()
     {
         var seen = new List<string>();

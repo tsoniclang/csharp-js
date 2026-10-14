@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -46,6 +47,39 @@ public sealed class NativeCompletionBridgeTests
             Assert.Equal(1, callbacks);
         }
         finally { SynchronizationContext.SetSynchronizationContext(previous); }
+    }
+
+    [Theory]
+    [InlineData(TaskCreationOptions.None, false)]
+    [InlineData(TaskCreationOptions.None, true)]
+    [InlineData(TaskCreationOptions.RunContinuationsAsynchronously, false)]
+    [InlineData(TaskCreationOptions.RunContinuationsAsynchronously, true)]
+    public void NativeNotificationAndDeferredReactionHaveDistinctFifoAdmissionTurns(
+        TaskCreationOptions options, bool foreign)
+    {
+        var seen = new List<string>();
+        var owner = Environment.CurrentManagedThreadId;
+        var source = new TaskCompletionSource<int>(options);
+        JsEventLoop.Run(() =>
+        {
+            _ = PromiseRuntime<int>.Then(source.Task, value =>
+            {
+                Assert.Equal(owner, Environment.CurrentManagedThreadId);
+                seen.Add("reaction");
+                return value;
+            });
+            if (foreign)
+            {
+                var producer = new Thread(() => source.SetResult(1));
+                producer.Start();
+                Assert.True(producer.Join(TimeSpan.FromSeconds(5)));
+            }
+            else source.SetResult(1);
+            Assert.Empty(seen);
+            JsEventLoop.Enqueue(() => seen.Add("frontier"));
+        });
+        var nativePostRequired = foreign || options == TaskCreationOptions.RunContinuationsAsynchronously;
+        Assert.Equal(nativePostRequired ? new[] { "frontier", "reaction" } : new[] { "reaction", "frontier" }, seen);
     }
 
     private sealed class NativeContext : SynchronizationContext
