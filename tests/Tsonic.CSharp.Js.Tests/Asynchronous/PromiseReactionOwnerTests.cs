@@ -111,14 +111,36 @@ public sealed class PromiseReactionOwnerTests
     }
 
     [Fact]
-    public void ReactionWithoutAnOwnerRejectsWithoutInvokingEitherCallback()
+    public void ReactionsWithoutAnOwnerThrowAtAdmissionWithoutInvokingEitherCallback()
     {
         var invoked = false;
-        var pending = PromiseRuntime<int>.Then(Task.FromResult(1),
-            value => { invoked = true; return value; }, _ => { invoked = true; return 0; });
-        var failure = Assert.Throws<InvalidOperationException>(() => pending.GetAwaiter().GetResult());
-        Assert.Equal("No JavaScript event loop is running on this thread.", failure.Message);
-        Assert.False(invoked);
+        (string Name, Action Invoke)[] operations =
+        [
+            ("plain then action", () => { _ = PromiseRuntime.Then(Task.CompletedTask,
+                () => invoked = true, _ => invoked = true); }),
+            ("plain then result", () => { _ = PromiseRuntime.Then<int>(Task.CompletedTask,
+                () => { invoked = true; return 1; }, _ => { invoked = true; return 0; }); }),
+            ("plain catch", () => { _ = PromiseRuntime.Catch(Task.FromException(new Exception("source")),
+                _ => invoked = true); }),
+            ("typed then result", () => { _ = PromiseRuntime<int>.Then<int>(Task.FromResult(1),
+                value => { invoked = true; return value; }, _ => { invoked = true; return 0; }); }),
+            ("typed then action", () => { _ = PromiseRuntime<int>.Then(Task.FromResult(1),
+                _ => { invoked = true; }, _ => invoked = true); }),
+            ("typed catch", () => { _ = PromiseRuntime<int>.Catch(Task.FromException<int>(new Exception("source")),
+                _ => { invoked = true; return 0; }); }),
+            ("plain finally", () => { _ = PromiseRuntime.Finally(Task.CompletedTask, () => invoked = true); }),
+            ("typed finally", () => { _ = PromiseRuntime<int>.Finally(Task.FromResult(1), () => invoked = true); }),
+            ("plain async then", () => { _ = PromiseRuntime.ThenAsync<int>(Task.CompletedTask,
+                () => { invoked = true; return Task.FromResult(1); }); }),
+            ("typed async then", () => { _ = PromiseRuntime<int>.ThenAsync<int>(Task.FromResult(1),
+                value => { invoked = true; return Task.FromResult(value); }); })
+        ];
+        foreach (var operation in operations)
+        {
+            var failure = Assert.Throws<InvalidOperationException>(operation.Invoke);
+            Assert.Equal("No JavaScript event loop is running on this thread.", failure.Message);
+            Assert.False(invoked, operation.Name);
+        }
     }
 
     [Fact]

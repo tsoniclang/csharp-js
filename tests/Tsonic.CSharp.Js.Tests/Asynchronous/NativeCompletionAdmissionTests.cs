@@ -49,4 +49,50 @@ public sealed class NativeCompletionAdmissionTests
         finally { Console.SetError(previousError); Environment.ExitCode = previousExit; }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClosedDiscardedObservationDoesNotReportInAnotherGeneration(bool completeInsideNextLoop)
+    {
+        var previousError = Console.Error;
+        var previousExit = Environment.ExitCode;
+        using var error = new StringWriter();
+        try
+        {
+            Console.SetError(error);
+            var source = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var original = new InvalidOperationException("late original rejection");
+            JsEventLoop.Run(() => PromiseRuntime.ObserveDiscarded(source.Task));
+            if (completeInsideNextLoop)
+                JsEventLoop.Run(() => source.SetException(original));
+            else
+                source.SetException(original);
+            Assert.Equal(previousExit, Environment.ExitCode);
+            Assert.Equal(string.Empty, error.ToString());
+            Assert.Same(original, Assert.Throws<InvalidOperationException>(() => source.Task.GetAwaiter().GetResult()));
+        }
+        finally { Console.SetError(previousError); Environment.ExitCode = previousExit; }
+    }
+
+    [Fact]
+    public void PendingNativeTaskCanBeExplicitlyObservedInTheNextGeneration()
+    {
+        var previousError = Console.Error;
+        var previousExit = Environment.ExitCode;
+        using var error = new StringWriter();
+        try
+        {
+            Console.SetError(error);
+            var source = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            JsEventLoop.Run(() => PromiseRuntime.ObserveDiscarded(source.Task));
+            JsEventLoop.Run(() =>
+            {
+                PromiseRuntime.ObserveDiscarded(source.Task);
+                source.SetException(new InvalidOperationException("new explicit observation"));
+            });
+            Assert.Equal(1, Environment.ExitCode);
+            Assert.Equal("new explicit observation" + Environment.NewLine, error.ToString());
+        }
+        finally { Console.SetError(previousError); Environment.ExitCode = previousExit; }
+    }
 }
