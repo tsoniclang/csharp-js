@@ -80,12 +80,20 @@ public class JsEventLoopTests
     {
         var source = new TaskCompletionSource();
         Task? continuation = null;
+        var invoked = false;
         JsEventLoop.Run(() =>
         {
-            continuation = PromiseRuntime.Then(source.Task, () => Assert.Fail("Pending Promise was not settled."));
+            continuation = PromiseRuntime.Then(source.Task, () =>
+            {
+                invoked = true;
+                Assert.Fail("Pending Promise was not settled.");
+            });
         });
         Assert.NotNull(continuation);
-        Assert.False(continuation.IsCompleted);
+        Assert.True(continuation.IsCanceled);
+        Assert.False(source.Task.IsCompleted);
+        source.SetResult();
+        Assert.False(invoked);
         Assert.False(ProcessKeepAlive.HasReferences);
     }
 

@@ -7,20 +7,26 @@ namespace Tsonic.CSharp.Js.Tests;
 public sealed class DispatchRetentionTests
 {
     [Fact]
-    public void FailedCallbackRetainsOriginalExceptionAndUninvokedWork()
+    public void FailedCallbackPreservesOriginalExceptionAndRetiresUninvokedWork()
     {
         var original = new InvalidOperationException("original queued failure");
         var observed = false;
+        LoopDispatch old = default;
         var returned = Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run(() =>
         {
+            old = JsEventLoop.Capture();
             JsEventLoop.Enqueue(() => throw original);
             JsEventLoop.Enqueue(() => observed = true);
         }));
         Assert.Same(original, returned);
         Assert.False(observed);
-        Assert.True(ProcessKeepAlive.HasReferences);
-        JsEventLoop.Run();
-        Assert.True(observed);
+        Assert.False(ProcessKeepAlive.HasReferences);
+        JsEventLoop.Run(() =>
+        {
+            Assert.False(old.IsActive);
+            Assert.False(old.TryEnqueue(() => observed = true));
+        });
+        Assert.False(observed);
         Assert.False(ProcessKeepAlive.HasReferences);
     }
 

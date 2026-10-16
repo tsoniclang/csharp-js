@@ -138,7 +138,7 @@ public sealed class TimerCancellationTests
     }
 
     [Fact]
-    public void FailureReleasesItsHandleAndRetainsUninvokedTimerWork()
+    public void FailureReleasesEveryOwnedTimerAndRetiresUninvokedTimerWork()
     {
         var original = new InvalidOperationException("original queued timer failure");
         var completed = false;
@@ -155,10 +155,10 @@ public sealed class TimerCancellationTests
             })));
             Assert.False(completed);
             Assert.True(failing!.IsDisposed);
-            Assert.False(later!.IsDisposed);
-            Assert.True(ProcessKeepAlive.HasReferences);
-            JsEventLoop.Run();
-            Assert.True(completed);
+            Assert.True(later!.IsDisposed);
+            Assert.False(ProcessKeepAlive.HasReferences);
+            JsEventLoop.Run(() => later.QueueCallback());
+            Assert.False(completed);
             Assert.True(later.IsDisposed);
             Assert.False(ProcessKeepAlive.HasReferences);
         }
