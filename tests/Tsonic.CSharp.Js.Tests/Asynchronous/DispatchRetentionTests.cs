@@ -11,9 +11,11 @@ public sealed class DispatchRetentionTests
     {
         var original = new InvalidOperationException("original queued failure");
         var observed = false;
-        JsEventLoop.Enqueue(() => throw original);
-        JsEventLoop.Enqueue(() => observed = true);
-        var returned = Assert.Throws<InvalidOperationException>(JsEventLoop.Run);
+        var returned = Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run(() =>
+        {
+            JsEventLoop.Enqueue(() => throw original);
+            JsEventLoop.Enqueue(() => observed = true);
+        }));
         Assert.Same(original, returned);
         Assert.False(observed);
         Assert.True(ProcessKeepAlive.HasReferences);
@@ -26,22 +28,24 @@ public sealed class DispatchRetentionTests
     public void ReentrantAdmissionRetainsExactOrderAndReleasesReferences()
     {
         var observed = 0;
-        JsEventLoop.Enqueue(() =>
+        JsEventLoop.Run(() =>
         {
-            Assert.Equal(0, observed);
             JsEventLoop.Enqueue(() =>
             {
-                Assert.Equal(2, observed);
-                observed = 3;
+                Assert.Equal(0, observed);
+                JsEventLoop.Enqueue(() =>
+                {
+                    Assert.Equal(2, observed);
+                    observed = 3;
+                });
+                observed = 1;
             });
-            observed = 1;
+            JsEventLoop.Enqueue(() =>
+            {
+                Assert.Equal(1, observed);
+                observed = 2;
+            });
         });
-        JsEventLoop.Enqueue(() =>
-        {
-            Assert.Equal(1, observed);
-            observed = 2;
-        });
-        JsEventLoop.Run();
         Assert.Equal(3, observed);
         Assert.False(ProcessKeepAlive.HasReferences);
     }
@@ -52,11 +56,11 @@ public sealed class DispatchRetentionTests
         JsEventLoop.Run();
         var observed = 0;
         Action callback = () => observed++;
-        JsEventLoop.Enqueue(callback);
-        JsEventLoop.Enqueue(callback);
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        JsEventLoop.Run();
-        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        var allocated = ExplicitLoopHost.MeasureDispatch(() =>
+        {
+            JsEventLoop.Enqueue(callback);
+            JsEventLoop.Enqueue(callback);
+        });
         Assert.Equal(0, allocated);
         Assert.Equal(2, observed);
         Assert.False(ProcessKeepAlive.HasReferences);
@@ -65,26 +69,28 @@ public sealed class DispatchRetentionTests
     [Fact]
     public void NativeReferencesRejectUnderflowAndAllocateNoKeeperState()
     {
-        JsEventLoop.Run();
-        Assert.False(ProcessKeepAlive.HasReferences);
-        Assert.Throws<InvalidOperationException>(ProcessKeepAlive.Release);
-        ProcessKeepAlive.Acquire();
-        ProcessKeepAlive.Acquire();
-        ProcessKeepAlive.Release();
-        Assert.True(ProcessKeepAlive.HasReferences);
-        ProcessKeepAlive.Release();
-        Assert.False(ProcessKeepAlive.HasReferences);
-        for (var index = 0; index < 100; index++)
+        JsEventLoop.Run(() =>
         {
+            Assert.False(ProcessKeepAlive.HasReferences);
+            Assert.Throws<InvalidOperationException>(ProcessKeepAlive.Release);
+            ProcessKeepAlive.Acquire();
             ProcessKeepAlive.Acquire();
             ProcessKeepAlive.Release();
-        }
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var index = 0; index < 10_000; index++)
-        {
-            ProcessKeepAlive.Acquire();
+            Assert.True(ProcessKeepAlive.HasReferences);
             ProcessKeepAlive.Release();
-        }
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            Assert.False(ProcessKeepAlive.HasReferences);
+            for (var index = 0; index < 100; index++)
+            {
+                ProcessKeepAlive.Acquire();
+                ProcessKeepAlive.Release();
+            }
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var index = 0; index < 10_000; index++)
+            {
+                ProcessKeepAlive.Acquire();
+                ProcessKeepAlive.Release();
+            }
+            Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        });
     }
 }
