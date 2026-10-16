@@ -16,7 +16,7 @@ public static class JsEventLoop
     public static LoopDispatch RegisterPhase(DispatchPhase phase, ReadOnlySpan<DispatchPhase> order) => Current.RegisterPhase(phase, order);
     internal static LoopContext Current => _owner is { IsRunning: true } owner ? owner : throw new InvalidOperationException(MissingLoopMessage);
     internal static bool HasReferences => _owner is { IsRunning: true, HasReferences: true };
-    internal static bool IsRunning => _owner is { IsRunning: true };
+    public static bool IsRunning => _owner is { IsRunning: true };
     public static void Enqueue(Action callback) => Capture().Enqueue(callback);
     public static void Run() => RunCore(null, null);
     public static void Run(Action entrypoint)
