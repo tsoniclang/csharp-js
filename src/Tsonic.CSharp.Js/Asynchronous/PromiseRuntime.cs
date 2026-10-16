@@ -107,12 +107,11 @@ namespace Tsonic.CSharp.Js
         public static Task Finally(Task source, Action? onFinally = null)
         {
             ArgumentNullException.ThrowIfNull(source);
-            return CompleteFinally(source, onFinally);
+            return CompleteFinally(DeferredTaskAwaiter.Create(source), onFinally);
         }
 
-        private static async Task CompleteFinally(Task source, Action? onFinally)
+        private static async Task CompleteFinally(DeferredTaskAwaiter deferred, Action? onFinally)
         {
-            var deferred = DeferredTaskAwaiter.Create(source);
             try
             {
                 await deferred;
@@ -264,12 +263,11 @@ namespace Tsonic.CSharp.Js
         public static Task<T> Finally(Task<T> source, Action? onFinally = null)
         {
             ArgumentNullException.ThrowIfNull(source);
-            return CompleteFinally(source, onFinally);
+            return CompleteFinally(DeferredTaskAwaiter<T>.Create(source), onFinally);
         }
 
-        private static async Task<T> CompleteFinally(Task<T> source, Action? onFinally)
+        private static async Task<T> CompleteFinally(DeferredTaskAwaiter<T> deferred, Action? onFinally)
         {
-            var deferred = DeferredTaskAwaiter<T>.Create(source);
             try
             {
                 return await deferred;
