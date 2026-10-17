@@ -14,16 +14,17 @@ public sealed class TimerCancellationTests
     public void CancellationSuppressesAlreadyQueuedCallbacks(int period)
     {
         var calls = 0;
-        using var handle = new Timers.TimerHandle(0, _ => calls++, [], period);
-        handle.QueueCallback();
-        handle.QueueCallback();
-        Assert.True(ProcessKeepAlive.HasReferences);
-
-        handle.Dispose();
-        handle.Dispose();
-        Assert.True(handle.IsDisposed);
-        Assert.False(ProcessKeepAlive.HasReferences);
-        JsEventLoop.Run();
+        JsEventLoop.Run(() =>
+        {
+            using var handle = new Timers.TimerHandle(0, _ => calls++, [], period);
+            handle.QueueCallback();
+            handle.QueueCallback();
+            Assert.True(ProcessKeepAlive.HasReferences);
+            handle.Dispose();
+            handle.Dispose();
+            Assert.True(handle.IsDisposed);
+            Assert.False(ProcessKeepAlive.HasReferences);
+        });
         Assert.Equal(0, calls);
         Assert.False(ProcessKeepAlive.HasReferences);
     }
@@ -33,43 +34,47 @@ public sealed class TimerCancellationTests
     [InlineData(1)]
     public void CancellationBeforeArmCannotRestartOrInvokeTheNativeTimer(int period)
     {
-        using var handle = new Timers.TimerHandle(0,
-            _ => throw new InvalidOperationException("cancelled timer executed"), [], period);
-        handle.Dispose();
-        handle.Start(0);
-        handle.QueueCallback();
-        JsEventLoop.Run();
-        Assert.True(handle.IsDisposed);
-        Assert.False(ProcessKeepAlive.HasReferences);
+        JsEventLoop.Run(() =>
+        {
+            using var handle = new Timers.TimerHandle(0,
+                _ => throw new InvalidOperationException("cancelled timer executed"), [], period);
+            handle.Dispose();
+            handle.Start(0);
+            handle.QueueCallback();
+            Assert.True(handle.IsDisposed);
+            Assert.False(ProcessKeepAlive.HasReferences);
+        });
     }
 
     [Theory]
     [InlineData(Timeout.Infinite)]
     [InlineData(60_000)]
-    public async Task NativeArmingAndCancellationHaveOneSynchronizedOwner(int period)
+    public void NativeArmingAndCancellationHaveOneSynchronizedOwner(int period)
     {
-        for (var iteration = 0; iteration < 256; iteration++)
+        JsEventLoop.Run(async () =>
         {
-            using var handle = new Timers.TimerHandle(0,
-                _ => throw new InvalidOperationException("cancelled timer executed"), [], period);
-            using var boundary = new Barrier(2);
-            var starting = Task.Run(() =>
+            for (var iteration = 0; iteration < 256; iteration++)
             {
-                Assert.True(boundary.SignalAndWait(10_000));
-                handle.Start(60_000);
-            });
-            var cancelling = Task.Run(() =>
-            {
-                Assert.True(boundary.SignalAndWait(10_000));
-                handle.Dispose();
-            });
-            await Task.WhenAll(starting, cancelling).WaitAsync(TimeSpan.FromSeconds(10));
-            handle.Start(0);
-            handle.QueueCallback();
-            Assert.True(handle.IsDisposed);
-            Assert.False(ProcessKeepAlive.HasReferences);
-        }
-        JsEventLoop.Run();
+                using var handle = new Timers.TimerHandle(0,
+                    _ => throw new InvalidOperationException("cancelled timer executed"), [], period);
+                using var boundary = new Barrier(2);
+                var starting = Task.Run(() =>
+                {
+                    Assert.True(boundary.SignalAndWait(10_000));
+                    handle.Start(60_000);
+                });
+                var cancelling = Task.Run(() =>
+                {
+                    Assert.True(boundary.SignalAndWait(10_000));
+                    handle.Dispose();
+                });
+                await Task.WhenAll(starting, cancelling).WaitAsync(TimeSpan.FromSeconds(10));
+                handle.Start(0);
+                handle.QueueCallback();
+                Assert.True(handle.IsDisposed);
+                Assert.False(ProcessKeepAlive.HasReferences);
+            }
+        });
     }
 
     [Fact]
@@ -78,28 +83,34 @@ public sealed class TimerCancellationTests
         using var entered = new ManualResetEventSlim();
         using var resume = new ManualResetEventSlim();
         var completed = false;
-        using var handle = new Timers.TimerHandle(0, _ =>
+        Timers.TimerHandle? handle = null;
+        LoopDispatch owner = default;
+        var running = Task.Run(() => JsEventLoop.Run(() =>
         {
-            entered.Set();
-            Assert.True(resume.Wait(10_000));
-            completed = true;
-        }, [], Timeout.Infinite);
-        handle.QueueCallback();
-        var running = Task.Run(JsEventLoop.Run);
+            owner = JsEventLoop.Capture();
+            handle = new Timers.TimerHandle(0, _ =>
+            {
+                entered.Set();
+                Assert.True(resume.Wait(10_000));
+                completed = true;
+            }, [], Timeout.Infinite);
+            handle.QueueCallback();
+        }));
         try
         {
             Assert.True(entered.Wait(10_000));
-            handle.Dispose();
+            handle!.Dispose();
             Assert.False(completed);
-            Assert.False(ProcessKeepAlive.HasReferences);
+            Assert.False(owner.Owner.HasReferences);
         }
         finally
         {
             resume.Set();
             await running.WaitAsync(TimeSpan.FromSeconds(10));
+            handle?.Dispose();
         }
         Assert.True(completed);
-        Assert.False(ProcessKeepAlive.HasReferences);
+        Assert.False(owner.Owner.HasReferences);
     }
 
     [Fact]
@@ -107,53 +118,70 @@ public sealed class TimerCancellationTests
     {
         var calls = 0;
         Timers.TimerHandle? handle = null;
-        using (handle = new Timers.TimerHandle(0, _ =>
+        try
         {
-            calls++;
-            handle!.Dispose();
-        }, [], 1))
-        {
-            handle.QueueCallback();
-            handle.QueueCallback();
-            JsEventLoop.Run();
+            JsEventLoop.Run(() =>
+            {
+                handle = new Timers.TimerHandle(0, _ =>
+                {
+                    calls++;
+                    handle!.Dispose();
+                }, [], 1);
+                handle.QueueCallback();
+                handle.QueueCallback();
+            });
             Assert.Equal(1, calls);
-            Assert.True(handle.IsDisposed);
+            Assert.True(handle!.IsDisposed);
             Assert.False(ProcessKeepAlive.HasReferences);
         }
+        finally { handle?.Dispose(); }
     }
 
     [Fact]
-    public void FailureReleasesItsHandleAndRetainsUninvokedTimerWork()
+    public void FailureReleasesEveryOwnedTimerAndRetiresUninvokedTimerWork()
     {
         var original = new InvalidOperationException("original queued timer failure");
         var completed = false;
-        using var failing = new Timers.TimerHandle(0, _ => throw original, [], Timeout.Infinite);
-        using var later = new Timers.TimerHandle(0, _ => completed = true, [], Timeout.Infinite);
-        failing.QueueCallback();
-        later.QueueCallback();
-        Assert.Same(original, Assert.Throws<InvalidOperationException>(JsEventLoop.Run));
-        Assert.False(completed);
-        Assert.True(failing.IsDisposed);
-        Assert.False(later.IsDisposed);
-        Assert.True(ProcessKeepAlive.HasReferences);
-        JsEventLoop.Run();
-        Assert.True(completed);
-        Assert.True(later.IsDisposed);
-        Assert.False(ProcessKeepAlive.HasReferences);
+        Timers.TimerHandle? failing = null;
+        Timers.TimerHandle? later = null;
+        try
+        {
+            Assert.Same(original, Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run(() =>
+            {
+                failing = new Timers.TimerHandle(0, _ => throw original, [], Timeout.Infinite);
+                later = new Timers.TimerHandle(0, _ => completed = true, [], Timeout.Infinite);
+                failing.QueueCallback();
+                later.QueueCallback();
+            })));
+            Assert.False(completed);
+            Assert.True(failing!.IsDisposed);
+            Assert.True(later!.IsDisposed);
+            Assert.False(ProcessKeepAlive.HasReferences);
+            JsEventLoop.Run(() => later.QueueCallback());
+            Assert.False(completed);
+            Assert.True(later.IsDisposed);
+            Assert.False(ProcessKeepAlive.HasReferences);
+        }
+        finally
+        {
+            failing?.Dispose();
+            later?.Dispose();
+        }
     }
 
     [Fact]
     public void CancelledDispatchAllocatesNoArgumentsOrCallbackCopies()
     {
         JsEventLoop.Run();
-        using var handle = new Timers.TimerHandle(0,
-            _ => throw new InvalidOperationException("cancelled timer executed"), [new object()], 1);
-        handle.QueueCallback();
-        handle.QueueCallback();
-        handle.Dispose();
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        JsEventLoop.Run();
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        var allocated = ExplicitLoopHost.MeasureDispatch(() =>
+        {
+            using var handle = new Timers.TimerHandle(0,
+                _ => throw new InvalidOperationException("cancelled timer executed"), [new object()], 1);
+            handle.QueueCallback();
+            handle.QueueCallback();
+            handle.Dispose();
+        });
+        Assert.Equal(0, allocated);
         Assert.False(ProcessKeepAlive.HasReferences);
     }
 
@@ -163,20 +191,19 @@ public sealed class TimerCancellationTests
         TimerCallback callback = _ => { };
         foreach (var arguments in new object?[][] { [], ["payload"], [1, "payload", null] })
         {
-            using (var warmup = new Timers.TimerHandle(0, callback, arguments, Timeout.Infinite))
+            JsEventLoop.Run(() =>
             {
+                var warmup = new Timers.TimerHandle(0, callback, arguments, Timeout.Infinite);
                 warmup.QueueCallback();
-                JsEventLoop.Run();
-            }
+            });
             callback(new TimerCallbackArguments(arguments));
-
             for (var iteration = 0; iteration < 32; iteration++)
             {
-                using var handle = new Timers.TimerHandle(0, callback, arguments, Timeout.Infinite);
-                handle.QueueCallback();
-                var actualBefore = GC.GetAllocatedBytesForCurrentThread();
-                JsEventLoop.Run();
-                var actual = GC.GetAllocatedBytesForCurrentThread() - actualBefore;
+                var actual = ExplicitLoopHost.MeasureDispatch(() =>
+                {
+                    var handle = new Timers.TimerHandle(0, callback, arguments, Timeout.Infinite);
+                    handle.QueueCallback();
+                });
                 var expectedBefore = GC.GetAllocatedBytesForCurrentThread();
                 callback(new TimerCallbackArguments(arguments));
                 var expected = GC.GetAllocatedBytesForCurrentThread() - expectedBefore;
@@ -196,18 +223,14 @@ public sealed class TimerCancellationTests
     {
         var calls = 0;
         var id = 0;
-        id = Timers.setInterval(_ =>
+        var running = Task.Run(() => JsEventLoop.Run(() =>
         {
-            if (++calls == 3)
+            id = Timers.setInterval(_ =>
             {
-                Timers.clearInterval(id);
-            }
-        }, delay);
-        var running = Task.Run(JsEventLoop.Run);
-        try
-        {
-            await running.WaitAsync(TimeSpan.FromSeconds(10));
-        }
+                if (++calls == 3) Timers.clearInterval(id);
+            }, delay);
+        }));
+        try { await running.WaitAsync(TimeSpan.FromSeconds(10)); }
         finally
         {
             Timers.clearInterval(id);
@@ -221,18 +244,30 @@ public sealed class TimerCancellationTests
     public void RepeatedCancellationCannotReleaseAnotherNativeTimerOwner()
     {
         var completed = false;
-        using var cancelled = new Timers.TimerHandle(0,
-            _ => throw new InvalidOperationException("cancelled timer executed"), [], Timeout.Infinite);
-        using var retained = new Timers.TimerHandle(0, _ => completed = true, [], Timeout.Infinite);
-        cancelled.QueueCallback();
-        cancelled.Dispose();
-        cancelled.Dispose();
-        cancelled.Start(0);
-        Assert.True(ProcessKeepAlive.HasReferences);
-        retained.QueueCallback();
-        JsEventLoop.Run();
-        Assert.True(completed);
-        Assert.False(ProcessKeepAlive.HasReferences);
+        Timers.TimerHandle? cancelled = null;
+        Timers.TimerHandle? retained = null;
+        try
+        {
+            JsEventLoop.Run(() =>
+            {
+                cancelled = new Timers.TimerHandle(0,
+                    _ => throw new InvalidOperationException("cancelled timer executed"), [], Timeout.Infinite);
+                retained = new Timers.TimerHandle(0, _ => completed = true, [], Timeout.Infinite);
+                cancelled.QueueCallback();
+                cancelled.Dispose();
+                cancelled.Dispose();
+                cancelled.Start(0);
+                Assert.True(ProcessKeepAlive.HasReferences);
+                retained.QueueCallback();
+            });
+            Assert.True(completed);
+            Assert.False(ProcessKeepAlive.HasReferences);
+        }
+        finally
+        {
+            cancelled?.Dispose();
+            retained?.Dispose();
+        }
     }
 
     [Fact]
@@ -240,17 +275,21 @@ public sealed class TimerCancellationTests
     {
         var calls = 0;
         Timers.TimerHandle? handle = null;
-        using (handle = new Timers.TimerHandle(0, _ =>
+        try
         {
-            calls++;
-            handle!.Dispose();
-        }, [], 1))
-        {
-            for (var index = 0; index < 10_000; index++) handle.QueueCallback();
-            JsEventLoop.Run();
+            JsEventLoop.Run(() =>
+            {
+                handle = new Timers.TimerHandle(0, _ =>
+                {
+                    calls++;
+                    handle!.Dispose();
+                }, [], 1);
+                for (var index = 0; index < 10_000; index++) handle.QueueCallback();
+            });
+            Assert.Equal(1, calls);
+            Assert.False(ProcessKeepAlive.HasReferences);
         }
-        Assert.Equal(1, calls);
-        Assert.False(ProcessKeepAlive.HasReferences);
+        finally { handle?.Dispose(); }
     }
 
     [Fact]
@@ -258,14 +297,16 @@ public sealed class TimerCancellationTests
     {
         var calls = 0;
         var id = 0;
-        id = Timers.setInterval(_ =>
-        {
-            if (++calls == 1) JsEventLoop.Enqueue(() => Timers.clearInterval(id));
-        }, 2);
         try
         {
-            Thread.Sleep(100);
-            JsEventLoop.Run();
+            JsEventLoop.Run(() =>
+            {
+                id = Timers.setInterval(_ =>
+                {
+                    if (++calls == 1) JsEventLoop.Enqueue(() => Timers.clearInterval(id));
+                }, 2);
+                Thread.Sleep(100);
+            });
             Assert.Equal(1, calls);
         }
         finally { Timers.clearInterval(id); }
@@ -276,12 +317,19 @@ public sealed class TimerCancellationTests
     public void FullQueueIsReportedOnTheLoopInsteadOfEscapingTheTimerProducer()
     {
         Action empty = static () => {};
-        for (var index = 0; index < 1 << 20; index++) JsEventLoop.Enqueue(empty);
-        using var handle = new Timers.TimerHandle(0, _ => throw new Exception("overflow callback ran"), [], 1);
-        handle.QueueCallback();
-        Assert.True(handle.IsDisposed);
-        Assert.Contains("finite event-loop limit", Assert.Throws<InvalidOperationException>(JsEventLoop.Run).Message);
-        JsEventLoop.Run();
-        Assert.False(ProcessKeepAlive.HasReferences);
+        Timers.TimerHandle? handle = null;
+        try
+        {
+            Assert.Contains("finite event-loop limit", Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run(() =>
+            {
+                for (var index = 0; index < 1 << 20; index++) JsEventLoop.Enqueue(empty);
+                handle = new Timers.TimerHandle(0, _ => throw new Exception("overflow callback ran"), [], 1);
+                handle.QueueCallback();
+                Assert.True(handle.IsDisposed);
+            })).Message);
+            JsEventLoop.Run();
+            Assert.False(ProcessKeepAlive.HasReferences);
+        }
+        finally { handle?.Dispose(); }
     }
 }

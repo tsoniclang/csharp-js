@@ -8,151 +8,193 @@ namespace Tsonic.CSharp.Js.Tests
     public class PromiseRuntimeTests
     {
         [Fact]
-        public async Task Resolved_KeepsNullValueDistinctFromTaskAdoption()
+        public void Resolved_KeepsNullValueDistinctFromTaskAdoption()
         {
-            var value = PromiseRuntime<object?>.Resolved(null);
-            Assert.Null(await value);
-            Assert.Same(value, PromiseRuntime<object?>.Resolve(value));
-            Assert.Throws<ArgumentNullException>(() => { _ = PromiseRuntime<object?>.Resolve(null!); });
+            JsEventLoop.Run(async () =>
+            {
+                var value = PromiseRuntime<object?>.Resolved(null);
+                Assert.Null(await value);
+                Assert.Same(value, PromiseRuntime<object?>.Resolve(value));
+                Assert.Throws<ArgumentNullException>(() => { _ = PromiseRuntime<object?>.Resolve(null!); });
+            });
         }
 
         [Fact]
-        public async Task Resolved_PreservesNativeIntegerWidth()
+        public void Resolved_PreservesNativeIntegerWidth()
         {
-            const ulong value = 9007199254740993UL;
-            Assert.Equal(value, await PromiseRuntime<ulong>.Resolved(value));
+            JsEventLoop.Run(async () =>
+            {
+                const ulong value = 9007199254740993UL;
+                Assert.Equal(value, await PromiseRuntime<ulong>.Resolved(value));
+            });
         }
 
         [Fact]
-        public async Task NativeCompletion_UsesExistingJsContinuationContract()
+        public void NativeCompletion_UsesExistingJsContinuationContract()
         {
-            var task = TaskCompletion<int>.Create((resolve, _) => resolve(42));
-            Assert.Equal(43, await PromiseRuntime<int>.Then(task, value => value + 1));
+            JsEventLoop.Run(async () =>
+            {
+                var task = TaskCompletion<int>.Create((resolve, _) => resolve(42));
+                Assert.Equal(43, await PromiseRuntime<int>.Then(task, value => value + 1));
+            });
         }
 
         [Fact]
-        public async Task NativeCompletion_ProjectsCanonicalClosedRejectionReason()
+        public void NativeCompletion_ProjectsCanonicalClosedRejectionReason()
         {
-            var reason = new Reason();
-            var task = TaskCompletion<object>.Create((_, reject) => reject(TsValue.from(reason)));
-            Assert.Same(reason, await PromiseRuntime<object>.Catch(task, value => value!));
+            JsEventLoop.Run(async () =>
+            {
+                var reason = new Reason();
+                var task = TaskCompletion<object>.Create((_, reject) => reject(TsValue.from(reason)));
+                Assert.Same(reason, await PromiseRuntime<object>.Catch(task, value => value!));
+            });
         }
 
         [Fact]
-        public async Task Reject_PreservesOriginalExceptionIdentity()
+        public void Reject_PreservesOriginalExceptionIdentity()
         {
-            var reason = new InvalidOperationException("original");
-            var task = PromiseRuntime<object>.Reject(reason);
-            Assert.Same(reason, await Assert.ThrowsAsync<InvalidOperationException>(async () => await task));
-            Assert.Same(reason, await PromiseRuntime<object>.Catch(task, value => value!));
+            JsEventLoop.Run(async () =>
+            {
+                var reason = new InvalidOperationException("original");
+                var task = PromiseRuntime<object>.Reject(reason);
+                Assert.Same(reason, await Assert.ThrowsAsync<InvalidOperationException>(async () => await task));
+                Assert.Same(reason, await PromiseRuntime<object>.Catch(task, value => value!));
+            });
         }
 
         [Fact]
-        public async Task Reject_UsesCanonicalThrownValueException()
+        public void Reject_UsesCanonicalThrownValueException()
         {
-            var task = PromiseRuntime<int>.Reject("reason");
-            var exception = await Assert.ThrowsAsync<TsThrownValueException>(async () => await task);
-            Assert.Equal("reason", TsValue.UnwrapClosedValue(exception.value));
-            Assert.Equal("reason", await PromiseRuntime<int>.Then(task, _ => "unreachable", value => (string)value!));
+            JsEventLoop.Run(async () =>
+            {
+                var task = PromiseRuntime<int>.Reject("reason");
+                var exception = await Assert.ThrowsAsync<TsThrownValueException>(async () => await task);
+                Assert.Equal("reason", TsValue.UnwrapClosedValue(exception.value));
+                Assert.Equal("reason", await PromiseRuntime<int>.Then(task, _ => "unreachable", value => (string)value!));
+            });
         }
 
         [Fact]
-        public async Task Reject_ClosedValueAndAbsenceSurviveVoidContinuations()
+        public void Reject_ClosedValueAndAbsenceSurviveVoidContinuations()
         {
-            var reason = new Reason();
-            object? observed = null;
-            await PromiseRuntime.Catch(PromiseRuntime.Reject(TsValue.from(reason)), value => observed = value);
-            Assert.Same(reason, observed);
-            observed = reason;
-            await PromiseRuntime.Catch(PromiseRuntime.Reject(), value => observed = value);
-            Assert.Null(observed);
+            JsEventLoop.Run(async () =>
+            {
+                var reason = new Reason();
+                object? observed = null;
+                await PromiseRuntime.Catch(PromiseRuntime.Reject(TsValue.from(reason)), value => observed = value);
+                Assert.Same(reason, observed);
+                observed = reason;
+                await PromiseRuntime.Catch(PromiseRuntime.Reject(), value => observed = value);
+                Assert.Null(observed);
+            });
         }
 
         [Fact]
-        public async Task AllSettled_ProjectsCanonicalReasonForVoidAndTypedTasks()
+        public void AllSettled_ProjectsCanonicalReasonForVoidAndTypedTasks()
         {
-            var reason = new Reason();
-            var untyped = await PromiseRuntime.AllSettled(new[] { PromiseRuntime.Reject(reason) });
-            var typed = await PromiseRuntime<int>.AllSettled(new[] { PromiseRuntime<int>.Reject(reason) });
-            Assert.Same(reason, untyped[0].As2().reason);
-            Assert.Same(reason, typed[0].As2().reason);
+            JsEventLoop.Run(async () =>
+            {
+                var reason = new Reason();
+                var untyped = await PromiseRuntime.AllSettled(new[] { PromiseRuntime.Reject(reason) });
+                var typed = await PromiseRuntime<int>.AllSettled(new[] { PromiseRuntime<int>.Reject(reason) });
+                Assert.Same(reason, untyped[0].As2().reason);
+                Assert.Same(reason, typed[0].As2().reason);
+            });
         }
 
         [Fact]
-        public async Task Reject_TransportsOpaqueNativeIdentityWithoutAdmittingReflection()
+        public void Reject_TransportsOpaqueNativeIdentityWithoutAdmittingReflection()
         {
-            var reason = new object();
-            var task = PromiseRuntime<int>.Reject(reason);
-            var exception = await Assert.ThrowsAsync<TsThrownValueException>(async () => await task);
-            Assert.Same(reason, exception.value);
-            Assert.Throws<NotSupportedException>(() => TsThrownValueException.toValue(exception));
-            Assert.Throws<NotSupportedException>(() => TsValue.from(reason));
-            Assert.Equal(7, await PromiseRuntime<int>.Catch(task, value => {
-                Assert.Same(reason, value);
-                return 7;
-            }));
-            var untyped = await PromiseRuntime.AllSettled(new[] { PromiseRuntime.Reject(reason) });
-            var typed = await PromiseRuntime<int>.AllSettled(new[] { PromiseRuntime<int>.Reject(reason) });
-            Assert.Same(reason, untyped[0].As2().reason);
-            Assert.Same(reason, typed[0].As2().reason);
+            JsEventLoop.Run(async () =>
+            {
+                var reason = new object();
+                var task = PromiseRuntime<int>.Reject(reason);
+                var exception = await Assert.ThrowsAsync<TsThrownValueException>(async () => await task);
+                Assert.Same(reason, exception.value);
+                Assert.Throws<NotSupportedException>(() => TsThrownValueException.toValue(exception));
+                Assert.Throws<NotSupportedException>(() => TsValue.from(reason));
+                Assert.Equal(7, await PromiseRuntime<int>.Catch(task, value => {
+                    Assert.Same(reason, value);
+                    return 7;
+                }));
+                var untyped = await PromiseRuntime.AllSettled(new[] { PromiseRuntime.Reject(reason) });
+                var typed = await PromiseRuntime<int>.AllSettled(new[] { PromiseRuntime<int>.Reject(reason) });
+                Assert.Same(reason, untyped[0].As2().reason);
+                Assert.Same(reason, typed[0].As2().reason);
+            });
         }
 
         [Fact]
-        public async Task All_PreservesInputOrder()
+        public void All_PreservesInputOrder()
         {
-            var first = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var second = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var combined = PromiseRuntime<int>.All(
-                new JSArray<Task<int>>(new[] { first.Task, second.Task }));
-
-            second.SetResult(2);
-            first.SetResult(1);
-
-            Assert.Collection(
-                await combined,
-                value => Assert.Equal(1, value),
-                value => Assert.Equal(2, value));
+            JsEventLoop.Run(async () =>
+            {
+                var first = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var second = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var combined = PromiseRuntime<int>.All(
+                    new JSArray<Task<int>>(new[] { first.Task, second.Task }));
+    
+                second.SetResult(2);
+                first.SetResult(1);
+    
+                Assert.Collection(
+                    await combined,
+                    value => Assert.Equal(1, value),
+                    value => Assert.Equal(2, value));
+            });
         }
 
         [Fact]
-        public async Task All_ResolvesEmptyInput()
+        public void All_ResolvesEmptyInput()
         {
-            Assert.Empty(await PromiseRuntime<int>.All(new JSArray<Task<int>>()));
+            JsEventLoop.Run(async () =>
+            {
+                Assert.Empty(await PromiseRuntime<int>.All(new JSArray<Task<int>>()));
+            });
         }
 
         [Fact]
-        public async Task All_RejectsWithoutWaitingForRemainingTasks()
+        public void All_RejectsWithoutWaitingForRemainingTasks()
         {
-            var pending = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var expected = new InvalidOperationException("first rejection");
-            var rejected = Task.FromException<int>(expected);
-            var combined = PromiseRuntime<int>.All(
-                new JSArray<Task<int>>(new[] { pending.Task, rejected }));
-
-            var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                await combined.WaitAsync(TimeSpan.FromSeconds(1)));
-
-            Assert.Same(expected, actual);
-            Assert.False(pending.Task.IsCompleted);
+            JsEventLoop.Run(async () =>
+            {
+                var pending = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var expected = new InvalidOperationException("first rejection");
+                var rejected = Task.FromException<int>(expected);
+                var combined = PromiseRuntime<int>.All(
+                    new JSArray<Task<int>>(new[] { pending.Task, rejected }));
+    
+                var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                    await combined.WaitAsync(TimeSpan.FromSeconds(1)));
+    
+                Assert.Same(expected, actual);
+                Assert.False(pending.Task.IsCompleted);
+            });
         }
 
         [Fact]
-        public async Task All_RejectsNullTaskCarrier()
+        public void All_RejectsNullTaskCarrier()
         {
-            var combined = PromiseRuntime<int>.All(
-                new JSArray<Task<int>>(new Task<int>[] { null! }));
-
-            await Assert.ThrowsAsync<TypeError>(async () => await combined);
+            JsEventLoop.Run(async () =>
+            {
+                var combined = PromiseRuntime<int>.All(
+                    new JSArray<Task<int>>(new Task<int>[] { null! }));
+    
+                await Assert.ThrowsAsync<TypeError>(async () => await combined);
+            });
         }
 
         [Fact]
-        public async Task All_MapsCancellationToRejection()
+        public void All_MapsCancellationToRejection()
         {
-            var canceled = Task.FromCanceled<int>(new System.Threading.CancellationToken(true));
-            var combined = PromiseRuntime<int>.All(
-                new JSArray<Task<int>>(new[] { canceled }));
-
-            await Assert.ThrowsAsync<TaskCanceledException>(async () => await combined);
+            JsEventLoop.Run(async () =>
+            {
+                var canceled = Task.FromCanceled<int>(new System.Threading.CancellationToken(true));
+                var combined = PromiseRuntime<int>.All(
+                    new JSArray<Task<int>>(new[] { canceled }));
+    
+                await Assert.ThrowsAsync<TaskCanceledException>(async () => await combined);
+            });
         }
 
         private sealed class Reason : ITsClosedValueCarrier {}
