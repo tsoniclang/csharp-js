@@ -23,7 +23,7 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public async Task PromiseCombinators_PreserveSettlementSemantics()
+        public void PromiseCombinators_PreserveSettlementSemantics() => JsEventLoop.Run(async () =>
         {
             var pending = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             var fast = Task.FromResult(7);
@@ -46,7 +46,7 @@ namespace Tsonic.CSharp.Js.Tests
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 PromiseRuntime<int>.Finally(rejected, () => finalizerRuns++));
             Assert.Equal(2, finalizerRuns);
-        }
+        });
 
         [Fact]
         public void Intl_UsesOnlyTheDeterministicApprovedLocaleAndTimeZone()

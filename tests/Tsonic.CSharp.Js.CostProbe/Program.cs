@@ -25,6 +25,8 @@ public static class Program
         Validate(JsEventLoop.Run, PromiseRuntime<int>.Then<int>);
         ValidateFinally(native.Run, NativeControl.Finally);
         ValidateFinally(JsEventLoop.Run, PromiseRuntime<int>.Finally);
+        ValidateAllocationWindow(native.Run);
+        ValidateAllocationWindow(JsEventLoop.Run);
         var empty = (Action)(static () => { });
         for (var warm = 0; warm < 128; warm++) { native.Run(empty); JsEventLoop.Run(empty); }
         var coldBefore = GC.GetTotalAllocatedBytes(true);
@@ -140,17 +142,83 @@ public static class Program
         for (var warm = 0; warm < 8; warm++) { prepare?.Invoke(); runNative(control); prepare?.Invoke(); JsEventLoop.Run(subject); }
         prepare?.Invoke();
         var nativeStart = (_called, _fulfilled, _rejected);
-        var before = 0L;
-        runNative(() => { before = GC.GetTotalAllocatedBytes(true); control(); });
-        var nativeBytes = GC.GetTotalAllocatedBytes(true) - before;
+        var nativeBytes = Allocated(runNative, control, out var nativeThreadBytes);
         var nativeEffects = (_called - nativeStart._called, _fulfilled - nativeStart._fulfilled, _rejected - nativeStart._rejected);
         prepare?.Invoke();
         var actualStart = (_called, _fulfilled, _rejected);
-        JsEventLoop.Run(() => { before = GC.GetTotalAllocatedBytes(true); subject(); });
-        var actualBytes = GC.GetTotalAllocatedBytes(true) - before;
+        var actualBytes = Allocated(JsEventLoop.Run, subject, out var actualThreadBytes);
         var actualEffects = (_called - actualStart._called, _fulfilled - actualStart._fulfilled, _rejected - actualStart._rejected);
         Console.WriteLine($"{name}: native={nativeBytes / (double)Count}, actual={actualBytes / (double)Count} B/op; total={nativeBytes}/{actualBytes}, complete-operations={Count}; native/actual callbacks={nativeEffects}/{actualEffects}");
+        Console.WriteLine($"{name}: owner-thread native/actual={nativeThreadBytes}/{actualThreadBytes}; all-thread-minus-owner={nativeBytes - nativeThreadBytes}/{actualBytes - actualThreadBytes}");
         if (actualEffects != nativeEffects) throw new InvalidOperationException($"{name} callbacks differ from native equivalent");
         if (actualBytes != nativeBytes) throw new InvalidOperationException($"{name} allocation differs from native equivalent");
+    }
+
+    private static long Allocated(Action<Action> run, Action operation, out long ownerBytes)
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        if (!GC.TryStartNoGCRegion(16 * 1024 * 1024))
+            throw new InvalidOperationException("The complete native allocation window requires its reserved no-GC region.");
+        try
+        {
+            GC.WaitForPendingFinalizers();
+            var before = 0L;
+            var ownerBefore = 0L;
+            run(() =>
+            {
+                before = GC.GetTotalAllocatedBytes(true);
+                ownerBefore = GC.GetAllocatedBytesForCurrentThread();
+                operation();
+            });
+            var total = GC.GetTotalAllocatedBytes(true) - before;
+            ownerBytes = GC.GetAllocatedBytesForCurrentThread() - ownerBefore;
+            return total;
+        }
+        finally { GC.EndNoGCRegion(); }
+    }
+
+    private static void ValidateAllocationWindow(Action<Action> run)
+    {
+        var emptyBytes = Allocated(run, static () => { }, out var emptyOwnerBytes);
+        if (emptyBytes != 0 || emptyOwnerBytes != 0)
+            throw new InvalidOperationException("The zero-operation allocation window is not empty.");
+        using var start = new AutoResetEvent(false);
+        using var completed = new AutoResetEvent(false);
+        var stopped = false;
+        byte[]? retained = null;
+        var worker = new Thread(() =>
+        {
+            while (true)
+            {
+                start.WaitOne();
+                if (Volatile.Read(ref stopped)) return;
+                retained = new byte[4096];
+                completed.Set();
+            }
+        });
+        worker.Start();
+        try
+        {
+            start.Set();
+            completed.WaitOne();
+            var foreignBytes = Allocated(run, () =>
+            {
+                start.Set();
+                completed.WaitOne();
+            }, out var foreignOwnerBytes);
+            if (foreignBytes != 4120 || foreignOwnerBytes != 0 || retained?.Length != 4096)
+                throw new InvalidOperationException("The allocation window lost native foreign-thread allocation evidence.");
+            Console.WriteLine($"allocation window validity: empty={emptyBytes}, foreign={foreignBytes}, owner={foreignOwnerBytes}");
+            GC.KeepAlive(retained);
+        }
+        finally
+        {
+            Volatile.Write(ref stopped, true);
+            start.Set();
+            worker.Join();
+        }
     }
 }

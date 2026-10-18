@@ -137,30 +137,39 @@ internal sealed class NativeControl
         public void UnsafeOnCompleted(Action continuation) => Current!.Wait(source, continuation);
     }
 
-    internal static async Task<int> Then(Task<int> source, Func<int, int> fulfilled, Func<object?, int>? rejected = null)
+    internal static Task<int> Then(Task<int> source, Func<int, int> fulfilled, Func<object?, int>? rejected = null) =>
+        CompleteThen(new Deferred<int>(source), fulfilled, rejected);
+
+    private static async Task<int> CompleteThen(Deferred<int> pending, Func<int, int> fulfilled, Func<object?, int>? rejected)
     {
-        var pending = new Deferred<int>(source);
         int value;
         try { value = await pending; }
         catch (Exception failure) when (Current?.Running == true)
         {
             if (rejected is null) throw;
-            return rejected(failure is Tsonic.CSharp.Runtime.TsThrownValueException thrown ? thrown.value : failure);
+            return rejected(RejectionReason(failure));
         }
         return fulfilled(value);
     }
 
-    internal static async Task<int> Catch(Task<int> source, Func<object?, int> rejected)
+    internal static Task<int> Catch(Task<int> source, Func<object?, int> rejected) =>
+        CompleteCatch(new Deferred<int>(source), rejected);
+
+    private static async Task<int> CompleteCatch(Deferred<int> pending, Func<object?, int> rejected)
     {
-        var pending = new Deferred<int>(source);
         try { return await pending; }
-        catch (Exception failure) when (Current?.Running == true) { return rejected(failure is Tsonic.CSharp.Runtime.TsThrownValueException thrown ? thrown.value : failure); }
+        catch (Exception failure) when (Current?.Running == true) { return rejected(RejectionReason(failure)); }
     }
 
-    internal static async Task<int> Finally(Task<int> source, Action callback)
+    internal static Task<int> Finally(Task<int> source, Action callback) =>
+        CompleteFinally(new Deferred<int>(source), callback);
+
+    private static async Task<int> CompleteFinally(Deferred<int> pending, Action callback)
     {
-        var pending = new Deferred<int>(source);
         try { return await pending; }
         finally { if (Current?.Running == true) callback(); }
     }
+
+    private static object? RejectionReason(Exception failure) =>
+        failure is Tsonic.CSharp.Runtime.TsThrownValueException thrown ? thrown.value : failure;
 }
