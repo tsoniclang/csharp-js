@@ -49,6 +49,125 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void reduce_NoInitialValue_PreservesFullCallbackIdentityOrderAndSeed()
+        {
+            var values = new JSArray<int>(new[] { 2, 3, 4 });
+            var visited = new List<int>();
+            var result = values.reduce((accumulator, value, index, array) =>
+            {
+                Assert.Same(values, array);
+                visited.Add(index);
+                return accumulator * 10 + value;
+            });
+
+            Assert.Equal(234, result);
+            Assert.Equal(new[] { 1, 2 }, visited);
+        }
+
+        [Fact]
+        public void reduce_NoInitialValue_SingleElementDoesNotInvokeCallback()
+        {
+            var values = new JSArray<int>(new[] { 7 });
+            var calls = 0;
+            Assert.Equal(7, values.reduce((accumulator, value, index, array) =>
+            {
+                calls++;
+                return accumulator + value + index + array.length;
+            }));
+            Assert.Equal(0, calls);
+        }
+
+        [Fact]
+        public void reduce_NoInitialValue_EmptyArrayKeepsExactTypeError()
+        {
+            var values = new JSArray<int>();
+            var calls = 0;
+            var compact = Assert.Throws<TypeError>(() => values.reduce((accumulator, value) =>
+            {
+                calls++;
+                return accumulator + value;
+            }));
+            var complete = Assert.Throws<TypeError>(() => values.reduce((accumulator, value, index, array) =>
+            {
+                calls++;
+                return accumulator + value + index + array.length;
+            }));
+
+            Assert.Equal("Reduce of empty array with no initial value", compact.Message);
+            Assert.Equal(compact.Message, complete.Message);
+            Assert.Equal(0, calls);
+        }
+
+        [Fact]
+        public void reduce_NoInitialValue_PreservesCallbackErrorIdentity()
+        {
+            var values = new JSArray<int>(new[] { 1, 2 });
+            var expected = new TypeError("original callback error");
+            var actual = Assert.Throws<TypeError>(() => values.reduce((_accumulator, _value, _index, _array) => throw expected));
+            Assert.Same(expected, actual);
+        }
+
+        [Fact]
+        public void reduce_NoInitialValue_ObservesReplacementButNeverAppendedElements()
+        {
+            var values = new JSArray<int>(new[] { 1, 2, 3 });
+            var visited = new List<int>();
+            var result = values.reduce((accumulator, value, index, array) =>
+            {
+                visited.Add(index);
+                if (index == 1)
+                {
+                    array[2] = 4;
+                    array.push(100);
+                }
+                return accumulator + value;
+            });
+
+            Assert.Equal(7, result);
+            Assert.Equal(new[] { 1, 2 }, visited);
+            Assert.Equal(4, values.length);
+            Assert.Equal(100, values[3]);
+        }
+
+        [Fact]
+        public void reduce_InitializedVariantsCaptureTheirOriginalIterationLength()
+        {
+            var compact = new JSArray<int>(new[] { 1, 2 });
+            Assert.Equal(3, compact.reduce((accumulator, value) =>
+            {
+                if (value == 1) compact.push(100);
+                return accumulator + value;
+            }, 0));
+            var indexed = new JSArray<int>(new[] { 1, 2 });
+            Assert.Equal(3, indexed.reduce((accumulator, value, index) =>
+            {
+                if (index == 0) indexed.push(100);
+                return accumulator + value;
+            }, 0));
+            var complete = new JSArray<int>(new[] { 1, 2 });
+            Assert.Equal(3, complete.reduce((accumulator, value, index, array) =>
+            {
+                Assert.Same(complete, array);
+                if (index == 0) array.push(100);
+                return accumulator + value;
+            }, 0));
+        }
+
+        [Fact]
+        public void reduce_NoInitialValue_UsesNoPerCallAdapterOrAllocation()
+        {
+            var values = new JSArray<int>(new[] { 1, 2, 3 });
+            System.Func<int, int, int, JSArray<int>, int> callback = static (accumulator, value, _index, _array) => accumulator + value;
+            Assert.Equal(6, values.reduce(callback));
+            var before = System.GC.GetAllocatedBytesForCurrentThread();
+            var result = values.reduce(callback);
+            var allocated = System.GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.Equal(6, result);
+            Assert.Equal(0, allocated);
+        }
+
+        [Fact]
         public void reduceRight_WithInitialValue_ReducesFromRight()
         {
             var arr = new JSArray<string>(new[] { "a", "b", "c" });
