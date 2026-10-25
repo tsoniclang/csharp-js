@@ -186,6 +186,36 @@ namespace Tsonic.CSharp.Js
             return accumulator;
         }
 
+        public T reduce(Func<T, T, int, T> callback)
+        {
+            bool hasAccumulator = false;
+            T accumulator = default(T)!;
+            for (int i = 0, length = _values.Count; i < length; i++)
+            {
+                if (!IsPresent(i))
+                {
+                    continue;
+                }
+
+                if (!hasAccumulator)
+                {
+                    accumulator = _values[i];
+                    hasAccumulator = true;
+                }
+                else
+                {
+                    accumulator = callback(accumulator, _values[i], i);
+                }
+            }
+
+            if (!hasAccumulator)
+            {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
+
+            return accumulator;
+        }
+
         public T reduce(Func<T, T, int, JSArray<T>, T> callback)
         {
             bool hasAccumulator = false;
@@ -261,6 +291,96 @@ namespace Tsonic.CSharp.Js
                     accumulator = callback(accumulator, _values[i], i, this);
                 }
             }
+            return accumulator;
+        }
+
+        public T reduceRight(Func<T, T, T> callback)
+        {
+            bool hasAccumulator = false;
+            T accumulator = default(T)!;
+            for (int i = _values.Count - 1; i >= 0; i--)
+            {
+                if (!IsPresent(i))
+                {
+                    continue;
+                }
+
+                if (!hasAccumulator)
+                {
+                    accumulator = _values[i];
+                    hasAccumulator = true;
+                }
+                else
+                {
+                    accumulator = callback(accumulator, _values[i]);
+                }
+            }
+
+            if (!hasAccumulator)
+            {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
+
+            return accumulator;
+        }
+
+        public T reduceRight(Func<T, T, int, T> callback)
+        {
+            bool hasAccumulator = false;
+            T accumulator = default(T)!;
+            for (int i = _values.Count - 1; i >= 0; i--)
+            {
+                if (!IsPresent(i))
+                {
+                    continue;
+                }
+
+                if (!hasAccumulator)
+                {
+                    accumulator = _values[i];
+                    hasAccumulator = true;
+                }
+                else
+                {
+                    accumulator = callback(accumulator, _values[i], i);
+                }
+            }
+
+            if (!hasAccumulator)
+            {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
+
+            return accumulator;
+        }
+
+        public T reduceRight(Func<T, T, int, JSArray<T>, T> callback)
+        {
+            bool hasAccumulator = false;
+            T accumulator = default(T)!;
+            for (int i = _values.Count - 1; i >= 0; i--)
+            {
+                if (!IsPresent(i))
+                {
+                    continue;
+                }
+
+                if (!hasAccumulator)
+                {
+                    accumulator = _values[i];
+                    hasAccumulator = true;
+                }
+                else
+                {
+                    accumulator = callback(accumulator, _values[i], i, this);
+                }
+            }
+
+            if (!hasAccumulator)
+            {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
+
             return accumulator;
         }
 
