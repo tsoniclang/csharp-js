@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests;
 
+[Collection("Native allocation cost")]
 public sealed class NativeNumericBoundaryTests
 {
     [Theory]

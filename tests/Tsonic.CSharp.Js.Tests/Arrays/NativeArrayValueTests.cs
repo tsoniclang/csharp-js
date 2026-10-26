@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests;
 
+[Collection("Native allocation cost")]
 public class NativeArrayValueTests
 {
     [Fact]
