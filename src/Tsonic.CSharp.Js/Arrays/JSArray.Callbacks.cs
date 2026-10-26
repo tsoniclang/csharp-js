@@ -63,11 +63,13 @@ namespace Tsonic.CSharp.Js
         public JSArray<T> filter(Func<T, bool> callback)
         {
             var result = new JSArray<T>();
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
-                if (IsPresent(i) && callback(_values[i]))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value))
                 {
-                    result.push(_values[i]);
+                    result.push(value);
                 }
             }
             return result;
@@ -79,11 +81,13 @@ namespace Tsonic.CSharp.Js
         public JSArray<T> filter(Func<T, int, bool> callback)
         {
             var result = new JSArray<T>();
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
-                if (IsPresent(i) && callback(_values[i], i))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value, i))
                 {
-                    result.push(_values[i]);
+                    result.push(value);
                 }
             }
             return result;
@@ -95,11 +99,13 @@ namespace Tsonic.CSharp.Js
         public JSArray<T> filter(Func<T, int, JSArray<T>, bool> callback)
         {
             var result = new JSArray<T>();
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
-                if (IsPresent(i) && callback(_values[i], i, this))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value, i, this))
                 {
-                    result.push(_values[i]);
+                    result.push(value);
                 }
             }
             return result;
@@ -263,7 +269,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i))
                 {
@@ -277,7 +283,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T, int> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i))
                 {
@@ -291,7 +297,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<T, int, JSArray<T>> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i))
                 {
@@ -307,11 +313,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T find(Func<T, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
-                if (IsPresent(i) && callback(_values[i]))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value))
                 {
-                    return _values[i];
+                    return value;
                 }
             }
             return default(T)!;
@@ -322,11 +330,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T find(Func<T, int, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
-                if (IsPresent(i) && callback(_values[i], i))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value, i))
                 {
-                    return _values[i];
+                    return value;
                 }
             }
             return default(T)!;
@@ -337,11 +347,13 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public T find(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
-                if (IsPresent(i) && callback(_values[i], i, this))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value, i, this))
                 {
-                    return _values[i];
+                    return value;
                 }
             }
             return default(T)!;
@@ -352,7 +364,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findIndex(Func<T, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && callback(_values[i]))
                 {
@@ -367,7 +379,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findIndex(Func<T, int, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && callback(_values[i], i))
                 {
@@ -382,7 +394,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public int findIndex(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && callback(_values[i], i, this))
                 {
@@ -399,9 +411,11 @@ namespace Tsonic.CSharp.Js
         {
             for (int i = _values.Count - 1; i >= 0; i--)
             {
-                if (IsPresent(i) && callback(_values[i]))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value))
                 {
-                    return _values[i];
+                    return value;
                 }
             }
             return default(T)!;
@@ -414,9 +428,11 @@ namespace Tsonic.CSharp.Js
         {
             for (int i = _values.Count - 1; i >= 0; i--)
             {
-                if (IsPresent(i) && callback(_values[i], i))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value, i))
                 {
-                    return _values[i];
+                    return value;
                 }
             }
             return default(T)!;
@@ -429,9 +445,11 @@ namespace Tsonic.CSharp.Js
         {
             for (int i = _values.Count - 1; i >= 0; i--)
             {
-                if (IsPresent(i) && callback(_values[i], i, this))
+                if (!IsPresent(i)) continue;
+                T value = _values[i];
+                if (callback(value, i, this))
                 {
-                    return _values[i];
+                    return value;
                 }
             }
             return default(T)!;
@@ -487,7 +505,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool every(Func<T, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && !callback(_values[i]))
                 {
@@ -502,7 +520,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool every(Func<T, int, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && !callback(_values[i], i))
                 {
@@ -517,7 +535,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool every(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && !callback(_values[i], i, this))
                 {
@@ -532,7 +550,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool some(Func<T, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && callback(_values[i]))
                 {
@@ -547,7 +565,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool some(Func<T, int, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && callback(_values[i], i))
                 {
@@ -562,7 +580,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool some(Func<T, int, JSArray<T>, bool> callback)
         {
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i) && callback(_values[i], i, this))
                 {
