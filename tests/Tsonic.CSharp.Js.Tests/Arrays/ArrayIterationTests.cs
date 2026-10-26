@@ -220,7 +220,7 @@ namespace Tsonic.CSharp.Js.Tests
                 {
                     values.pop();
                     values.pop();
-                    values[3] = 9;
+                    values.push(0, 9);
                 }
                 return accumulator + value;
             }
