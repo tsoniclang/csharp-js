@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Tsonic.CSharp.Js;
@@ -46,6 +47,60 @@ namespace Tsonic.CSharp.Js.Tests
             var result = arr.reduce((acc, x) => acc + x);
 
             Assert.Equal(10, result);
+        }
+
+        [Fact]
+        public void reduce_NoInitialFullCallback_PreservesSeedHolesIndicesAndReceiver()
+        {
+            var values = new JSArray<int>(6);
+            values[1] = 4;
+            values[3] = 7;
+            values[5] = 9;
+            var indices = new List<int>();
+            var result = values.reduce((accumulator, value, index, receiver) =>
+            {
+                Assert.Same(values, receiver);
+                indices.Add(index);
+                return accumulator + value;
+            });
+            Assert.Equal(20, result);
+            Assert.Equal(new[] { 3, 5 }, indices);
+        }
+
+        [Fact]
+        public void reduce_NoInitialFullCallback_SinglePresentValueDoesNotInvokeCallback()
+        {
+            var values = new JSArray<int>(4);
+            values[2] = 13;
+            var calls = 0;
+            var result = values.reduce((accumulator, value, index, receiver) =>
+            {
+                calls++;
+                return accumulator + value;
+            });
+            Assert.Equal(13, result);
+            Assert.Equal(0, calls);
+        }
+
+        [Fact]
+        public void reduce_NoInitialOverloads_EmptyAndAllHolesThrowNativeTypeError()
+        {
+            foreach (var values in new[] { new JSArray<int>(), new JSArray<int>(4) })
+            {
+                var direct = Assert.Throws<TypeError>(() => values.reduce((accumulator, value) => accumulator + value));
+                var complete = Assert.Throws<TypeError>(() => values.reduce((accumulator, value, index, receiver) => accumulator + value));
+                Assert.Equal("Reduce of empty array with no initial value", direct.Message);
+                Assert.Equal(direct.Message, complete.Message);
+            }
+        }
+
+        [Fact]
+        public void reduce_NoInitialFullCallback_PreservesThrownExceptionIdentity()
+        {
+            var values = new JSArray<int>(new[] { 1, 2 });
+            var failure = new InvalidOperationException("callback failure");
+            var actual = Assert.Throws<InvalidOperationException>(() => values.reduce((accumulator, value, index, receiver) => throw failure));
+            Assert.Same(failure, actual);
         }
 
         [Fact]

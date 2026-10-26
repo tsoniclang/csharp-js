@@ -180,9 +180,33 @@ namespace Tsonic.CSharp.Js
 
             if (!hasAccumulator)
             {
-                throw new InvalidOperationException("Reduce of empty array with no initial value");
+                throw new TypeError("Reduce of empty array with no initial value");
             }
 
+            return accumulator;
+        }
+
+        public T reduce(Func<T, T, int, JSArray<T>, T> callback)
+        {
+            bool hasAccumulator = false;
+            T accumulator = default(T)!;
+            for (int index = 0; index < _values.Count; index++)
+            {
+                if (!IsPresent(index)) continue;
+                if (!hasAccumulator)
+                {
+                    accumulator = _values[index];
+                    hasAccumulator = true;
+                }
+                else
+                {
+                    accumulator = callback(accumulator, _values[index], index, this);
+                }
+            }
+            if (!hasAccumulator)
+            {
+                throw new TypeError("Reduce of empty array with no initial value");
+            }
             return accumulator;
         }
 
