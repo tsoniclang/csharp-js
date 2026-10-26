@@ -50,12 +50,15 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void reduce_NoInitialFullCallback_PreservesSeedHolesIndicesAndReceiver()
+        public void reduce_NoInitialFullCallback_PreservesDenseSeedIndicesAndReceiver()
         {
             var values = new JSArray<int>(6);
             values[1] = 4;
             values[3] = 7;
             values[5] = 9;
+            Assert.Equal(0, values[0]);
+            Assert.Equal(0, values[2]);
+            Assert.Equal(0, values[4]);
             var indices = new List<int>();
             var result = values.reduce((accumulator, value, index, receiver) =>
             {
@@ -64,14 +67,13 @@ namespace Tsonic.CSharp.Js.Tests
                 return accumulator + value;
             });
             Assert.Equal(20, result);
-            Assert.Equal(new[] { 3, 5 }, indices);
+            Assert.Equal(new[] { 1, 2, 3, 4, 5 }, indices);
         }
 
         [Fact]
-        public void reduce_NoInitialFullCallback_SinglePresentValueDoesNotInvokeCallback()
+        public void reduce_NoInitialFullCallback_SingleElementDoesNotInvokeCallback()
         {
-            var values = new JSArray<int>(4);
-            values[2] = 13;
+            var values = new JSArray<int>(new[] { 13 });
             var calls = 0;
             var result = values.reduce((accumulator, value, index, receiver) =>
             {
@@ -83,15 +85,42 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void reduce_NoInitialOverloads_EmptyAndAllHolesThrowNativeTypeError()
+        public void reduce_NoInitialOverloads_EmptyThrowsNativeTypeError()
         {
-            foreach (var values in new[] { new JSArray<int>(), new JSArray<int>(4) })
+            var values = new JSArray<int>();
+            var direct = Assert.Throws<TypeError>(() => values.reduce((accumulator, value) => accumulator + value));
+            var complete = Assert.Throws<TypeError>(() => values.reduce((accumulator, value, index, receiver) => accumulator + value));
+            Assert.Equal("Reduce of empty array with no initial value", direct.Message);
+            Assert.Equal(direct.Message, complete.Message);
+        }
+
+        [Fact]
+        public void reduce_NoInitialOverloads_NativeDefaultsArePresentRatherThanHoles()
+        {
+            var values = new JSArray<int>(4);
+            var directCalls = 0;
+            var completeCalls = 0;
+            Assert.Equal(0, values.reduce((accumulator, value) =>
             {
-                var direct = Assert.Throws<TypeError>(() => values.reduce((accumulator, value) => accumulator + value));
-                var complete = Assert.Throws<TypeError>(() => values.reduce((accumulator, value, index, receiver) => accumulator + value));
-                Assert.Equal("Reduce of empty array with no initial value", direct.Message);
-                Assert.Equal(direct.Message, complete.Message);
-            }
+                directCalls++;
+                Assert.Equal(0, value);
+                return accumulator + value;
+            }));
+            Assert.Equal(0, values.reduce((accumulator, value, index, receiver) =>
+            {
+                completeCalls++;
+                Assert.Same(values, receiver);
+                Assert.Equal(completeCalls, index);
+                Assert.True(values.hasIndex(index));
+                Assert.Equal(0, value);
+                return accumulator + value;
+            }));
+            Assert.Equal(3, directCalls);
+            Assert.Equal(3, completeCalls);
+            var failure = Assert.Throws<TypeError>(() => values.deleteAt(1));
+            Assert.Equal("Deleting a dense array element would create a hole; use splice", failure.Message);
+            Assert.Equal(4, values.length);
+            Assert.True(values.hasIndex(1));
         }
 
         [Fact]
@@ -101,6 +130,154 @@ namespace Tsonic.CSharp.Js.Tests
             var failure = new InvalidOperationException("callback failure");
             var actual = Assert.Throws<InvalidOperationException>(() => values.reduce((accumulator, value, index, receiver) => throw failure));
             Assert.Same(failure, actual);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void reduce_NoInitialOverloads_IgnoreAppendedElements(bool fullCallback)
+        {
+            var values = new JSArray<int>(new[] { 1, 2 });
+            var calls = 0;
+            int Fold(int accumulator, int value)
+            {
+                calls++;
+                if (calls == 1) values.push(99);
+                return accumulator + value;
+            }
+            var result = fullCallback ? values.reduce((accumulator, value, index, receiver) =>
+            {
+                Assert.Same(values, receiver);
+                Assert.Equal(1, index);
+                return Fold(accumulator, value);
+            }) : values.reduce(Fold);
+            Assert.Equal(3, result);
+            Assert.Equal(1, calls);
+            Assert.Equal(3, values.length);
+            Assert.Equal(99, values[2]);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void reduce_NoInitialOverloads_ReadCurrentValuesWithinOriginalLength(bool fullCallback)
+        {
+            var values = new JSArray<int>(new[] { 1, 2, 3 });
+            var calls = 0;
+            int Fold(int accumulator, int value)
+            {
+                calls++;
+                if (calls == 1) values[2] = 7;
+                return accumulator + value;
+            }
+            var result = fullCallback ? values.reduce((accumulator, value, index, receiver) =>
+            {
+                Assert.Same(values, receiver);
+                Assert.Equal(calls + 1, index);
+                return Fold(accumulator, value);
+            }) : values.reduce(Fold);
+            Assert.Equal(10, result);
+            Assert.Equal(2, calls);
+            Assert.Equal(7, values[2]);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void reduce_NoInitialOverloads_SkipRemovedIndicesWithinOriginalLength(bool fullCallback)
+        {
+            var values = new JSArray<int>(new[] { 1, 2, 3, 4 });
+            var calls = 0;
+            int Fold(int accumulator, int value)
+            {
+                calls++;
+                values.pop();
+                values.pop();
+                return accumulator + value;
+            }
+            var result = fullCallback ? values.reduce((accumulator, value, index, receiver) =>
+            {
+                Assert.Same(values, receiver);
+                Assert.Equal(1, index);
+                return Fold(accumulator, value);
+            }) : values.reduce(Fold);
+            Assert.Equal(3, result);
+            Assert.Equal(1, calls);
+            Assert.Equal(2, values.length);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void reduce_NoInitialOverloads_ObserveDenseRegrowthWithinOriginalLength(bool fullCallback)
+        {
+            var values = new JSArray<int>(new[] { 1, 2, 3, 4 });
+            var calls = 0;
+            int Fold(int accumulator, int value)
+            {
+                calls++;
+                if (calls == 1)
+                {
+                    values.pop();
+                    values.pop();
+                    values[3] = 9;
+                }
+                return accumulator + value;
+            }
+            var result = fullCallback ? values.reduce((accumulator, value, index, receiver) =>
+            {
+                Assert.Same(values, receiver);
+                Assert.Equal(calls + 1, index);
+                return Fold(accumulator, value);
+            }) : values.reduce(Fold);
+            Assert.Equal(12, result);
+            Assert.Equal(3, calls);
+            Assert.Equal(4, values.length);
+            Assert.Equal(0, values[2]);
+            Assert.Equal(9, values[3]);
+        }
+
+        [Theory]
+        [InlineData(2, "append")]
+        [InlineData(3, "append")]
+        [InlineData(4, "append")]
+        [InlineData(2, "overwrite")]
+        [InlineData(3, "overwrite")]
+        [InlineData(4, "overwrite")]
+        [InlineData(2, "shrink")]
+        [InlineData(3, "shrink")]
+        [InlineData(4, "shrink")]
+        public void reduce_InitialOverloads_SnapshotLengthAndReadCurrentValues(int arity, string mutation)
+        {
+            var values = new JSArray<int>(new[] { 1, 2, 3 });
+            var calls = 0;
+            Func<int, int, int, JSArray<int>, int> callback = (accumulator, value, index, receiver) =>
+            {
+                Assert.Same(values, receiver);
+                Assert.Equal(calls, index);
+                calls++;
+                if (calls == 1)
+                {
+                    if (mutation == "append") values.push(99);
+                    else if (mutation == "overwrite") values[1] = 7;
+                    else
+                    {
+                        values.pop();
+                        values.pop();
+                    }
+                }
+                return accumulator + value;
+            };
+            var result = arity switch
+            {
+                2 => values.reduce((accumulator, value) => callback(accumulator, value, calls, values), 0),
+                3 => values.reduce((accumulator, value, index) => callback(accumulator, value, index, values), 0),
+                4 => values.reduce(callback, 0),
+                _ => throw new ArgumentOutOfRangeException(nameof(arity))
+            };
+            Assert.Equal(mutation == "append" ? 6 : mutation == "overwrite" ? 11 : 1, result);
+            Assert.Equal(mutation == "shrink" ? 1 : 3, calls);
+            Assert.Equal(mutation == "append" ? 4 : mutation == "overwrite" ? 3 : 1, values.length);
         }
 
         [Fact]

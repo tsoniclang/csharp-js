@@ -111,7 +111,7 @@ namespace Tsonic.CSharp.Js
         public TResult reduce<TResult>(Func<TResult, T, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i))
                 {
@@ -127,7 +127,7 @@ namespace Tsonic.CSharp.Js
         public TResult reduce<TResult>(Func<TResult, T, int, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i))
                 {
@@ -143,7 +143,7 @@ namespace Tsonic.CSharp.Js
         public TResult reduce<TResult>(Func<TResult, T, int, JSArray<T>, TResult> callback, TResult initialValue)
         {
             TResult accumulator = initialValue;
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (IsPresent(i))
                 {
@@ -160,7 +160,7 @@ namespace Tsonic.CSharp.Js
         {
             bool hasAccumulator = false;
             T accumulator = default(T)!;
-            for (int i = 0; i < _values.Count; i++)
+            for (int i = 0, length = _values.Count; i < length; i++)
             {
                 if (!IsPresent(i))
                 {
@@ -190,7 +190,7 @@ namespace Tsonic.CSharp.Js
         {
             bool hasAccumulator = false;
             T accumulator = default(T)!;
-            for (int index = 0; index < _values.Count; index++)
+            for (int index = 0, length = _values.Count; index < length; index++)
             {
                 if (!IsPresent(index)) continue;
                 if (!hasAccumulator)
