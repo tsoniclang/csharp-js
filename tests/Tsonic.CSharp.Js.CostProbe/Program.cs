@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Tsonic.CSharp.Js;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Js.CostProbe;
 
@@ -15,6 +16,7 @@ public static class Program
     private static readonly Action Job = static () => _called++;
     private static readonly Func<int, int> Fulfilled = static value => { _fulfilled++; return value + 1; };
     private static readonly Func<object?, int> Rejected = static _ => { _rejected++; return 0; };
+    private static readonly Action<object?> VoidRejected = static _ => _rejected++;
     private static readonly Task<int> Source = Task.FromResult(123);
     private static readonly Task<int> RejectedSource = Task.FromException<int>(new InvalidOperationException("native rejection input"));
 
@@ -41,6 +43,15 @@ public static class Program
             () => { for (var index = 0; index < Count; index++) JsEventLoop.Enqueue(Job); });
         Measure("then", native.Run, () => { for (var index = 0; index < Count; index++) _ = NativeControl.Then(Source, Fulfilled); },
             () => { for (var index = 0; index < Count; index++) _ = PromiseRuntime<int>.Then(Source, Fulfilled); });
+        Measure("then absent fulfilled (identity)", native.Run,
+            () => { for (var index = 0; index < Count; index++) _ = NativeControl.Then(Source, null, Rejected); },
+            () => { for (var index = 0; index < Count; index++) _ = PromiseRuntime<int>.ThenIdentity(Source, null, Rejected); });
+        Measure("then absent fulfilled (void rejection, fulfilled source)", native.Run,
+            () => { for (var index = 0; index < Count; index++) _ = NativeControl.ThenOptional(Source, null, VoidRejected); },
+            () => { for (var index = 0; index < Count; index++) _ = PromiseRuntime<int>.ThenOptional<int?, ValueOptionalStorage<int>>(Source, null, VoidRejected); });
+        Measure("then absent fulfilled (void rejection, rejected source)", native.Run,
+            () => { for (var index = 0; index < Count; index++) _ = NativeControl.ThenOptional(RejectedSource, null, VoidRejected); },
+            () => { for (var index = 0; index < Count; index++) _ = PromiseRuntime<int>.ThenOptional<int?, ValueOptionalStorage<int>>(RejectedSource, null, VoidRejected); });
         Measure("catch (fulfilled source)", native.Run, () => { for (var index = 0; index < Count; index++) _ = NativeControl.Catch(Source, Rejected); },
             () => { for (var index = 0; index < Count; index++) _ = PromiseRuntime<int>.Catch(Source, Rejected); });
         Measure("catch (rejected source)", native.Run, () => { for (var index = 0; index < Count; index++) _ = NativeControl.Catch(RejectedSource, Rejected); },

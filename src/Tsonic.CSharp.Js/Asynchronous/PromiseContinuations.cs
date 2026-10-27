@@ -6,15 +6,14 @@ namespace Tsonic.CSharp.Js;
 
 public static partial class PromiseRuntime
 {
-    public static Task Then(Task source, Action fulfilled, Action<object?>? rejected = null)
+    public static Task Then(Task source, Action? fulfilled = null, Action<object?>? rejected = null)
     {
         ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(fulfilled);
         return CompleteThen(DeferredTaskAwaiter.Create(source), fulfilled, rejected);
     }
 
     private static async Task CompleteThen(
-        DeferredTaskAwaiter deferred, Action fulfilled, Action<object?>? rejected)
+        DeferredTaskAwaiter deferred, Action? fulfilled, Action<object?>? rejected)
     {
         try
         {
@@ -26,7 +25,7 @@ public static partial class PromiseRuntime
             rejected(RejectionReason(exception));
             return;
         }
-        fulfilled();
+        fulfilled?.Invoke();
     }
 
     public static Task<TResult> Then<TResult>(

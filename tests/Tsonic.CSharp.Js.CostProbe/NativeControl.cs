@@ -137,10 +137,10 @@ internal sealed class NativeControl
         public void UnsafeOnCompleted(Action continuation) => Current!.Wait(source, continuation);
     }
 
-    internal static Task<int> Then(Task<int> source, Func<int, int> fulfilled, Func<object?, int>? rejected = null) =>
+    internal static Task<int> Then(Task<int> source, Func<int, int>? fulfilled, Func<object?, int>? rejected = null) =>
         CompleteThen(new Deferred<int>(source), fulfilled, rejected);
 
-    private static async Task<int> CompleteThen(Deferred<int> pending, Func<int, int> fulfilled, Func<object?, int>? rejected)
+    private static async Task<int> CompleteThen(Deferred<int> pending, Func<int, int>? fulfilled, Func<object?, int>? rejected)
     {
         int value;
         try { value = await pending; }
@@ -149,7 +149,24 @@ internal sealed class NativeControl
             if (rejected is null) throw;
             return rejected(RejectionReason(failure));
         }
-        return fulfilled(value);
+        return fulfilled is null ? value : fulfilled(value);
+    }
+
+    internal static Task<int?> ThenOptional(Task<int> source, Action<int>? fulfilled, Action<object?> rejected) =>
+        CompleteThenOptional(new Deferred<int>(source), fulfilled, rejected);
+
+    private static async Task<int?> CompleteThenOptional(Deferred<int> pending, Action<int>? fulfilled, Action<object?> rejected)
+    {
+        int value;
+        try { value = await pending; }
+        catch (Exception failure) when (Current?.Running == true)
+        {
+            rejected(RejectionReason(failure));
+            return null;
+        }
+        if (fulfilled is null) return value;
+        fulfilled(value);
+        return null;
     }
 
     internal static Task<int> Catch(Task<int> source, Func<object?, int> rejected) =>
