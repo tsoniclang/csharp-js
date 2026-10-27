@@ -64,13 +64,17 @@ namespace Tsonic.CSharp.Js.Tests
                     Assert.False(arity == 1 ? values.some(unary) : arity == 2 ? values.some(indexed) : values.some(complete));
                     break;
                 case "find":
-                    Assert.Equal(0, arity == 1 ? values.find(unary) : arity == 2 ? values.find(indexed) : values.find(complete));
+                    Assert.Null(arity == 1 ? values.find<int?, ValueOptionalStorage<int>>(unary)
+                        : arity == 2 ? values.find<int?, ValueOptionalStorage<int>>(indexed)
+                        : values.find<int?, ValueOptionalStorage<int>>(complete));
                     break;
                 case "findIndex":
                     Assert.Equal(-1, arity == 1 ? values.findIndex(unary) : arity == 2 ? values.findIndex(indexed) : values.findIndex(complete));
                     break;
                 case "findLast":
-                    Assert.Equal(0, arity == 1 ? values.findLast(unary) : arity == 2 ? values.findLast(indexed) : values.findLast(complete));
+                    Assert.Null(arity == 1 ? values.findLast<int?, ValueOptionalStorage<int>>(unary)
+                        : arity == 2 ? values.findLast<int?, ValueOptionalStorage<int>>(indexed)
+                        : values.findLast<int?, ValueOptionalStorage<int>>(complete));
                     break;
                 case "findLastIndex":
                     Assert.Equal(-1, arity == 1 ? values.findLastIndex(unary) : arity == 2 ? values.findLastIndex(indexed) : values.findLastIndex(complete));
@@ -125,9 +129,13 @@ namespace Tsonic.CSharp.Js.Tests
                 Assert.Equal(new[] { 1 }, filtered.ToArray());
             }
             else if (method == "find")
-                Assert.Equal(1, arity == 1 ? values.find(unary) : arity == 2 ? values.find(indexed) : values.find(complete));
+                Assert.Equal(1, arity == 1 ? values.find<int?, ValueOptionalStorage<int>>(unary)
+                    : arity == 2 ? values.find<int?, ValueOptionalStorage<int>>(indexed)
+                    : values.find<int?, ValueOptionalStorage<int>>(complete));
             else
-                Assert.Equal(3, arity == 1 ? values.findLast(unary) : arity == 2 ? values.findLast(indexed) : values.findLast(complete));
+                Assert.Equal(3, arity == 1 ? values.findLast<int?, ValueOptionalStorage<int>>(unary)
+                    : arity == 2 ? values.findLast<int?, ValueOptionalStorage<int>>(indexed)
+                    : values.findLast<int?, ValueOptionalStorage<int>>(complete));
             Assert.Equal(1, calls);
             Assert.Equal(0, values.length);
         }

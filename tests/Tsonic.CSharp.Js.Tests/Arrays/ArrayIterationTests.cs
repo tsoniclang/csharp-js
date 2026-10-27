@@ -336,7 +336,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void find_FindsFirstMatch()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3, 4, 5 });
-            var result = arr.find((x, i, a) => x > 3);
+            var result = arr.find<int?, ValueOptionalStorage<int>>((x, i, a) => x > 3);
 
             Assert.Equal(4, result);
         }
@@ -354,7 +354,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void findLast_FindsLastMatch()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3, 4, 5 });
-            var result = arr.findLast((x, i, a) => x > 3);
+            var result = arr.findLast<int?, ValueOptionalStorage<int>>((x, i, a) => x > 3);
 
             Assert.Equal(5, result);
         }

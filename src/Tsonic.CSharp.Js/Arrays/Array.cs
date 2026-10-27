@@ -736,9 +736,16 @@ namespace Tsonic.CSharp.Js
             return array.filter(callback);
         }
 
-        public static T? find<T>(IReadOnlyList<T> array, Func<T, bool> callback)
+        public static TStorage find<T, TStorage, TOperations>(JSArray<T> array, Func<T, int, JSArray<T>, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
-            return tryFind(array, callback, out var value) ? value : default;
+            return array.find<TStorage, TOperations>(callback);
+        }
+
+        public static TStorage find<T, TStorage, TOperations>(IReadOnlyList<T> array, Func<T, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
+        {
+            return tryFind(array, callback, out var value) ? TOperations.From2(value) : TOperations.From1(null);
         }
 
         public static T? findValue<T>(IReadOnlyList<T> array, Func<T, bool> callback) where T : struct
@@ -788,9 +795,10 @@ namespace Tsonic.CSharp.Js
             return false;
         }
 
-        public static T? find<T>(IReadOnlyList<T> array, Func<T, int, bool> callback)
+        public static TStorage find<T, TStorage, TOperations>(IReadOnlyList<T> array, Func<T, int, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
-            return tryFind(array, callback, out var value) ? value : default;
+            return tryFind(array, callback, out var value) ? TOperations.From2(value) : TOperations.From1(null);
         }
 
         public static T? findValue<T>(IReadOnlyList<T> array, Func<T, int, bool> callback) where T : struct
@@ -840,9 +848,10 @@ namespace Tsonic.CSharp.Js
             return false;
         }
 
-        public static T? find<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback)
+        public static TStorage find<T, TStorage, TOperations>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
-            return tryFind(array, callback, out var value) ? value : default;
+            return tryFind(array, callback, out var value) ? TOperations.From2(value) : TOperations.From1(null);
         }
 
         public static T? findValue<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback) where T : struct
@@ -892,9 +901,16 @@ namespace Tsonic.CSharp.Js
             return false;
         }
 
-        public static T? findLast<T>(IReadOnlyList<T> array, Func<T, bool> callback)
+        public static TStorage findLast<T, TStorage, TOperations>(JSArray<T> array, Func<T, int, JSArray<T>, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
-            return tryFindLast(array, callback, out var value) ? value : default;
+            return array.findLast<TStorage, TOperations>(callback);
+        }
+
+        public static TStorage findLast<T, TStorage, TOperations>(IReadOnlyList<T> array, Func<T, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
+        {
+            return tryFindLast(array, callback, out var value) ? TOperations.From2(value) : TOperations.From1(null);
         }
 
         public static T? findLastValue<T>(IReadOnlyList<T> array, Func<T, bool> callback) where T : struct
@@ -944,9 +960,10 @@ namespace Tsonic.CSharp.Js
             return false;
         }
 
-        public static T? findLast<T>(IReadOnlyList<T> array, Func<T, int, bool> callback)
+        public static TStorage findLast<T, TStorage, TOperations>(IReadOnlyList<T> array, Func<T, int, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
-            return tryFindLast(array, callback, out var value) ? value : default;
+            return tryFindLast(array, callback, out var value) ? TOperations.From2(value) : TOperations.From1(null);
         }
 
         public static T? findLastValue<T>(IReadOnlyList<T> array, Func<T, int, bool> callback) where T : struct
@@ -996,9 +1013,10 @@ namespace Tsonic.CSharp.Js
             return false;
         }
 
-        public static T? findLast<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback)
+        public static TStorage findLast<T, TStorage, TOperations>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
-            return tryFindLast(array, callback, out var value) ? value : default;
+            return tryFindLast(array, callback, out var value) ? TOperations.From2(value) : TOperations.From1(null);
         }
 
         public static T? findLastValue<T>(IReadOnlyList<T> array, Func<T, int, IReadOnlyList<T>, bool> callback) where T : struct

@@ -311,7 +311,8 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Find first element matching predicate
         /// </summary>
-        public T find(Func<T, bool> callback)
+        public TStorage find<TStorage, TOperations>(Func<T, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
             for (int i = 0, length = _values.Count; i < length; i++)
             {
@@ -319,16 +320,17 @@ namespace Tsonic.CSharp.Js
                 T value = _values[i];
                 if (callback(value))
                 {
-                    return value;
+                    return TOperations.From2(value);
                 }
             }
-            return default(T)!;
+            return TOperations.From1(null);
         }
 
         /// <summary>
         /// Find first element matching predicate (value, index)
         /// </summary>
-        public T find(Func<T, int, bool> callback)
+        public TStorage find<TStorage, TOperations>(Func<T, int, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
             for (int i = 0, length = _values.Count; i < length; i++)
             {
@@ -336,16 +338,17 @@ namespace Tsonic.CSharp.Js
                 T value = _values[i];
                 if (callback(value, i))
                 {
-                    return value;
+                    return TOperations.From2(value);
                 }
             }
-            return default(T)!;
+            return TOperations.From1(null);
         }
 
         /// <summary>
         /// Find first element matching predicate (value, index, array)
         /// </summary>
-        public T find(Func<T, int, JSArray<T>, bool> callback)
+        public TStorage find<TStorage, TOperations>(Func<T, int, JSArray<T>, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
             for (int i = 0, length = _values.Count; i < length; i++)
             {
@@ -353,10 +356,10 @@ namespace Tsonic.CSharp.Js
                 T value = _values[i];
                 if (callback(value, i, this))
                 {
-                    return value;
+                    return TOperations.From2(value);
                 }
             }
-            return default(T)!;
+            return TOperations.From1(null);
         }
 
         /// <summary>
@@ -407,7 +410,8 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Find last element matching predicate
         /// </summary>
-        public T findLast(Func<T, bool> callback)
+        public TStorage findLast<TStorage, TOperations>(Func<T, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
             for (int i = _values.Count - 1; i >= 0; i--)
             {
@@ -415,16 +419,17 @@ namespace Tsonic.CSharp.Js
                 T value = _values[i];
                 if (callback(value))
                 {
-                    return value;
+                    return TOperations.From2(value);
                 }
             }
-            return default(T)!;
+            return TOperations.From1(null);
         }
 
         /// <summary>
         /// Find last element matching predicate (value, index)
         /// </summary>
-        public T findLast(Func<T, int, bool> callback)
+        public TStorage findLast<TStorage, TOperations>(Func<T, int, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
             for (int i = _values.Count - 1; i >= 0; i--)
             {
@@ -432,16 +437,17 @@ namespace Tsonic.CSharp.Js
                 T value = _values[i];
                 if (callback(value, i))
                 {
-                    return value;
+                    return TOperations.From2(value);
                 }
             }
-            return default(T)!;
+            return TOperations.From1(null);
         }
 
         /// <summary>
         /// Find last element matching predicate (value, index, array)
         /// </summary>
-        public T findLast(Func<T, int, JSArray<T>, bool> callback)
+        public TStorage findLast<TStorage, TOperations>(Func<T, int, JSArray<T>, bool> callback)
+            where TOperations : struct, IOptionalStorage<T, TStorage>
         {
             for (int i = _values.Count - 1; i >= 0; i--)
             {
@@ -449,10 +455,10 @@ namespace Tsonic.CSharp.Js
                 T value = _values[i];
                 if (callback(value, i, this))
                 {
-                    return value;
+                    return TOperations.From2(value);
                 }
             }
-            return default(T)!;
+            return TOperations.From1(null);
         }
 
         /// <summary>
