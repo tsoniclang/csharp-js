@@ -73,6 +73,17 @@ public static class Program
                     foreach (var source in sources) _ = PromiseRuntime<int>.Then(source.Task, Fulfilled);
                     foreach (var source in sources) source.SetResult(123);
                 }, Prepare);
+            Measure("pending absent fulfilled identity + completion + drain + shutdown (" + options + ")", native.Run,
+                () =>
+                {
+                    foreach (var source in sources) _ = NativeControl.Then(source.Task, null, Rejected);
+                    foreach (var source in sources) source.SetResult(123);
+                },
+                () =>
+                {
+                    foreach (var source in sources) _ = PromiseRuntime<int>.ThenIdentity(source.Task, null, Rejected);
+                    foreach (var source in sources) source.SetResult(123);
+                }, Prepare);
         }
         void CheckNativeAdmission(Action<Action> run, bool subject)
         {

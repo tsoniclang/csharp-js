@@ -8,6 +8,19 @@ namespace Tsonic.CSharp.Js.Tests;
 public class PromiseAbsentFulfilledTests
 {
     [Fact]
+    public void PendingIdentity_RemainsOwnedAndPreservesTheOriginalNativeValue()
+    {
+        JsEventLoop.Run(async () =>
+        {
+            var source = new TaskCompletionSource<long>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var pending = PromiseRuntime<long>.ThenIdentity(source.Task);
+            Assert.False(pending.IsCompleted);
+            JsEventLoop.Enqueue(() => source.SetResult(9007199254740993L));
+            Assert.Equal(9007199254740993L, await pending);
+        });
+    }
+
+    [Fact]
     public void AbsentFulfilled_PreservesExactValuesAndReferenceIdentityAndDefers()
     {
         JsEventLoop.Run(async () =>
@@ -102,6 +115,27 @@ public class PromiseAbsentFulfilledTests
             Assert.Equal(0, await PromiseRuntime.ThenOptionalAsync<int, int?, ValueOptionalStorage<int>>(
                 PromiseRuntime.Reject("reason"), null, _ => Task.FromResult(0)));
             await PromiseRuntime.ThenIdentityAsync(PromiseRuntime.Reject("reason"), null, _ => Task.CompletedTask);
+        });
+    }
+
+    [Fact]
+    public void OptionalRejected_CallbackExceptionsStayExactOnBothNativePaths()
+    {
+        JsEventLoop.Run(async () =>
+        {
+            var expected = new InvalidOperationException("optional callback");
+            var failed = PromiseRuntime<int>.ThenOptional<int?, ValueOptionalStorage<int>>(
+                PromiseRuntime<int>.Reject("reason"), null, _ => throw expected);
+            Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(async () => await failed));
+            var asyncFailed = PromiseRuntime<int>.ThenOptionalAsync<int?, ValueOptionalStorage<int>>(
+                PromiseRuntime<int>.Reject("reason"), null, _ => Task.FromException(expected));
+            Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(async () => await asyncFailed));
+            var voidFailed = PromiseRuntime.ThenOptional<int, int?, ValueOptionalStorage<int>>(
+                PromiseRuntime.Reject("reason"), null, _ => throw expected);
+            Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(async () => await voidFailed));
+            var asyncVoidFailed = PromiseRuntime.ThenOptionalAsync<int, int?, ValueOptionalStorage<int>>(
+                PromiseRuntime.Reject("reason"), null, _ => Task.FromException<int>(expected));
+            Assert.Same(expected, await Assert.ThrowsAsync<InvalidOperationException>(async () => await asyncVoidFailed));
         });
     }
 }
