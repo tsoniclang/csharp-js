@@ -75,7 +75,7 @@ public sealed class DispatchRetentionTests
     [Fact]
     public void NativeReferencesRejectUnderflowAndAllocateNoKeeperState()
     {
-        JsEventLoop.Run(() =>
+        AllocationMeasurement.Run(() => JsEventLoop.Run(() =>
         {
             Assert.False(ProcessKeepAlive.HasReferences);
             Assert.Throws<InvalidOperationException>(ProcessKeepAlive.Release);
@@ -97,6 +97,6 @@ public sealed class DispatchRetentionTests
                 ProcessKeepAlive.Release();
             }
             Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
-        });
+        }));
     }
 }

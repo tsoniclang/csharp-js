@@ -32,7 +32,9 @@ public static class TypedArrayStringChecks
         Check<Tsonic.CSharp.Runtime.TsValue>([Tsonic.CSharp.Runtime.TsValue.from(9007199254740993L), Tsonic.CSharp.Runtime.TsValue.undefined()], "9007199254740993,");
     }
 
-    public static void CheckCosts()
+    public static void CheckCosts() => AllocationMeasurement.Run(CheckCostsOnMeasuringThread);
+
+    private static void CheckCostsOnMeasuringThread()
     {
         CheckNumericCost((byte)125);
         CheckNumericCost((short)-125);
@@ -63,8 +65,7 @@ public static class TypedArrayStringChecks
         Func<string> native = () => NativeWrite(array);
         Func<string> generated = () => Globals.String(array);
         if (native() != generated()) throw new InvalidOperationException("Native formatting mismatch");
-        var expected = Measure(native);
-        var actual = Measure(generated);
+        var (expected, actual) = Measure(native, generated);
         if (actual != expected) throw new InvalidOperationException($"{typeof(TValue)} native array allocation mismatch: {actual} != {expected}");
     }
 
@@ -102,14 +103,19 @@ public static class TypedArrayStringChecks
         }
         Func<string> generated = () => Globals.String(array);
         if (Native() != generated()) throw new InvalidOperationException("Nullable native formatting mismatch");
-        var expected = Measure(Native);
-        var actual = Measure(generated);
+        var (expected, actual) = Measure(Native, generated);
         if (actual != expected) throw new InvalidOperationException($"{typeof(TValue)} nullable native allocation mismatch: {actual} != {expected}");
     }
 
-    private static long Measure(Func<string> conversion)
+    private static (long Native, long Generated) Measure(Func<string> native, Func<string> generated)
     {
-        for (var index = 0; index < 100; index++) GC.KeepAlive(conversion());
+        for (var index = 0; index < 100; index++) GC.KeepAlive(native());
+        for (var index = 0; index < 100; index++) GC.KeepAlive(generated());
+        return (MeasureCalls(native), MeasureCalls(generated));
+    }
+
+    private static long MeasureCalls(Func<string> conversion)
+    {
         var start = GC.GetAllocatedBytesForCurrentThread();
         for (var index = 0; index < 100; index++) GC.KeepAlive(conversion());
         return GC.GetAllocatedBytesForCurrentThread() - start;
@@ -135,8 +141,7 @@ public static class TypedArrayStringChecks
         }
         Func<string> generated = () => Globals.String(array);
         if (Native() != generated()) throw new InvalidOperationException("Boxed native formatting mismatch");
-        var expected = Measure(Native);
-        var actual = Measure(generated);
+        var (expected, actual) = Measure(Native, generated);
         if (actual != expected) throw new InvalidOperationException($"Closed native allocation mismatch: {actual} != {expected}");
     }
 }
