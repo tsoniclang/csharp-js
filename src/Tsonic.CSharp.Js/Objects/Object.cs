@@ -18,9 +18,9 @@ public static class Object
 
     public static bool @is<TValue, TOther>(TValue value, TOther other)
     {
-        return value is TsValue or IClosedUnionValue || other is TsValue or IClosedUnionValue
-            ? @is((object?)value, (object?)other)
-            : SameValue(value, other);
+        return IsNativeScalar<TValue>() && IsNativeScalar<TOther>()
+            ? SameValue(value, other)
+            : @is((object?)value, (object?)other);
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> Enumerate(object? value)
@@ -478,8 +478,15 @@ public static class Object
     private static bool IsBinaryFloating<TValue>() => typeof(TValue) == typeof(Half) ||
         typeof(TValue) == typeof(float) || typeof(TValue) == typeof(double);
 
-    private static bool IsFixedInteger<TValue>() => !IsBinaryFloating<TValue>() &&
-        typeof(TValue) != typeof(decimal) && typeof(TValue) != typeof(BigInteger);
+    private static bool IsFixedInteger<TValue>() => typeof(TValue) == typeof(sbyte) ||
+        typeof(TValue) == typeof(byte) || typeof(TValue) == typeof(short) || typeof(TValue) == typeof(ushort) ||
+        typeof(TValue) == typeof(int) || typeof(TValue) == typeof(uint) || typeof(TValue) == typeof(long) ||
+        typeof(TValue) == typeof(ulong) || typeof(TValue) == typeof(nint) || typeof(TValue) == typeof(nuint) ||
+        typeof(TValue) == typeof(Int128) || typeof(TValue) == typeof(UInt128);
+
+    private static bool IsNativeScalar<TValue>() => IsFixedInteger<TValue>() || IsBinaryFloating<TValue>() ||
+        typeof(TValue) == typeof(decimal) || typeof(TValue) == typeof(BigInteger) || typeof(TValue) == typeof(bool) ||
+        typeof(TValue) == typeof(char) || typeof(TValue) == typeof(string);
 
     private static UInt128 Magnitude<TValue>(TValue value) where TValue : INumberBase<TValue>
     {
