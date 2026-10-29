@@ -1,12 +1,118 @@
 using Tsonic.CSharp.Runtime;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Tsonic.CSharp.Js.Tests
 {
     public class IntlNumberContractTests
     {
+        private readonly ITestOutputHelper _output;
+
+        public IntlNumberContractTests(ITestOutputHelper output) => _output = output;
+
         private static IntlNumberFormat Create(params object?[] options) =>
             new(TsValue.from("en"), TsValue.from(JSON.createObject(options)));
+
+        [Fact]
+        public void DecimalIntegerOptionsKeepTheirExactNativeBoundsAndFraction()
+        {
+            Assert.Throws<RangeError>(() => Create("minimumIntegerDigits", 0.9999999999999999999999999999m));
+            Assert.Equal(1, Create("minimumIntegerDigits", 1m).resolvedOptions().minimumIntegerDigits);
+            Assert.Equal(1, Create("minimumIntegerDigits", 1.9999999999999999999999999999m).resolvedOptions().minimumIntegerDigits);
+            Assert.Equal(20, Create("minimumIntegerDigits", 20.999999999999999999999999999m).resolvedOptions().minimumIntegerDigits);
+            Assert.Equal(21, Create("minimumIntegerDigits", 21m).resolvedOptions().minimumIntegerDigits);
+            Assert.Throws<RangeError>(() => Create("minimumIntegerDigits", 21.000000000000000000000000001m));
+            Assert.Equal(99, Create("maximumFractionDigits", 99.99999999999999999999999999m).resolvedOptions().maximumFractionDigits);
+            Assert.Equal(100, Create("maximumFractionDigits", 100m).resolvedOptions().maximumFractionDigits);
+            Assert.Throws<RangeError>(() => Create("maximumFractionDigits", 100.00000000000000000000000001m));
+            Assert.Equal(1, Create("roundingIncrement", 1.9999999999999999999999999999m).resolvedOptions().roundingIncrement);
+        }
+
+        public static System.Collections.Generic.IEnumerable<object[]> NativeOptionDomains()
+        {
+            yield return new object[] { "double", 17.9d, 0d, 22d };
+            yield return new object[] { "float", 17.9f, 0f, 22f };
+            yield return new object[] { "decimal", 17.9m, 0m, 22m };
+            yield return new object[] { "long", 17L, long.MinValue, long.MaxValue };
+            yield return new object[] { "ulong", 17UL, 0UL, ulong.MaxValue };
+            yield return new object[] { "int", 17, int.MinValue, int.MaxValue };
+            yield return new object[] { "uint", 17U, 0U, uint.MaxValue };
+            yield return new object[] { "short", (short)17, short.MinValue, short.MaxValue };
+            yield return new object[] { "ushort", (ushort)17, (ushort)0, ushort.MaxValue };
+            yield return new object[] { "sbyte", (sbyte)17, sbyte.MinValue, sbyte.MaxValue };
+            yield return new object[] { "byte", (byte)17, (byte)0, byte.MaxValue };
+        }
+
+        [Theory]
+        [MemberData(nameof(NativeOptionDomains))]
+        public void IntegerOptionDomainsRetainRangeAndProjection(string domain, object valid, object below, object above)
+        {
+            Assert.True(Create("minimumIntegerDigits", valid).resolvedOptions().minimumIntegerDigits == 17,
+                $"{domain}: valid native payload truncates without changing its domain");
+            Assert.Throws<RangeError>(() => Create("minimumIntegerDigits", below));
+            Assert.Throws<RangeError>(() => Create("minimumIntegerDigits", above));
+        }
+
+        [Fact]
+        public void IntegerOptionsRetainNonfiniteAndNonnumericRefusals()
+        {
+            foreach (var value in new object[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity,
+                float.NaN, float.PositiveInfinity, float.NegativeInfinity })
+                Assert.Throws<RangeError>(() => Create("minimumIntegerDigits", value));
+            Assert.Throws<TypeError>(() => Create("minimumIntegerDigits", true));
+            Assert.Throws<TypeError>(() => Create("minimumIntegerDigits", "2"));
+        }
+
+        [Fact]
+        public void TypedIntegerOptionsRetainDictionaryAndPayloadIdentity()
+        {
+            object payload = 1.9999999999999999999999999999m;
+            var options = new System.Collections.Generic.Dictionary<string, TsValue>
+            {
+                ["minimumIntegerDigits"] = TsValue.from(payload),
+            };
+            var selected = TsValue.from(options);
+            Assert.Same(options, selected.unwrap());
+            var formatter = new IntlNumberFormat(TsValue.from("en"), selected);
+            Assert.Equal(1, formatter.resolvedOptions().minimumIntegerDigits);
+            Assert.Same(payload, options["minimumIntegerDigits"].unwrap());
+            Assert.Same(options, selected.unwrap());
+            options["minimumIntegerDigits"] = TsValue.from(0.9999999999999999999999999999m);
+            Assert.Throws<RangeError>(() => new IntlNumberFormat(TsValue.from("en"), selected));
+            options["minimumIntegerDigits"] = TsValue.from((object?)null);
+            Assert.Equal(1, new IntlNumberFormat(TsValue.from("en"), selected).resolvedOptions().minimumIntegerDigits);
+        }
+
+        [Fact]
+        public void DecimalIntegerOptionProjectionAddsNoAllocationToEquivalentNativeOptions()
+        {
+            var native = TsValue.from(new System.Collections.Generic.Dictionary<string, TsValue>
+            {
+                ["minimumIntegerDigits"] = TsValue.from(5),
+            });
+            var fraction = TsValue.from(new System.Collections.Generic.Dictionary<string, TsValue>
+            {
+                ["minimumIntegerDigits"] = TsValue.from(5.9m),
+            });
+            var locale = TsValue.from("en");
+            IntlNumberFormat? latest = null;
+            for (var iteration = 0; iteration < 10000; iteration++)
+            {
+                latest = new IntlNumberFormat(locale, native);
+                latest = new IntlNumberFormat(locale, fraction);
+            }
+            var before = System.GC.GetAllocatedBytesForCurrentThread();
+            for (var iteration = 0; iteration < 10000; iteration++) latest = new IntlNumberFormat(locale, native);
+            var nativeBytes = System.GC.GetAllocatedBytesForCurrentThread() - before;
+            System.GC.KeepAlive(latest);
+            before = System.GC.GetAllocatedBytesForCurrentThread();
+            for (var iteration = 0; iteration < 10000; iteration++) latest = new IntlNumberFormat(locale, fraction);
+            var fractionBytes = System.GC.GetAllocatedBytesForCurrentThread() - before;
+            System.GC.KeepAlive(latest);
+            Assert.Equal(5, latest!.resolvedOptions().minimumIntegerDigits);
+            _output.WriteLine($"nativeBytes={nativeBytes}; decimalBytes={fractionBytes}; iterations=10000");
+            Assert.Equal(nativeBytes, fractionBytes);
+        }
 
         [Fact]
         public void SignificantPrecisionRetainsAbsenceInsteadOfInventingZero()
