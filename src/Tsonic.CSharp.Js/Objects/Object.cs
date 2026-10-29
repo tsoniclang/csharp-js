@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Tsonic.CSharp.Js;
 
@@ -16,6 +17,7 @@ public static class Object
         return SameValue(UnwrapClosedValue(value), UnwrapClosedValue(other));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool @is<TValue, TOther>(TValue value, TOther other)
     {
         return IsNativeScalar<TValue>() && IsNativeScalar<TOther>()
@@ -396,6 +398,7 @@ public static class Object
             or char;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SameValue<TValue, TOther>(TValue value, TOther other) => value switch
     {
         null => other is null,
@@ -422,6 +425,7 @@ public static class Object
         _ => ReferenceEquals(value, other),
     };
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SameNumericOther<TValue, TOther>(TValue value, TOther other)
         where TValue : INumberBase<TValue> => other switch
     {
@@ -445,6 +449,7 @@ public static class Object
         _ => false,
     };
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SameNumericValue<TValue, TOther>(TValue value, TOther other)
         where TValue : INumberBase<TValue>
         where TOther : INumberBase<TOther>

@@ -140,6 +140,47 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void is_AllSelectedNativeScalarDomainsRemainUnboxed()
+        {
+            Assert.Equal(0, ComparisonAllocations<sbyte, sbyte>([1, -2], [1, -3]));
+            Assert.Equal(0, ComparisonAllocations<byte, byte>([1, 2], [1, 3]));
+            Assert.Equal(0, ComparisonAllocations<short, short>([1, -2], [1, -3]));
+            Assert.Equal(0, ComparisonAllocations<ushort, ushort>([1, 2], [1, 3]));
+            Assert.Equal(0, ComparisonAllocations<int, int>([1, -2], [1, -3]));
+            Assert.Equal(0, ComparisonAllocations<uint, uint>([1, 2], [1, 3]));
+            Assert.Equal(0, ComparisonAllocations<long, long>([9007199254740993L, -2], [9007199254740993L, -3]));
+            Assert.Equal(0, ComparisonAllocations<ulong, ulong>([ulong.MaxValue, 2], [ulong.MaxValue, 3]));
+            Assert.Equal(0, ComparisonAllocations<nint, nint>([1, -2], [1, -3]));
+            Assert.Equal(0, ComparisonAllocations<nuint, nuint>([1, 2], [1, 3]));
+            Assert.Equal(0, ComparisonAllocations<Int128, Int128>([Int128.MinValue, 2], [Int128.MinValue, 3]));
+            Assert.Equal(0, ComparisonAllocations<UInt128, UInt128>([UInt128.MaxValue, 2], [UInt128.MaxValue, 3]));
+            Assert.Equal(0, ComparisonAllocations<Half, Half>([(Half)0.5, Half.NaN], [(Half)0.5, Half.NaN]));
+            Assert.Equal(0, ComparisonAllocations<float, float>([0.5F, -0F], [0.5F, 0F]));
+            Assert.Equal(0, ComparisonAllocations<double, double>([double.NaN, -0D], [double.NaN, 0D]));
+            Assert.Equal(0, ComparisonAllocations<decimal, decimal>([0.1M, 2M], [0.1M, 3M]));
+            Assert.Equal(0, ComparisonAllocations<BigInteger, BigInteger>([BigInteger.One << 1000, 2], [BigInteger.One << 1000, 3]));
+            Assert.Equal(0, ComparisonAllocations<bool, bool>([true, false], [true, true]));
+            Assert.Equal(0, ComparisonAllocations<char, char>(['x', 'y'], ['x', 'z']));
+            Assert.Equal(0, ComparisonAllocations<string, string>(["one", "two"], ["one", "three"]));
+            Assert.Equal(0, ComparisonAllocations<long, double>([9007199254740993L, 1], [9007199254740992D, 1D]));
+            Assert.Equal(0, ComparisonAllocations<decimal, double>([0.1M, 0.5M], [0.1D, 0.5D]));
+            Assert.Equal(0, ComparisonAllocations<BigInteger, long>([new BigInteger(9007199254740993L), -7], [9007199254740993L, -7]));
+        }
+
+        private static long ComparisonAllocations<TValue, TOther>(TValue[] left, TOther[] right)
+        {
+            var count = 0;
+            for (var index = 0; index < 40_000; index++)
+                if (JsObjectStatics.@is(left[index & 1], right[index & 1])) count++;
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var index = 0; index < 40_000; index++)
+                if (JsObjectStatics.@is(left[index & 1], right[index & 1])) count++;
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            GC.KeepAlive(count);
+            return allocated;
+        }
+
+        [Fact]
         public void keys_values_entries_UseEnumerableOwnArrayIndexesOnly()
         {
             var value = new JSArray<int>(5);
