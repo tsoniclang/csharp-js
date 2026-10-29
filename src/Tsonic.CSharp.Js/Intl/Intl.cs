@@ -548,26 +548,25 @@ namespace Tsonic.CSharp.Js
             {
                 return null;
             }
-            var number = value switch
+            return value switch
             {
-                double numberValue => numberValue,
-                float numberValue => numberValue,
-                decimal numberValue => (double)numberValue,
-                long numberValue => numberValue,
-                ulong numberValue => numberValue,
-                int numberValue => numberValue,
-                uint numberValue => numberValue,
-                short numberValue => numberValue,
-                ushort numberValue => numberValue,
-                sbyte numberValue => numberValue,
-                byte numberValue => numberValue,
+                double number when double.IsFinite(number) && number >= minimum && number <= maximum => checked((int)number),
+                float number when float.IsFinite(number) && (double)number >= minimum && (double)number <= maximum => checked((int)number),
+                decimal number when number >= minimum && number <= maximum => checked((int)number),
+                long number when number >= minimum && number <= maximum => checked((int)number),
+                ulong number when maximum >= 0 && number <= (ulong)maximum &&
+                    (minimum <= 0 || number >= (ulong)minimum) => checked((int)number),
+                int number when number >= minimum && number <= maximum => number,
+                uint number when maximum >= 0 && number <= (uint)maximum &&
+                    (minimum <= 0 || number >= (uint)minimum) => checked((int)number),
+                short number when number >= minimum && number <= maximum => number,
+                ushort number when number >= minimum && number <= maximum => number,
+                sbyte number when number >= minimum && number <= maximum => number,
+                byte number when number >= minimum && number <= maximum => number,
+                double or float or decimal or long or ulong or int or uint or short or ushort or sbyte or byte =>
+                    throw new RangeError($"Intl option '{name}' is outside its supported range."),
                 _ => throw new TypeError($"Intl option '{name}' must be numeric."),
             };
-            if (!double.IsFinite(number) || number < minimum || number > maximum)
-            {
-                throw new RangeError($"Intl option '{name}' is outside its supported range.");
-            }
-            return checked((int)number);
         }
 
         public static string Number(int value, string style)
