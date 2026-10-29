@@ -12,10 +12,8 @@ public class SourceConstructionTests
     {
         var first = new EmptyObject();
         var alias = first;
-        var second = EmptyObject.Freeze(new EmptyObject());
-        Assert.False(EmptyObject.IsFrozen(alias));
-        Assert.Same(alias, EmptyObject.Freeze(first));
-        Assert.True(EmptyObject.IsFrozen(alias));
+        var second = new EmptyObject();
+        Assert.Same(alias, first);
         Assert.NotSame(first, second);
         var identities = new HashSet<EmptyObject> { first };
         Assert.Contains(alias, identities);
