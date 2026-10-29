@@ -12,6 +12,27 @@ namespace Tsonic.CSharp.Js;
 /// </summary>
 public static class Object
 {
+    public static bool @is(sbyte value, sbyte other) => value == other;
+    public static bool @is(byte value, byte other) => value == other;
+    public static bool @is(short value, short other) => value == other;
+    public static bool @is(ushort value, ushort other) => value == other;
+    public static bool @is(int value, int other) => value == other;
+    public static bool @is(uint value, uint other) => value == other;
+    public static bool @is(long value, long other) => value == other;
+    public static bool @is(ulong value, ulong other) => value == other;
+    public static bool @is(nint value, nint other) => value == other;
+    public static bool @is(nuint value, nuint other) => value == other;
+    public static bool @is(Int128 value, Int128 other) => value == other;
+    public static bool @is(UInt128 value, UInt128 other) => value == other;
+    public static bool @is(Half value, Half other) => SameFloatingValue(value, other);
+    public static bool @is(float value, float other) => SameFloatingValue(value, other);
+    public static bool @is(double value, double other) => SameFloatingValue(value, other);
+    public static bool @is(decimal value, decimal other) => value == other;
+    public static bool @is(BigInteger value, BigInteger other) => value == other;
+    public static bool @is(bool value, bool other) => value == other;
+    public static bool @is(char value, char other) => value == other;
+    public static bool @is(string? value, string? other) => string.Equals(value, other, StringComparison.Ordinal);
+
     public static bool @is(object? value, object? other)
     {
         return SameValue(UnwrapClosedValue(value), UnwrapClosedValue(other));
@@ -457,10 +478,7 @@ public static class Object
         if (typeof(TValue) == typeof(TOther))
         {
             var right = TValue.CreateChecked(other);
-            if (!IsBinaryFloating<TValue>()) return value == right;
-            return value == right
-                ? !TValue.IsZero(value) || TValue.IsNegative(value) == TValue.IsNegative(right)
-                : TValue.IsNaN(value) && TValue.IsNaN(right);
+            return IsBinaryFloating<TValue>() ? SameFloatingValue(value, right) : value == right;
         }
         if (IsBinaryFloating<TValue>() && IsBinaryFloating<TOther>())
             return SameNumericValue(double.CreateChecked(value), double.CreateChecked(other));
@@ -479,6 +497,12 @@ public static class Object
         var rightParts = NumericParts(other);
         return leftParts == rightParts;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool SameFloatingValue<TValue>(TValue value, TValue other) where TValue : INumberBase<TValue> =>
+        value == other
+            ? !TValue.IsZero(value) || TValue.IsNegative(value) == TValue.IsNegative(other)
+            : TValue.IsNaN(value) && TValue.IsNaN(other);
 
     private static bool IsBinaryFloating<TValue>() => typeof(TValue) == typeof(Half) ||
         typeof(TValue) == typeof(float) || typeof(TValue) == typeof(double);
