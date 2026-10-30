@@ -44,4 +44,53 @@ public class ArrayLikeTests
         Assert.Equal(32767, signedCopy[1]);
         Assert.Equal(0, ArrayLike.CopyDense(new JSArray<double>()).length);
     }
+
+    [Fact]
+    public void NativeSignedMembershipDoesNotRoundAdjacentNegativeProperties()
+    {
+        var values = new JSArray<double>(new[] { 2d });
+        values[-9007199254740992d] = 7;
+        values[(double)long.MinValue] = 9;
+        Assert.True(ArrayLike.HasIndex(-9007199254740992L, values));
+        Assert.False(ArrayLike.HasIndex(-9007199254740993L, values));
+        Assert.False(ArrayLike.HasIndex(-9007199254740991L, values));
+        Assert.True(ArrayLike.HasIndex(long.MinValue, values));
+        Assert.False(ArrayLike.HasIndex(long.MinValue + 1, values));
+        Assert.Equal(1, values.length);
+        Assert.Equal(7, values[-9007199254740992d]);
+        Assert.Equal(9, values[(double)long.MinValue]);
+    }
+
+    [Fact]
+    public void NativeIntegerBoundsRetainInitializedAbsenceAndDeletedSlots()
+    {
+        var values = new JSArray<double?>(2);
+        Assert.True(ArrayLike.HasIndex(0L, values));
+        Assert.True(ArrayLike.HasIndex(1UL, values));
+        Assert.Null(values[0]);
+        Assert.False(ArrayLike.HasIndex(2L, values));
+        Assert.False(ArrayLike.HasIndex(long.MaxValue, values));
+        Assert.False(ArrayLike.HasIndex(ulong.MaxValue, values));
+        Assert.False(ArrayLike.HasIndex(uint.MaxValue, values));
+        Assert.False(ArrayLike.HasIndex(9007199254740993UL, values));
+        Assert.True(values.deleteAt(0));
+        Assert.False(ArrayLike.HasIndex(0L, values));
+        Assert.True(ArrayLike.HasIndex(1UL, values));
+    }
+
+    [Fact]
+    public void NativeInitializedMembershipDoesNotAddAllocation()
+    {
+        var values = new JSArray<double>(new[] { 0d, 1d });
+        for (var index = 0; index < 10_000; index++)
+        {
+            if (!ArrayLike.HasIndex((long)(index & 1), values)) throw new InvalidOperationException();
+        }
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var index = 0; index < 100_000; index++)
+        {
+            if (!ArrayLike.HasIndex((long)(index & 1), values)) throw new InvalidOperationException();
+        }
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
 }
