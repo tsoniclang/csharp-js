@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Tsonic.CSharp.Js;
 
@@ -10,32 +12,38 @@ namespace Tsonic.CSharp.Js;
 /// </summary>
 public static class Object
 {
+    public static bool @is(sbyte value, sbyte other) => value == other;
+    public static bool @is(byte value, byte other) => value == other;
+    public static bool @is(short value, short other) => value == other;
+    public static bool @is(ushort value, ushort other) => value == other;
+    public static bool @is(int value, int other) => value == other;
+    public static bool @is(uint value, uint other) => value == other;
+    public static bool @is(long value, long other) => value == other;
+    public static bool @is(ulong value, ulong other) => value == other;
+    public static bool @is(nint value, nint other) => value == other;
+    public static bool @is(nuint value, nuint other) => value == other;
+    public static bool @is(Int128 value, Int128 other) => value == other;
+    public static bool @is(UInt128 value, UInt128 other) => value == other;
+    public static bool @is(Half value, Half other) => SameFloatingValue(value, other);
+    public static bool @is(float value, float other) => SameFloatingValue(value, other);
+    public static bool @is(double value, double other) => SameFloatingValue(value, other);
+    public static bool @is(decimal value, decimal other) => value == other;
+    public static bool @is(BigInteger value, BigInteger other) => value == other;
+    public static bool @is(bool value, bool other) => value == other;
+    public static bool @is(char value, char other) => value == other;
+    public static bool @is(string? value, string? other) => string.Equals(value, other, StringComparison.Ordinal);
+
     public static bool @is(object? value, object? other)
     {
-        value = UnwrapClosedValue(value);
-        other = UnwrapClosedValue(other);
+        return SameValue(UnwrapClosedValue(value), UnwrapClosedValue(other));
+    }
 
-        if (value == null || other == null)
-        {
-            return value == null && other == null;
-        }
-
-        if (tryGetNumericValue(value, out var left) && tryGetNumericValue(other, out var right))
-        {
-            if (double.IsNaN(left) && double.IsNaN(right))
-            {
-                return true;
-            }
-
-            if (left == 0 && right == 0)
-            {
-                return double.IsNegative(left) == double.IsNegative(right);
-            }
-
-            return left.Equals(right);
-        }
-
-        return ReferenceEquals(value, other) || value.Equals(other);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool @is<TValue, TOther>(TValue value, TOther other)
+    {
+        return IsNativeScalar<TValue>() && IsNativeScalar<TOther>()
+            ? SameValue(value, other)
+            : @is((object?)value, (object?)other);
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> Enumerate(object? value)
@@ -411,46 +419,168 @@ public static class Object
             or char;
     }
 
-    private static bool tryGetNumericValue(object value, out double result)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool SameValue<TValue, TOther>(TValue value, TOther other) => value switch
     {
-        switch (value)
+        null => other is null,
+        byte number => SameNumericOther(number, other),
+        sbyte number => SameNumericOther(number, other),
+        short number => SameNumericOther(number, other),
+        ushort number => SameNumericOther(number, other),
+        int number => SameNumericOther(number, other),
+        uint number => SameNumericOther(number, other),
+        long number => SameNumericOther(number, other),
+        ulong number => SameNumericOther(number, other),
+        nint number => SameNumericOther(number, other),
+        nuint number => SameNumericOther(number, other),
+        Int128 number => SameNumericOther(number, other),
+        UInt128 number => SameNumericOther(number, other),
+        Half number => SameNumericOther(number, other),
+        float number => SameNumericOther(number, other),
+        double number => SameNumericOther(number, other),
+        decimal number => SameNumericOther(number, other),
+        BigInteger number => SameNumericOther(number, other),
+        string text => other is string otherText && string.Equals(text, otherText, StringComparison.Ordinal),
+        bool boolean => other is bool otherBoolean && boolean == otherBoolean,
+        char character => other is char otherCharacter && character == otherCharacter,
+        _ => ReferenceEquals(value, other),
+    };
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool SameNumericOther<TValue, TOther>(TValue value, TOther other)
+        where TValue : INumberBase<TValue> => other switch
+    {
+        byte number => SameNumericValue(value, number),
+        sbyte number => SameNumericValue(value, number),
+        short number => SameNumericValue(value, number),
+        ushort number => SameNumericValue(value, number),
+        int number => SameNumericValue(value, number),
+        uint number => SameNumericValue(value, number),
+        long number => SameNumericValue(value, number),
+        ulong number => SameNumericValue(value, number),
+        nint number => SameNumericValue(value, number),
+        nuint number => SameNumericValue(value, number),
+        Int128 number => SameNumericValue(value, number),
+        UInt128 number => SameNumericValue(value, number),
+        Half number => SameNumericValue(value, number),
+        float number => SameNumericValue(value, number),
+        double number => SameNumericValue(value, number),
+        decimal number => SameNumericValue(value, number),
+        BigInteger number => SameNumericValue(value, number),
+        _ => false,
+    };
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool SameNumericValue<TValue, TOther>(TValue value, TOther other)
+        where TValue : INumberBase<TValue>
+        where TOther : INumberBase<TOther>
+    {
+        if (typeof(TValue) == typeof(TOther))
         {
-            case byte typed:
-                result = typed;
-                return true;
-            case sbyte typed:
-                result = typed;
-                return true;
-            case short typed:
-                result = typed;
-                return true;
-            case ushort typed:
-                result = typed;
-                return true;
-            case int typed:
-                result = typed;
-                return true;
-            case uint typed:
-                result = typed;
-                return true;
-            case long typed:
-                result = typed;
-                return true;
-            case ulong typed:
-                result = typed;
-                return true;
-            case float typed:
-                result = typed;
-                return true;
-            case double typed:
-                result = typed;
-                return true;
-            case decimal typed:
-                result = (double)typed;
-                return true;
-            default:
-                result = 0;
-                return false;
+            var right = TValue.CreateChecked(other);
+            return IsBinaryFloating<TValue>() ? SameFloatingValue(value, right) : value == right;
         }
+        if (IsBinaryFloating<TValue>() && IsBinaryFloating<TOther>())
+            return SameNumericValue(double.CreateChecked(value), double.CreateChecked(other));
+        if (IsFixedInteger<TValue>() && IsFixedInteger<TOther>())
+            return TValue.IsNegative(value) == TOther.IsNegative(other) && Magnitude(value) == Magnitude(other);
+        if (TValue.IsNaN(value) || TOther.IsNaN(other)) return TValue.IsNaN(value) && TOther.IsNaN(other);
+        if (TValue.IsZero(value) || TOther.IsZero(other))
+            return TValue.IsZero(value) && TOther.IsZero(other) &&
+                (IsBinaryFloating<TValue>() && TValue.IsNegative(value)) ==
+                (IsBinaryFloating<TOther>() && TOther.IsNegative(other));
+        if (TValue.IsNegative(value) != TOther.IsNegative(other)) return false;
+        if (TValue.IsInfinity(value) || TOther.IsInfinity(other)) return TValue.IsInfinity(value) && TOther.IsInfinity(other);
+        if (typeof(TValue) == typeof(BigInteger)) return SameBigInteger(BigInteger.CreateChecked(value), NumericParts(other));
+        if (typeof(TOther) == typeof(BigInteger)) return SameBigInteger(BigInteger.CreateChecked(other), NumericParts(value));
+        var leftParts = NumericParts(value);
+        var rightParts = NumericParts(other);
+        return leftParts == rightParts;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool SameFloatingValue<TValue>(TValue value, TValue other) where TValue : INumberBase<TValue> =>
+        value == other
+            ? !TValue.IsZero(value) || TValue.IsNegative(value) == TValue.IsNegative(other)
+            : TValue.IsNaN(value) && TValue.IsNaN(other);
+
+    private static bool IsBinaryFloating<TValue>() => typeof(TValue) == typeof(Half) ||
+        typeof(TValue) == typeof(float) || typeof(TValue) == typeof(double);
+
+    private static bool IsFixedInteger<TValue>() => typeof(TValue) == typeof(sbyte) ||
+        typeof(TValue) == typeof(byte) || typeof(TValue) == typeof(short) || typeof(TValue) == typeof(ushort) ||
+        typeof(TValue) == typeof(int) || typeof(TValue) == typeof(uint) || typeof(TValue) == typeof(long) ||
+        typeof(TValue) == typeof(ulong) || typeof(TValue) == typeof(nint) || typeof(TValue) == typeof(nuint) ||
+        typeof(TValue) == typeof(Int128) || typeof(TValue) == typeof(UInt128);
+
+    private static bool IsNativeScalar<TValue>() => IsFixedInteger<TValue>() || IsBinaryFloating<TValue>() ||
+        typeof(TValue) == typeof(decimal) || typeof(TValue) == typeof(BigInteger) || typeof(TValue) == typeof(bool) ||
+        typeof(TValue) == typeof(char) || typeof(TValue) == typeof(string);
+
+    private static UInt128 Magnitude<TValue>(TValue value) where TValue : INumberBase<TValue>
+    {
+        if (!TValue.IsNegative(value)) return UInt128.CreateChecked(value);
+        var signed = Int128.CreateChecked(value);
+        return UInt128.CreateChecked(-(signed + 1)) + 1;
+    }
+
+    private static (UInt128 Coefficient, int BinaryExponent, int FiveExponent) NumericParts<TValue>(TValue value)
+        where TValue : INumberBase<TValue>
+    {
+        UInt128 coefficient;
+        var binaryExponent = 0;
+        var fiveExponent = 0;
+        if (typeof(TValue) == typeof(decimal))
+        {
+            Span<int> bits = stackalloc int[4];
+            decimal.GetBits(decimal.CreateChecked(value), bits);
+            coefficient = (uint)bits[0] | ((UInt128)(uint)bits[1] << 32) | ((UInt128)(uint)bits[2] << 64);
+            binaryExponent = fiveExponent = -((bits[3] >> 16) & 255);
+        }
+        else if (IsBinaryFloating<TValue>())
+        {
+            var bits = BitConverter.DoubleToUInt64Bits(double.CreateChecked(value));
+            var exponent = (int)((bits >> 52) & 2047);
+            coefficient = bits & 0x000F_FFFF_FFFF_FFFF;
+            if (exponent != 0) coefficient |= (UInt128)1 << 52;
+            binaryExponent = exponent == 0 ? -1074 : exponent - 1075;
+        }
+        else coefficient = Magnitude(value);
+        while (coefficient % 2 == 0) { coefficient /= 2; binaryExponent++; }
+        while (coefficient % 5 == 0) { coefficient /= 5; fiveExponent++; }
+        return (coefficient, binaryExponent, fiveExponent);
+    }
+
+    private static bool SameBigInteger(BigInteger value, (UInt128 Coefficient, int BinaryExponent, int FiveExponent) parts)
+    {
+        if (parts.BinaryExponent < 0 || parts.FiveExponent < 0 || value.GetByteCount() > 129) return false;
+        Span<byte> actual = stackalloc byte[129];
+        Span<byte> expected = stackalloc byte[129];
+        actual.Clear();
+        expected.Clear();
+        if (!value.TryWriteBytes(actual, out var written)) return false;
+        if (value.Sign < 0)
+        {
+            var carry = 1;
+            for (var index = 0; index < written; index++)
+            {
+                var digit = (byte)~actual[index] + carry;
+                actual[index] = (byte)digit;
+                carry = digit >> 8;
+            }
+        }
+        var coefficient = parts.Coefficient;
+        for (var index = 0; index < parts.FiveExponent; index++) coefficient *= 5;
+        var offset = parts.BinaryExponent / 8;
+        var shift = parts.BinaryExponent % 8;
+        while (coefficient != 0)
+        {
+            var digit = (byte)coefficient;
+            expected[offset] |= (byte)(digit << shift);
+            if (shift != 0) expected[offset + 1] |= (byte)(digit >> (8 - shift));
+            coefficient >>= 8;
+            offset++;
+        }
+        return actual.SequenceEqual(expected);
     }
 }
