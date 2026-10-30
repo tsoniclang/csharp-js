@@ -73,9 +73,13 @@ public class ArrayLikeTests
         Assert.False(ArrayLike.HasIndex(ulong.MaxValue, values));
         Assert.False(ArrayLike.HasIndex(uint.MaxValue, values));
         Assert.False(ArrayLike.HasIndex(9007199254740993UL, values));
-        Assert.True(values.deleteAt(0));
-        Assert.False(ArrayLike.HasIndex(0L, values));
+        Assert.Throws<Tsonic.CSharp.Runtime.TypeError>(() => values.deleteAt(0));
+        Assert.True(ArrayLike.HasIndex(0L, values));
         Assert.True(ArrayLike.HasIndex(1UL, values));
+        values[-1d] = null;
+        Assert.True(ArrayLike.HasIndex(-1L, values));
+        Assert.True(values.deleteAt(-1d));
+        Assert.False(ArrayLike.HasIndex(-1L, values));
     }
 
     [Fact]
@@ -85,11 +89,13 @@ public class ArrayLikeTests
         for (var index = 0; index < 10_000; index++)
         {
             if (!ArrayLike.HasIndex((long)(index & 1), values)) throw new InvalidOperationException();
+            if (ArrayLike.HasIndex(long.MinValue + 1, values)) throw new InvalidOperationException();
         }
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var index = 0; index < 100_000; index++)
         {
             if (!ArrayLike.HasIndex((long)(index & 1), values)) throw new InvalidOperationException();
+            if (ArrayLike.HasIndex(long.MinValue + 1, values)) throw new InvalidOperationException();
         }
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
