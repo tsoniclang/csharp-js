@@ -12,8 +12,8 @@ public interface IArrayLike<T>
 /// <summary>Closed operations shared by typed and ordinary JavaScript arrays.</summary>
 public static class ArrayLike
 {
-    public static bool HasIndex<T>(double index, JSArray<T> source) =>
-        source.hasIndex(index);
+    public static bool HasIndex<T>(double index, IArrayLike<T> source) =>
+        source.TryGet(index, out _);
 
     /// <summary>Reads a numeric element or returns the absent-value carrier.</summary>
     public static double? ReadNumber(IArrayLike<double> source, double index) =>
