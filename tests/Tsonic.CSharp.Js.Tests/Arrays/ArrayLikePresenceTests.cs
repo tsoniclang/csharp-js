@@ -33,9 +33,12 @@ public sealed class ArrayLikePresenceTests
     {
         var ordinary = new JSArray<double>(new double[] { 0, 2, 3 });
         IArrayLike<double> view = ordinary;
-        Assert.True(ordinary.deleteAt(1));
+        var refusal = Assert.Throws<TypeError>(() => ordinary.deleteAt(1));
+        Assert.Equal("Deleting a dense array element would create a hole; use splice", refusal.Message);
         Assert.True(ArrayLike.HasIndex(0, view));
-        Assert.False(ArrayLike.HasIndex(1, view));
+        Assert.True(ArrayLike.HasIndex(1, view));
+        Assert.True(ordinary.deleteAt(99));
+        Assert.False(ArrayLike.HasIndex(99, view));
         ordinary[-1d] = 17;
         ordinary[double.NaN] = 19;
         Assert.True(ArrayLike.HasIndex(-1, view));
