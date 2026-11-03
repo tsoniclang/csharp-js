@@ -84,6 +84,48 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void ClosedUnionOptionsReadTheirPayloadWithoutReplacingTheStoredCarrier()
+        {
+            var grouping = TsValue.from(Union<bool, string>.From1(false));
+            var digits = TsValue.from(Union<int, string>.From1(3));
+            var options = new System.Collections.Generic.Dictionary<string, TsValue>
+            {
+                ["useGrouping"] = grouping,
+                ["minimumIntegerDigits"] = digits,
+            };
+            var groupingCarrier = grouping.unwrap();
+            var digitsCarrier = digits.unwrap();
+            var locale = TsValue.from(Union<string, JSArray<string>>.From1("en"));
+            var formatter = new IntlNumberFormat(locale, TsValue.from(options));
+            Assert.Equal("007", formatter.formatInteger(7L));
+            Assert.False(formatter.resolvedOptions().useGrouping.As1());
+            Assert.Same(groupingCarrier, options["useGrouping"].unwrap());
+            Assert.Same(digitsCarrier, options["minimumIntegerDigits"].unwrap());
+            options["useGrouping"] = TsValue.from(Union<bool, string>.From2("always"));
+            Assert.Equal("1,234", new IntlNumberFormat(locale, TsValue.from(options)).formatInteger(1234L));
+            Assert.IsType<Union<bool, string>>(options["useGrouping"].unwrap());
+        }
+
+        [Fact]
+        public void ClosedUnionStringAndBooleanOptionsKeepNativeDomainsAndRefusals()
+        {
+            var formatter = Create("style", TsValue.from(Union<string, bool>.From1("currency")),
+                "currency", TsValue.from(Union<string, bool>.From1("USD")));
+            Assert.Equal("USD", formatter.resolvedOptions().currency);
+            var options = TsValue.CreateDynamicObject("numeric", TsValue.from(Union<bool, string>.From1(true)));
+            var collator = new IntlCollator(TsValue.from("en"), options);
+            Assert.True(collator.resolvedOptions().numeric);
+            Assert.True(collator.compare("2", "10") < 0);
+            Assert.IsType<Union<bool, string>>(options.ReadDynamicSlot("numeric").unwrap());
+            Assert.Throws<TypeError>(() => Create("currency", TsValue.from(Union<string, bool>.From2(true))));
+            Assert.Throws<TypeError>(() => Create("minimumIntegerDigits", TsValue.from(Union<int, string>.From2("2"))));
+            Assert.Throws<RangeError>(() => Create("useGrouping", TsValue.from(Union<bool, string>.From2("invalid"))));
+            Assert.Throws<RangeError>(() => Create("minimumIntegerDigits", TsValue.from(Union<int, string>.From1(22))));
+            Assert.Throws<System.InvalidOperationException>(() => TsValue.from(default(Union<bool, string>)));
+            Assert.Null(Create("maximumSignificantDigits", TsValue.undefined()).resolvedOptions().maximumSignificantDigits);
+        }
+
+        [Fact]
         public void DecimalIntegerOptionProjectionAddsNoAllocationToEquivalentNativeOptions()
         {
             var native = TsValue.from(new System.Collections.Generic.Dictionary<string, TsValue>
