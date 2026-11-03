@@ -263,7 +263,7 @@ namespace Tsonic.CSharp.Js
             IntlRuntime.EnumOption(options, "trailingZeroDisplay", "auto");
             if ((IntlRuntime.IntegerOption(options, "roundingIncrement", 1, 5000) ?? 1) != 1)
                 throw new RangeError("Intl.NumberFormat supports only roundingIncrement 1.");
-            _useGrouping = options.ReadDynamicSlotOptional("useGrouping").unwrap() switch
+            _useGrouping = TsValue.UnwrapClosedValue(options.ReadDynamicSlotOptional("useGrouping")) switch
             {
                 null => "auto",
                 false => null,
@@ -479,7 +479,7 @@ namespace Tsonic.CSharp.Js
 
         public static void ValidateLocale(TsValue locales)
         {
-            var value = locales.unwrap();
+            var value = TsValue.UnwrapClosedValue(locales);
             switch (value)
             {
                 case null:
@@ -511,7 +511,7 @@ namespace Tsonic.CSharp.Js
 
         public static string? StringOption(TsValue options, string name)
         {
-            var value = options.ReadDynamicSlotOptional(name).unwrap();
+            var value = TsValue.UnwrapClosedValue(options.ReadDynamicSlotOptional(name));
             return value switch
             {
                 null => null,
@@ -532,7 +532,7 @@ namespace Tsonic.CSharp.Js
 
         public static bool? BooleanOption(TsValue options, string name)
         {
-            var value = options.ReadDynamicSlotOptional(name).unwrap();
+            var value = TsValue.UnwrapClosedValue(options.ReadDynamicSlotOptional(name));
             return value switch
             {
                 null => null,
@@ -543,7 +543,7 @@ namespace Tsonic.CSharp.Js
 
         public static int? IntegerOption(TsValue options, string name, int minimum, int maximum)
         {
-            var value = options.ReadDynamicSlotOptional(name).unwrap();
+            var value = TsValue.UnwrapClosedValue(options.ReadDynamicSlotOptional(name));
             if (value is null)
             {
                 return null;
