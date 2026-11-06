@@ -13,7 +13,7 @@ public class RegExp
     private readonly string _pattern;
     private readonly RegExpFlags _flags;
     private readonly EcmaRegExpProgram _program;
-    private double _lastIndex;
+    private int _lastIndex;
 
     public RegExp()
         : this(string.Empty, (string?)null)
@@ -58,7 +58,7 @@ public class RegExp
     public bool unicodeSets => _flags.UnicodeSets;
     public bool sticky => _flags.Sticky;
 
-    public double lastIndex
+    public int lastIndex
     {
         get => _lastIndex;
         set => _lastIndex = value;
@@ -136,7 +136,7 @@ public class RegExp
     {
         ArgumentNullException.ThrowIfNull(input);
         var stateful = global || sticky;
-        var start = stateful ? (int)System.Math.Clamp(NativeInteger.Index(_lastIndex), 0, int.MaxValue) : 0;
+        var start = stateful ? System.Math.Max(_lastIndex, 0) : 0;
         if (start > input.Length)
         {
             if (stateful) _lastIndex = 0;
@@ -173,7 +173,7 @@ public class RegExp
 
     internal void AdvanceAfterEmptyMatch(string input)
     {
-        var current = (int)System.Math.Clamp(NativeInteger.Index(_lastIndex), 0, int.MaxValue);
+        var current = System.Math.Max(_lastIndex, 0);
         _lastIndex = AdvanceStringIndex(input, current, _flags.FullUnicode);
     }
 

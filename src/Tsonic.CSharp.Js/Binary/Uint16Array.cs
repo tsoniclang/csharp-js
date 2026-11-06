@@ -5,7 +5,6 @@ namespace Tsonic.CSharp.Js
 {
     public sealed class Uint16Array : TypedArray<Uint16Array, ushort>
     {
-        public Uint16Array(double length) : base(length) { }
         public Uint16Array(int length) : base(length) { }
         public static Uint16Array From<TSource>(IReadOnlyList<TSource> source)
             where TSource : INumberBase<TSource>
@@ -14,6 +13,13 @@ namespace Tsonic.CSharp.Js
             var result = new Uint16Array(source.Count);
             result.set(source);
             return result;
+        }
+        public static Uint16Array From<TSource>(IEnumerable<TSource> source)
+            where TSource : INumberBase<TSource>
+        {
+            System.ArgumentNullException.ThrowIfNull(source);
+            var values = System.Linq.Enumerable.ToArray(source);
+            return From<TSource>((IReadOnlyList<TSource>)values);
         }
         public static Uint16Array From<TSourceArray, TSource>(TypedArray<TSourceArray, TSource> source)
             where TSourceArray : TypedArray<TSourceArray, TSource>
@@ -24,18 +30,16 @@ namespace Tsonic.CSharp.Js
             result.set(source);
             return result;
         }
-        public void set<TSourceArray, TSource>(TypedArray<TSourceArray, TSource> source, double offset = 0)
+        public void set<TSourceArray, TSource>(TypedArray<TSourceArray, TSource> source, int offset = 0)
             where TSourceArray : TypedArray<TSourceArray, TSource>
             where TSource : unmanaged, INumberBase<TSource>
         {
             System.ArgumentNullException.ThrowIfNull(source);
             TypedArrayCopy.Copy<TSource, ushort>(source.NativeElements, NativeDestination(source.NativeLength, offset));
         }
-        public Uint16Array(IEnumerable<double> values) : base(values) { }
-        public Uint16Array(ArrayBuffer buffer, double byteOffset = 0, double? length = null) : base(buffer, byteOffset, length) { }
+        public Uint16Array(IEnumerable<ushort> values) : base(values) { }
+        public Uint16Array(ArrayBuffer buffer, int byteOffset = 0, int? length = null) : base(buffer, byteOffset, length) { }
         protected override ushort ToElement<T>(T value) => unchecked((ushort)NativeInteger.Bits32(value));
-        protected override double FromElement(ushort value) => value;
-        protected override Uint16Array CreateView(ArrayBuffer buffer, double byteOffset, double length) => new(buffer, byteOffset, length);
-        protected override Uint16Array CreateCopy(IEnumerable<double> values) => new(values);
+        protected override Uint16Array CreateView(ArrayBuffer buffer, int byteOffset, int length) => new(buffer, byteOffset, length);
     }
 }

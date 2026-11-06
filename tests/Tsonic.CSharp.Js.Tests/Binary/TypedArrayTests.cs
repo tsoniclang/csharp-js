@@ -19,7 +19,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.True(doubles.includes(long.MinValue));
             Assert.False(doubles.includes(9007199254740992UL, nuint.MaxValue));
             Assert.Equal(2, doubles.indexOf(long.MinValue, -2));
-            var singles = new Float32Array(new double[] { 16777216, double.PositiveInfinity, double.NegativeInfinity, double.NaN, -0.0 });
+            var singles = Float32Array.From<double>(new double[] { 16777216, double.PositiveInfinity, double.NegativeInfinity, double.NaN, -0.0 });
             Assert.False(singles.includes(16777217UL));
             Assert.False(singles.includes(double.MaxValue));
             Assert.True(singles.includes(double.NaN));
@@ -27,8 +27,8 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(4, singles.indexOf(0));
             Assert.True(singles.includes(double.PositiveInfinity));
             Assert.True(singles.includes(double.NegativeInfinity));
-            var bytes = new Uint8Array(new double[] { 0, 1, 255 });
-            var clamped = new Uint8ClampedArray(new double[] { 0, 1, 255 });
+            var bytes = Uint8Array.From<double>(new double[] { 0, 1, 255 });
+            var clamped = Uint8ClampedArray.From<double>(new double[] { 0, 1, 255 });
             foreach (var query in new[] { -1.0, 0.5, 256.0, double.NaN, double.PositiveInfinity, double.NegativeInfinity })
             {
                 Assert.False(bytes.includes(query));
@@ -58,7 +58,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_Constructor_WithValues_CreatesArray()
         {
-            var arr = new Int8Array(new double[] { 1, 2, 3 });
+            var arr = Int8Array.From<double>(new double[] { 1, 2, 3 });
             Assert.Equal(3, arr.length);
             Assert.Equal(1, arr[0]);
             Assert.Equal(2, arr[1]);
@@ -78,7 +78,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_at_NegativeIndex_CountsFromEnd()
         {
-            var arr = new Int8Array(new double[] { 1, 2, 3 });
+            var arr = Int8Array.From<double>(new double[] { 1, 2, 3 });
             Assert.Equal((sbyte)3, arr.at(-1));
             Assert.Equal((sbyte)2, arr.at(-2));
         }
@@ -94,7 +94,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_slice_CopiesPortion()
         {
-            var arr = new Int8Array(new double[] { 1, 2, 3, 4, 5 });
+            var arr = Int8Array.From<double>(new double[] { 1, 2, 3, 4, 5 });
             var sliced = arr.slice(1, 4);
             Assert.Equal(3, sliced.length);
             Assert.Equal(2, sliced[0]);
@@ -105,7 +105,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_subarray_CopiesPortion()
         {
-            var arr = new Int8Array(new double[] { 1, 2, 3, 4, 5 });
+            var arr = Int8Array.From<double>(new double[] { 1, 2, 3, 4, 5 });
             var sub = arr.subarray(1, 4);
             Assert.Equal(3, sub.length);
             Assert.Equal(2, sub[0]);
@@ -114,7 +114,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_indexOf_FindsValue()
         {
-            var arr = new Int8Array(new double[] { 1, 2, 3, 2, 1 });
+            var arr = Int8Array.From<double>(new double[] { 1, 2, 3, 2, 1 });
             Assert.Equal(1, arr.indexOf(2));
             Assert.Equal(3, arr.indexOf(2, -2));
             Assert.Equal(1, arr.indexOf(2, -99));
@@ -125,7 +125,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_includes_ChecksValue()
         {
-            var arr = new Int8Array(new double[] { 1, 2, 3 });
+            var arr = Int8Array.From<double>(new double[] { 1, 2, 3 });
             Assert.True(arr.includes(2));
             Assert.False(arr.includes(99));
         }
@@ -133,7 +133,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_join_JoinsElements()
         {
-            var arr = new Int8Array(new double[] { 1, 2, 3 });
+            var arr = Int8Array.From<double>(new double[] { 1, 2, 3 });
             Assert.Equal("1,2,3", arr.join());
             Assert.Equal("1-2-3", arr.join("-"));
         }
@@ -141,7 +141,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_reverse_ReversesInPlace()
         {
-            var arr = new Int8Array(new double[] { 1, 2, 3 });
+            var arr = Int8Array.From<double>(new double[] { 1, 2, 3 });
             arr.reverse();
             Assert.Equal(3, arr[0]);
             Assert.Equal(2, arr[1]);
@@ -151,7 +151,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int8Array_sort_SortsInPlace()
         {
-            var arr = new Int8Array(new double[] { 3, 1, 2 });
+            var arr = Int8Array.From<double>(new double[] { 3, 1, 2 });
             arr.sort();
             Assert.Equal(1, arr[0]);
             Assert.Equal(2, arr[1]);
@@ -169,7 +169,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Uint8Array_StoresUnsignedValues()
         {
-            var arr = new Uint8Array(new double[] { 0, 128, 255 });
+            var arr = Uint8Array.From<double>(new double[] { 0, 128, 255 });
             Assert.Equal((byte)0, arr[0]);
             Assert.Equal((byte)128, arr[1]);
             Assert.Equal((byte)255, arr[2]);
@@ -200,7 +200,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int16Array_Stores16BitValues()
         {
-            var arr = new Int16Array(new double[] { -32768, 0, 32767 });
+            var arr = Int16Array.From<double>(new double[] { -32768, 0, 32767 });
             Assert.Equal(-32768, arr[0]);
             Assert.Equal(0, arr[1]);
             Assert.Equal(32767, arr[2]);
@@ -225,7 +225,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Uint16Array_StoresUnsigned16BitValues()
         {
-            var arr = new Uint16Array(new double[] { 0, 32768, 65535 });
+            var arr = Uint16Array.From<double>(new double[] { 0, 32768, 65535 });
             Assert.Equal((ushort)0, arr[0]);
             Assert.Equal((ushort)32768, arr[1]);
             Assert.Equal((ushort)65535, arr[2]);
@@ -242,7 +242,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Int32Array_Stores32BitValues()
         {
-            var arr = new Int32Array(new double[] { int.MinValue, 0, int.MaxValue });
+            var arr = Int32Array.From<double>(new double[] { int.MinValue, 0, int.MaxValue });
             Assert.Equal(int.MinValue, arr[0]);
             Assert.Equal(0, arr[1]);
             Assert.Equal(int.MaxValue, arr[2]);
@@ -267,7 +267,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Uint32Array_StoresUnsigned32BitValues()
         {
-            var arr = new Uint32Array(new double[] { 0, 2147483648, uint.MaxValue });
+            var arr = Uint32Array.From<double>(new double[] { 0, 2147483648, uint.MaxValue });
             Assert.Equal(0u, arr[0]);
             Assert.Equal(2147483648u, arr[1]);
             Assert.Equal(uint.MaxValue, arr[2]);
@@ -284,7 +284,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Float32Array_StoresFloatValues()
         {
-            var arr = new Float32Array(new double[] { 1.5, -2.5, 3.14159 });
+            var arr = Float32Array.From<double>(new double[] { 1.5, -2.5, 3.14159 });
             Assert.Equal(1.5f, arr[0]);
             Assert.Equal(-2.5f, arr[1]);
             Assert.Equal(3.14159f, arr[2], 5);
@@ -312,7 +312,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void FloatArrays_UseStrictEqualityForIndexOfAndSameValueZeroForIncludes()
         {
-            var floats = new Float32Array(new[] { double.NaN, 1.0 });
+            var floats = Float32Array.From<double>(new[] { double.NaN, 1.0 });
             Assert.Equal(-1, floats.indexOf(float.NaN));
             Assert.True(floats.includes(float.NaN));
 
@@ -334,7 +334,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void TypedArray_IsEnumerable()
         {
-            var arr = new Int32Array(new double[] { 1, 2, 3 });
+            var arr = Int32Array.From<double>(new double[] { 1, 2, 3 });
             var sum = arr.Sum();
             Assert.Equal(6, sum);
         }
@@ -342,7 +342,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void TypedArray_ForEach_Works()
         {
-            var arr = new Int32Array(new double[] { 1, 2, 3 });
+            var arr = Int32Array.From<double>(new double[] { 1, 2, 3 });
             var count = 0;
             foreach (var v in arr) count++;
             Assert.Equal(3, count);

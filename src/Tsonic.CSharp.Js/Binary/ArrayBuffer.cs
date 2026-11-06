@@ -19,12 +19,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Create ArrayBuffer with specified byte length
         /// </summary>
-        public ArrayBuffer(double byteLength)
-            : this(NativeInteger.IndexLength(byteLength))
-        {
-        }
-
-        internal ArrayBuffer(int byteLength)
+        public ArrayBuffer(int byteLength)
         {
             if (byteLength < 0) throw new RangeError("ArrayBuffer length must be non-negative.");
             _buffer = new byte[byteLength];
@@ -40,7 +35,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Create new ArrayBuffer containing a copy of bytes from begin to end
         /// </summary>
-        public ArrayBuffer slice(double begin = 0, double? end = null)
+        public ArrayBuffer slice(int begin = 0, int? end = null)
         {
             var start = NormalizeIndex(begin);
             var finish = NormalizeIndex(end ?? _buffer.Length);
@@ -51,10 +46,9 @@ namespace Tsonic.CSharp.Js
             return result;
         }
 
-        private int NormalizeIndex(double value)
+        private int NormalizeIndex(int value)
         {
-            var integer = NativeInteger.Index(value);
-            var resolved = integer < 0 ? _buffer.Length + integer : integer;
+            var resolved = value < 0 ? (long)_buffer.Length + value : value;
             return checked((int)System.Math.Clamp(resolved, 0, _buffer.Length));
         }
     }

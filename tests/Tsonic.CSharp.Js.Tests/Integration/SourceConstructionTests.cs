@@ -18,7 +18,7 @@ public class SourceConstructionTests
         var identities = new HashSet<EmptyObject> { first };
         Assert.Contains(alias, identities);
         Assert.DoesNotContain(second, identities);
-        var values = JSArrayStatics.withLength<EmptyObject>(3d);
+        var values = JSArrayStatics.withLength<EmptyObject>(3);
         var visits = 0;
         values.forEach(value => { Assert.Null(value); visits++; });
         Assert.Equal(3, visits);
@@ -30,13 +30,21 @@ public class SourceConstructionTests
 
     [Theory]
     [InlineData(-1)]
-    [InlineData(1.5)]
-    [InlineData(double.NaN)]
-    [InlineData(double.PositiveInfinity)]
-    [InlineData(4294967296d)]
-    public void LengthValidationPrecedesIntegerNarrowing(double length)
+    [InlineData(int.MinValue)]
+    public void NativeLengthRejectsNegativeCounts(int length)
     {
         Assert.Throws<RangeError>(() => JSArrayStatics.withLength<EmptyObject>(length));
         Assert.Throws<RangeError>(() => new JSArray<EmptyObject>(length));
+    }
+
+    [Fact]
+    public void ArrayLengthHasOnlyTheNativeIntegerApi()
+    {
+        Assert.Null(typeof(JSArray<EmptyObject>).GetConstructor(new[] { typeof(double) }));
+        var factory = typeof(JSArrayStatics).GetMethod("withLength");
+        Assert.NotNull(factory);
+        Assert.Equal(typeof(int), Assert.Single(factory.GetParameters()).ParameterType);
+        Assert.DoesNotContain(typeof(JSArray<EmptyObject>).GetMethods(), method =>
+            method.Name == "setLength" && Assert.Single(method.GetParameters()).ParameterType == typeof(double));
     }
 }

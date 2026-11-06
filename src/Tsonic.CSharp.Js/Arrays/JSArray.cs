@@ -42,11 +42,6 @@ namespace Tsonic.CSharp.Js
             AddDefaults(length);
         }
 
-        public JSArray(double length)
-            : this(ToArrayLength(length))
-        {
-        }
-
         internal static JSArray<T> createWithCapacity(int capacity)
         {
             return new JSArray<T>(capacity, false);
@@ -146,7 +141,9 @@ namespace Tsonic.CSharp.Js
 
         int IArrayLike<T>.Length => length;
 
-        bool IArrayLike<T>.TryGet(double index, out T value) => tryGetAt(index, out value);
+        bool IArrayLike<T>.TryGet(int index, out T value) => tryGetAt(index, out value);
+
+        bool IArrayLike<T>.TryGetNumericProperty(double key, out T value) => tryGetAt(key, out value);
 
         public bool trySetAtObject(int index, object? value)
         {
@@ -567,31 +564,6 @@ namespace Tsonic.CSharp.Js
         }
 
         // ==================== Advanced Methods ====================
-
-        /// <summary>
-        /// Get element at index (supports negative indices)
-        /// </summary>
-        public object? at(int index)
-        {
-            int actualIndex = index < 0 ? _values.Count + index : index;
-            if (actualIndex < 0 || actualIndex >= _values.Count)
-            {
-                return null;
-            }
-            return IsPresent(actualIndex) ? _values[actualIndex] : null;
-        }
-
-        public TValue? atValue<TValue>(int index) where TValue : struct
-        {
-            object? value = at(index);
-            return value is null ? null : (TValue)value;
-        }
-
-        public TReference? atReference<TReference>(int index) where TReference : class
-        {
-            object? value = at(index);
-            return value as TReference;
-        }
 
         /// <summary>
         /// Flatten nested arrays by specified depth

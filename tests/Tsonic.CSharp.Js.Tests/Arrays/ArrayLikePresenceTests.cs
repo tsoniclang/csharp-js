@@ -10,9 +10,9 @@ public sealed class ArrayLikePresenceTests
     public void HasIndexUsesTheOriginalOrdinaryAndTypedViews()
     {
         var ordinary = new JSArray<double>(new double[] { 0, 2, 3 });
-        var typed = new Uint8Array(new double[] { 0, 2, 3 });
+        var typed = Uint8Array.From<double>(new double[] { 0, 2, 3 });
         IArrayLike<double> ordinaryView = ordinary;
-        IArrayLike<double> typedView = typed;
+        IArrayLike<byte> typedView = typed;
 
         Assert.True(ArrayLike.HasIndex(0, ordinaryView));
         Assert.True(ArrayLike.HasIndex(0, typedView));
@@ -22,8 +22,8 @@ public sealed class ArrayLikePresenceTests
         Assert.False(ArrayLike.HasIndex(3, typedView));
         ordinary[2] = 7;
         typed[2] = 9;
-        Assert.Equal(7, ArrayLike.ReadNumber(ordinaryView, 2));
-        Assert.Equal(9, ArrayLike.ReadNumber(typedView, 2));
+        Assert.Equal(7, ArrayLike.ReadValue(ordinaryView, 2));
+        Assert.Equal(9, ArrayLike.ReadValue(typedView, 2));
         Assert.Equal(3, ordinaryView.Length);
         Assert.Equal(3, typedView.Length);
     }
@@ -48,7 +48,7 @@ public sealed class ArrayLikePresenceTests
         Assert.False(ArrayLike.HasIndex((double)long.MaxValue, view));
         Assert.False(ArrayLike.HasIndex((double)ulong.MaxValue, view));
         Assert.Equal(3, view.Length);
-        IArrayLike<double> typed = new Uint8Array(new double[] { 0, 2, 3 });
+        IArrayLike<byte> typed = Uint8Array.From<double>(new double[] { 0, 2, 3 });
         Assert.False(ArrayLike.HasIndex(-1, typed));
         Assert.False(ArrayLike.HasIndex(double.NaN, typed));
         Assert.False(ArrayLike.HasIndex(0.5, typed));
@@ -59,8 +59,10 @@ public sealed class ArrayLikePresenceTests
     public void HasIndexAllocatesExactlyTheNativePresenceQuery()
     {
         IArrayLike<double> ordinary = new JSArray<double>(new double[] { 0, 2, 3 });
-        IArrayLike<double> typed = new Uint8Array(new double[] { 0, 2, 3 });
-        foreach (var source in new[] { ordinary, typed })
+        IArrayLike<byte> typed = Uint8Array.From<double>(new double[] { 0, 2, 3 });
+        Check(ordinary);
+        Check(typed);
+        static void Check<T>(IArrayLike<T> source)
         {
             for (var index = 0; index < 16384; index++)
             {
@@ -85,8 +87,8 @@ public sealed class ArrayLikePresenceTests
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool Selected(IArrayLike<double> source, double index) => ArrayLike.HasIndex(index, source);
+    private static bool Selected<T>(IArrayLike<T> source, double index) => ArrayLike.HasIndex(index, source);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool Native(IArrayLike<double> source, double index) => source.TryGet(index, out _);
+    private static bool Native<T>(IArrayLike<T> source, double index) => source.TryGetNumericProperty(index, out _);
 }

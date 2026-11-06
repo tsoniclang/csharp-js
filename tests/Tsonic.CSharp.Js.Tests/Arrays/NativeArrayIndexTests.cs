@@ -10,8 +10,10 @@ public sealed class NativeArrayIndexTests
     public void NativeIntegerMembershipUsesTheOriginalOrdinaryAndTypedViews()
     {
         var original = new JSArray<double>(new double[] { 0, 7, 9 });
-        var typed = new Uint8Array(new double[] { 0, 7, 9 });
-        foreach (var view in new IArrayLike<double>[] { original, typed })
+        var typed = Uint8Array.From<double>(new double[] { 0, 7, 9 });
+        Check(original);
+        Check(typed);
+        static void Check<T>(IArrayLike<T> view)
         {
             Assert.True(ArrayLike.HasIndex((char)1, view));
             Assert.True(ArrayLike.HasIndex((sbyte)1, view));
@@ -36,8 +38,8 @@ public sealed class NativeArrayIndexTests
         }
         original[1] = 17;
         typed[1] = 19;
-        Assert.Equal(17, ArrayLike.ReadNumber(original, 1));
-        Assert.Equal(19, ArrayLike.ReadNumber(typed, 1));
+        Assert.Equal(17, ArrayLike.ReadValue(original, 1));
+        Assert.Equal(19, ArrayLike.ReadValue(typed, 1));
         var refusal = Assert.Throws<TypeError>(() => original.deleteAt(1));
         Assert.Equal("Deleting a dense array element would create a hole; use splice", refusal.Message);
         Assert.True(ArrayLike.HasIndex(1L, original));
@@ -63,7 +65,7 @@ public sealed class NativeArrayIndexTests
         Assert.False(ArrayLike.HasIndex(-9007199254740993L, view));
         Assert.True(ArrayLike.HasIndex(Int128.MinValue, view));
         Assert.False(ArrayLike.HasIndex(Int128.MinValue + 1, view));
-        IArrayLike<double> typed = new Uint8Array(new double[] { 0, 7 });
+        IArrayLike<byte> typed = Uint8Array.From<double>(new double[] { 0, 7 });
         Assert.False(ArrayLike.HasIndex(-1L, typed));
         Assert.False(ArrayLike.HasIndex(Int128.MinValue, typed));
         Assert.Equal(2, original.length);
@@ -75,8 +77,9 @@ public sealed class NativeArrayIndexTests
     [Fact]
     public void NativeIntegerPresenceAllocatesExactlyTheHandwrittenBoundedRead()
     {
-        foreach (var source in new IArrayLike<double>[] {
-            new JSArray<double>(new double[] { 0, 7 }), new Uint8Array(new double[] { 0, 7 }) })
+        Check(new JSArray<double>(new double[] { 0, 7 }));
+        Check(Uint8Array.From<double>(new double[] { 0, 7 }));
+        static void Check<T>(IArrayLike<T> source)
         {
             for (var index = 0; index < 16384; index++)
             {
@@ -99,9 +102,9 @@ public sealed class NativeArrayIndexTests
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool Selected(IArrayLike<double> source, long index) => ArrayLike.HasIndex(index, source);
+    private static bool Selected<T>(IArrayLike<T> source, long index) => ArrayLike.HasIndex(index, source);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool Native(IArrayLike<double> source, long index) =>
+    private static bool Native<T>(IArrayLike<T> source, long index) =>
         index >= 0 && index < source.Length && source.TryGet((int)index, out _);
 }

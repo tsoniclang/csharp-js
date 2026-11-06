@@ -80,7 +80,7 @@ namespace Tsonic.CSharp.Js
             return JSArray<T>.of(items);
         }
 
-        public static JSArray<T> withLength<T>(double length)
+        public static JSArray<T> withLength<T>(int length)
         {
             return new JSArray<T>(length);
         }

@@ -14,3 +14,15 @@ The npm package contains C# source and the native project exported as
 `@tsonic/csharp-js/runtime.csproj`. MSBuild compiles it and its core-runtime
 dependency for the application's selected framework.
 Compiler-intrinsic carriers remain owned by `@tsonic/csharp-runtime`.
+
+Source-declared native counts, lengths, offsets and indexes use `int`; typed-array elements
+retain their actual native integer or floating type. DataView getters return
+their corresponding native widths without a `double` transport.
+
+`charCodeAt` returns an `int` UTF-16 code unit. An out-of-range index throws
+the native index exception; JavaScript returns NaN instead.
+
+The Source `Array.at` operation uses directly constrained value-type and
+reference-type implementations. Missing value-type elements are native nullable
+values, not boxed objects or initialized zeroes. The unconstrained `object?`
+and instance adapter APIs are not exposed.

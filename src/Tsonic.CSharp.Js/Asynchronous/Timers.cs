@@ -135,21 +135,6 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        private static int NormalizeDelay(double delayMs)
-        {
-            if (double.IsNaN(delayMs) || double.IsInfinity(delayMs) || delayMs < 0)
-            {
-                return 0;
-            }
-
-            if (delayMs > int.MaxValue)
-            {
-                return int.MaxValue;
-            }
-
-            return (int)System.Math.Truncate(delayMs);
-        }
-
         private static bool TryNormalizeTimerId<T>(T id, out int timerId) where T : INumberBase<T>
         {
             if (!T.IsInteger(id))
@@ -175,10 +160,10 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static int setTimeout(
             TimerCallback callback,
-            double delayMs = 0,
+            int delayMs = 0,
             params object?[] arguments)
         {
-            return Schedule(callback, NormalizeDelay(delayMs), arguments, Timeout.Infinite);
+            return Schedule(callback, System.Math.Max(0, delayMs), arguments, Timeout.Infinite);
         }
 
         /// <summary>
@@ -202,10 +187,10 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public static int setInterval(
             TimerCallback callback,
-            double intervalMs = 0,
+            int intervalMs = 0,
             params object?[] arguments)
         {
-            var normalizedInterval = System.Math.Max(1, NormalizeDelay(intervalMs));
+            var normalizedInterval = System.Math.Max(1, intervalMs);
             return Schedule(callback, normalizedInterval, arguments, normalizedInterval);
         }
 

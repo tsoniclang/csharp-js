@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Xunit;
 
 namespace Tsonic.CSharp.Js.Tests;
@@ -53,13 +54,17 @@ public sealed class NativeNumericBoundaryTests
             Assert.Equal(length, "a,b,c".split(",", limit).Count);
             Assert.Equal(length, "a,b,c".split(expression, limit).Count);
         }
-        foreach (var invalid in new[] { -1d, double.PositiveInfinity, (double)int.MaxValue + 1 })
+        foreach (var invalid in new[] { -1 })
         {
             Assert.Throws<RangeError>(() => new ArrayBuffer(invalid));
             Assert.Throws<RangeError>(() => new Uint8Array(invalid));
         }
-        Assert.Equal(0, new ArrayBuffer(double.NaN).byteLength);
-        Assert.Equal(1, new Uint8Array(1.9).length);
+        Assert.Equal(0, new ArrayBuffer(0).byteLength);
+        Assert.Equal(1, new Uint8Array(1).length);
+        Assert.DoesNotContain(typeof(ArrayBuffer).GetConstructors(), constructor =>
+            constructor.GetParameters().Any(parameter => parameter.ParameterType == typeof(double)));
+        Assert.DoesNotContain(typeof(Uint8Array).GetConstructors(), constructor =>
+            constructor.GetParameters().Any(parameter => parameter.ParameterType == typeof(double)));
     }
 
     [Fact]

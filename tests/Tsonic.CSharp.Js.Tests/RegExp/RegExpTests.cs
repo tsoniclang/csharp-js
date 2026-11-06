@@ -87,7 +87,7 @@ public sealed class RegExpTests
             if (operation.LastIndex is not null) expression.lastIndex = operation.LastIndex.Value;
             var expected = oracle.GetProperty("observations")[0];
             AssertMatchEqual(expected.GetProperty("result"), expression.exec(operation.Input));
-            Assert.Equal(expected.GetProperty("lastIndex").GetDouble(), expression.lastIndex);
+            Assert.Equal(expected.GetProperty("lastIndex").GetInt32(), expression.lastIndex);
         }
     }
 
@@ -231,7 +231,7 @@ public sealed class RegExpTests
         params OracleOperation[] operations) =>
         new(id, pattern, flags, operations);
 
-    private static OracleOperation Exec(string input, double? lastIndex = null) =>
+    private static OracleOperation Exec(string input, int? lastIndex = null) =>
         new("exec", input, lastIndex);
 
     private static JsonElement RunNodeOracle(OracleTestCase testCase)
@@ -315,7 +315,7 @@ public sealed class RegExpTests
     private sealed record OracleOperation(
         string Kind,
         string Input,
-        double? LastIndex);
+        int? LastIndex);
 
     private sealed record ReplacementObservation(
         string Whole,

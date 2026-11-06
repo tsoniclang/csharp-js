@@ -70,10 +70,10 @@ public class JSArrayNumericPropertyTests
         Assert.False(values.hasIndex(1));
         Assert.True(ArrayLike.HasIndex(-1, values));
         Assert.True(ArrayLike.HasIndex(double.NaN, values));
-        Assert.Equal(3, ArrayLike.ReadNumber(values, -1));
-        Assert.Equal(4, ArrayLike.ReadNumber(values, 1.5));
-        Assert.Equal(5, ArrayLike.ReadNumber(values, double.NaN));
-        Assert.Null(ArrayLike.ReadNumber(values, 1));
+        Assert.Equal(3, ArrayLike.ReadValue(values, -1));
+        Assert.Equal(4, ArrayLike.ReadNumericProperty(values, 1.5));
+        Assert.Equal(5, ArrayLike.ReadNumericProperty(values, double.NaN));
+        Assert.Null(ArrayLike.ReadValue(values, 1));
         Assert.Equal(new[] { "0", "-1", "1.5", "NaN", "Infinity" }, Object.keys(values).ToArray());
         Assert.True(Object.hasOwn(values, "length"));
         Assert.False(Object.hasOwn(values, "-0"));
@@ -101,7 +101,7 @@ public class JSArrayNumericPropertyTests
         values[1.5] = 10;
         Assert.Equal(new[] { "-2", "1.5" }, Object.keys(alias).ToArray());
         values[0] = 1;
-        values.setLength(0d);
+        values.setLength(0);
         Assert.Equal(10, alias[1.5]);
         Assert.Equal(0, values.length);
         Assert.False(values.hasIndex(0));
@@ -137,8 +137,8 @@ public class JSArrayNumericPropertyTests
     {
         var values = new JSArray<int>();
         Assert.Throws<RangeError>(() => values[index] = 1);
-        Assert.Throws<RangeError>(() => values.setLength(1.5));
-        Assert.Throws<RangeError>(() => values.setLength(double.NaN));
+        Assert.Throws<ArgumentException>(() => values.setLength(-1));
+        Assert.Throws<RangeError>(() => ((IDynamicObject)values).WriteDynamicSlot("length", double.NaN));
         Assert.Equal(0, values.length);
         Assert.False(values.hasIndex(index));
         Assert.True(values.deleteAt(index));

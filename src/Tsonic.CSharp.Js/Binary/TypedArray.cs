@@ -7,17 +7,12 @@ using System.Runtime.InteropServices;
 
 namespace Tsonic.CSharp.Js
 {
-    public abstract class TypedArray<TArray, TElement> : IEnumerable<TElement>, IArrayLike<double>
+    public abstract class TypedArray<TArray, TElement> : IEnumerable<TElement>, IArrayLike<TElement>
         where TArray : TypedArray<TArray, TElement>
         where TElement : unmanaged, INumberBase<TElement>
     {
         private readonly ArrayBuffer _buffer;
         private readonly int _byteOffset;
-
-        protected TypedArray(double length)
-            : this(CheckedLength(length))
-        {
-        }
 
         protected TypedArray(int length)
         {
@@ -27,7 +22,7 @@ namespace Tsonic.CSharp.Js
             ElementCount = length;
         }
 
-        protected TypedArray(IEnumerable<double> values)
+        protected TypedArray(IEnumerable<TElement> values)
         {
             ArgumentNullException.ThrowIfNull(values);
             var elements = values.ToArray();
@@ -36,11 +31,11 @@ namespace Tsonic.CSharp.Js
             ElementCount = elements.Length;
             for (var index = 0; index < elements.Length; index++)
             {
-                Elements[index] = ToElement(elements[index]);
+                Elements[index] = elements[index];
             }
         }
 
-        protected TypedArray(ArrayBuffer buffer, double byteOffset = 0, double? length = null)
+        protected TypedArray(ArrayBuffer buffer, int byteOffset = 0, int? length = null)
         {
             ArgumentNullException.ThrowIfNull(buffer);
             var offset = CheckedLength(byteOffset);
@@ -72,7 +67,7 @@ namespace Tsonic.CSharp.Js
 
         internal int NativeLength => ElementCount;
 
-        protected Span<TElement> NativeDestination(int sourceLength, double offset)
+        protected Span<TElement> NativeDestination(int sourceLength, int offset)
         {
             var selectedOffset = CheckedLength(offset);
             if (selectedOffset > ElementCount || sourceLength > ElementCount - selectedOffset)
@@ -88,23 +83,30 @@ namespace Tsonic.CSharp.Js
 
         public int length => ElementCount;
 
-        int IArrayLike<double>.Length => length;
+        int IArrayLike<TElement>.Length => length;
 
-        bool IArrayLike<double>.TryGet(double index, out double value)
+        bool IArrayLike<TElement>.TryGet(int index, out TElement value)
         {
-            var selected = ElementIndex(index);
-            value = selected < 0 ? default : FromElement(Elements[selected]);
+            var present = index >= 0 && index < ElementCount;
+            value = present ? Elements[index] : default;
+            return present;
+        }
+
+        bool IArrayLike<TElement>.TryGetNumericProperty(double key, out TElement value)
+        {
+            var selected = ElementIndex(key);
+            value = selected < 0 ? default : Elements[selected];
             return selected >= 0;
         }
 
         public int BYTES_PER_ELEMENT => ElementSize;
 
-        public double this[double index]
+        public TElement this[int index]
         {
             get
             {
                 var selected = ElementIndex(index);
-                return selected < 0 ? 0 : FromElement(Elements[selected]);
+                return selected < 0 ? default : Elements[selected];
             }
             set
             {
@@ -138,9 +140,9 @@ namespace Tsonic.CSharp.Js
             return prefix ? after : before;
         }
 
-        public TElement? at(double index)
+        public TElement? at(int index)
         {
-            var selected = NativeInteger.Index(index);
+            var selected = (long)index;
             if (selected < 0)
             {
                 selected += ElementCount;
@@ -150,14 +152,14 @@ namespace Tsonic.CSharp.Js
                 : Elements[checked((int)selected)];
         }
 
-        public TArray fill<TValue>(TValue value, double start = 0, double? end = null) where TValue : INumberBase<TValue>
+        public TArray fill<TValue>(TValue value, int start = 0, int? end = null) where TValue : INumberBase<TValue>
         {
             var range = NormalizeRange(start, end);
             Elements[range.Start..range.End].Fill(ToElement(value));
             return (TArray)this;
         }
 
-        public void set(IEnumerable<double> source, double offset = 0)
+        public void set(IEnumerable<TElement> source, int offset = 0)
         {
             ArgumentNullException.ThrowIfNull(source);
             var selectedOffset = CheckedLength(offset);
@@ -174,11 +176,11 @@ namespace Tsonic.CSharp.Js
 
             for (var index = 0; index < values.Length; index++)
             {
-                Elements[selectedOffset + index] = ToElement(values[index]);
+                Elements[selectedOffset + index] = values[index];
             }
         }
 
-        public void set<TSource>(IReadOnlyList<TSource> source, double offset = 0)
+        public void set<TSource>(IReadOnlyList<TSource> source, int offset = 0)
             where TSource : INumberBase<TSource>
         {
             ArgumentNullException.ThrowIfNull(source);
@@ -205,7 +207,7 @@ namespace Tsonic.CSharp.Js
                 destination[index] = ToElement(source[index]);
         }
 
-        public TArray subarray(double begin = 0, double? end = null)
+        public TArray subarray(int begin = 0, int? end = null)
         {
             var range = NormalizeRange(begin, end);
             return CreateView(
@@ -214,7 +216,7 @@ namespace Tsonic.CSharp.Js
                 range.End - range.Start);
         }
 
-        public TArray slice(double begin = 0, double? end = null)
+        public TArray slice(int begin = 0, int? end = null)
         {
             var range = NormalizeRange(begin, end);
             var count = range.End - range.Start;
@@ -298,18 +300,14 @@ namespace Tsonic.CSharp.Js
 
         protected abstract TElement ToElement<TValue>(TValue value) where TValue : INumberBase<TValue>;
 
-        protected abstract double FromElement(TElement value);
-
-        protected abstract TArray CreateView(ArrayBuffer buffer, double byteOffset, double length);
-
-        protected abstract TArray CreateCopy(IEnumerable<double> values);
+        protected abstract TArray CreateView(ArrayBuffer buffer, int byteOffset, int length);
 
         protected ReadOnlyMemory<byte> ByteMemory => _buffer.Bytes.AsMemory(_byteOffset, checked(ElementCount * ElementSize));
 
         private Span<TElement> Elements => MemoryMarshal.Cast<byte, TElement>(
             _buffer.Bytes.AsSpan(_byteOffset, checked(ElementCount * ElementSize)));
 
-        private (int Start, int End) NormalizeRange(double start, double? end)
+        private (int Start, int End) NormalizeRange(int start, int? end)
         {
             var selectedStart = NormalizeStart(start);
             var selectedEnd = NormalizeStart(end ?? ElementCount);
@@ -332,9 +330,10 @@ namespace Tsonic.CSharp.Js
             return selected < ElementCount ? selected : -1;
         }
 
-        protected static int CheckedLength(double value)
+        protected static int CheckedLength(int value)
         {
-            return NativeInteger.IndexLength(value);
+            if (value < 0) throw new RangeError("Typed array offset or length must be non-negative.");
+            return value;
         }
     }
 

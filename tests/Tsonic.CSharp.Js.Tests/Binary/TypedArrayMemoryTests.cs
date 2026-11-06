@@ -9,7 +9,7 @@ public class TypedArrayMemoryTests
     [Fact]
     public void Uint8ArrayMemoryPreservesTheExactAliasedView()
     {
-        var source = new Uint8Array(new double[] { 9, 0, 255, 42, 9 });
+        var source = Uint8Array.From<double>(new double[] { 9, 0, 255, 42, 9 });
         var view = new Uint8Array(source.buffer, 1, 3);
         var memory = view.AsMemory();
         source[3] = 43;

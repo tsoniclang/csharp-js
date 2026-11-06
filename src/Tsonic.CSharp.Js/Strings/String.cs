@@ -287,14 +287,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Get character code at index.
         /// </summary>
-        public static double charCodeAt(this string str, int index)
-        {
-            if (index < 0 || index >= str.Length)
-            {
-                return double.NaN;
-            }
-            return str[index];
-        }
+        public static int charCodeAt(this string str, int index) => str[index];
 
         /// <summary>
         /// Split string into array

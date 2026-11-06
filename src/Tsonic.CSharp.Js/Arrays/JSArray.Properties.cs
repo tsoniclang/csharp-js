@@ -61,8 +61,6 @@ public partial class JSArray<T>
         return true;
     }
 
-    public int setLength(double value) => setLength(ToArrayLength(value));
-
     bool IDynamicArray.HasOwn(string key) =>
         key == "length" || TryNumericKey(key, out var index) && hasIndex(index);
 
@@ -108,7 +106,7 @@ public partial class JSArray<T>
             if (value is TsValue wrapped) value = wrapped.unwrap();
             if (value is System.Numerics.BigInteger)
                 throw new TypeError("Array length cannot be a BigInt");
-            setLength(Globals.Number(value));
+            setLength(ToArrayLength(Globals.Number(value)));
             return;
         }
         if (!TryNumericKey(key, out var index))

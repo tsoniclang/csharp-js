@@ -84,7 +84,7 @@ public class NativePerformanceTests
     [Fact]
     public void TypedArrayBulkCopyPreservesOverlappingViews()
     {
-        var values = new Uint8Array(new double[] { 1, 2, 3, 4, 5 });
+        var values = Uint8Array.From<double>(new double[] { 1, 2, 3, 4, 5 });
         values.set(values.subarray(0, 4), 1);
         Assert.Equal(new byte[] { 1, 1, 2, 3, 4 }, values.ToArray());
         var selected = values.subarray(1, 4);

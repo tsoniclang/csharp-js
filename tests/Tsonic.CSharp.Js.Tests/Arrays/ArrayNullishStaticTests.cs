@@ -11,23 +11,23 @@ namespace Tsonic.CSharp.Js.Tests
         public void at_PositiveIndex_ReturnsElement()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            Assert.Equal(2, arr.at(1));
+            Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
         }
 
         [Fact]
         public void at_NegativeIndex_CountsFromEnd()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            Assert.Equal(3, arr.at(-1));
-            Assert.Equal(2, arr.at(-2));
+            Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
+            Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, -2));
         }
 
         [Fact]
         public void at_OutOfBounds_ReturnsNullishCarrier()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            Assert.Same(TsValue.undefined().unwrap(), arr.at(3));
-            Assert.Same(TsValue.undefined().unwrap(), arr.at(-4));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atValue(arr, 3));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atValue(arr, -4));
         }
 
         [Fact]
@@ -35,20 +35,20 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var arr = new JSArray<object?>(new object?[] { TsValue.undefined().unwrap(), null });
 
-            Assert.Same(TsValue.undefined().unwrap(), arr.at(0));
-            Assert.Null(arr.at(1));
-            Assert.Null(arr.atReference<object>(0));
-            Assert.Null(arr.atReference<object>(1));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atReference(arr, 0));
+            Assert.Null(Tsonic.CSharp.Js.Array.atReference(arr, 1));
+            Assert.Null(Tsonic.CSharp.Js.Array.atReference(arr, 0));
+            Assert.Null(Tsonic.CSharp.Js.Array.atReference(arr, 1));
         }
 
         [Fact]
         public void StaticAt_ReturnsElementOrNullishCarrier()
         {
             var arr = new List<int> { 1, 2, 3 };
-            Assert.Equal(2, Tsonic.CSharp.Js.Array.at(arr, 1));
-            Assert.Equal(3, Tsonic.CSharp.Js.Array.at(arr, -1));
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(arr, 3));
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(arr, -4));
+            Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
+            Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atValue(arr, 3));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atValue(arr, -4));
             Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
             Assert.Null(Tsonic.CSharp.Js.Array.atValue(arr, 3));
@@ -59,27 +59,17 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void StaticAt_DoubleIndexes_FollowJsIntegerConversion()
+        public void StaticAt_HasOnlyConstrainedNativeIntegerEndpoints()
         {
-            var numbers = new List<int> { 10, 20, 30 };
-            Assert.Equal(10, Tsonic.CSharp.Js.Array.at(numbers, double.NaN));
-            Assert.Equal(20, Tsonic.CSharp.Js.Array.at(numbers, 1.8));
-            Assert.Equal(30, Tsonic.CSharp.Js.Array.at(numbers, -1.8));
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(numbers, double.PositiveInfinity));
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(numbers, double.NegativeInfinity));
-            Assert.Equal(10, Tsonic.CSharp.Js.Array.atValue(numbers, double.NaN));
-            Assert.Equal(20, Tsonic.CSharp.Js.Array.atValue(numbers, 1.8));
-            Assert.Null(Tsonic.CSharp.Js.Array.atValue(numbers, double.PositiveInfinity));
-
-            var strings = new List<string> { "a", "b", "c" };
-            Assert.Equal("a", Tsonic.CSharp.Js.Array.atReference(strings, double.NaN));
-            Assert.Equal("b", Tsonic.CSharp.Js.Array.atReference(strings, 1.8));
-            Assert.Null(Tsonic.CSharp.Js.Array.atReference(strings, double.NegativeInfinity));
-
-            var values = new JSArray<object?>(new object?[] { TsValue.undefined().unwrap(), "present" });
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(values, double.NaN));
-            Assert.Equal("present", Tsonic.CSharp.Js.Array.at(values, 1.8));
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.at(values, double.PositiveInfinity));
+            var endpoints = typeof(Tsonic.CSharp.Js.Array).GetMethods()
+                .Where(method => method.Name is "atValue" or "atReference").ToArray();
+            Assert.Equal(4, endpoints.Length);
+            foreach (var endpoint in endpoints)
+                Assert.Equal(typeof(int), endpoint.GetParameters()[1].ParameterType);
+            Assert.DoesNotContain(typeof(Tsonic.CSharp.Js.Array).GetMethods(), method => method.Name == "at");
+            Assert.DoesNotContain(typeof(JSArray<int>).GetMethods(), method => method.Name is "at" or "atValue" or "atReference");
+            Assert.Null(Tsonic.CSharp.Js.Array.atValue(new List<int> { 0 }, int.MinValue));
+            Assert.Equal(0, Tsonic.CSharp.Js.Array.atValue(new List<int> { 0 }, 0));
         }
 
         [Fact]

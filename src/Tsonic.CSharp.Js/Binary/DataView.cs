@@ -8,7 +8,7 @@ namespace Tsonic.CSharp.Js
     {
         private readonly int _byteOffset;
 
-        public DataView(ArrayBuffer buffer, double byteOffset = 0, double? byteLength = null)
+        public DataView(ArrayBuffer buffer, int byteOffset = 0, int? byteLength = null)
         {
             ArgumentNullException.ThrowIfNull(buffer);
             var offset = CheckedIndex(byteOffset);
@@ -102,18 +102,20 @@ namespace Tsonic.CSharp.Js
             else BinaryPrimitives.WriteUInt32BigEndian(span, converted);
         }
 
-        public void setFloat32<TIndex>(TIndex offset, double value, bool littleEndian = false) where TIndex : INumberBase<TIndex>
+        public void setFloat32<TIndex, TValue>(TIndex offset, TValue value, bool littleEndian = false)
+            where TIndex : INumberBase<TIndex> where TValue : INumberBase<TValue>
         {
             var span = Writable(offset, 4);
-            var bits = BitConverter.SingleToInt32Bits((float)value);
+            var bits = BitConverter.SingleToInt32Bits(float.CreateTruncating(value));
             if (littleEndian) BinaryPrimitives.WriteInt32LittleEndian(span, bits);
             else BinaryPrimitives.WriteInt32BigEndian(span, bits);
         }
 
-        public void setFloat64<TIndex>(TIndex offset, double value, bool littleEndian = false) where TIndex : INumberBase<TIndex>
+        public void setFloat64<TIndex, TValue>(TIndex offset, TValue value, bool littleEndian = false)
+            where TIndex : INumberBase<TIndex> where TValue : INumberBase<TValue>
         {
             var span = Writable(offset, 8);
-            var bits = BitConverter.DoubleToInt64Bits(value);
+            var bits = BitConverter.DoubleToInt64Bits(double.CreateTruncating(value));
             if (littleEndian) BinaryPrimitives.WriteInt64LittleEndian(span, bits);
             else BinaryPrimitives.WriteInt64BigEndian(span, bits);
         }

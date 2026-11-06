@@ -21,7 +21,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(new[] { 0, 0, 0 }, values.ToArray());
             Assert.True(values.hasIndex(0) && values.hasIndex(1) && values.hasIndex(2));
             Assert.Equal("0|0|0", values.join("|"));
-            var references = new JSArray<string?>(2.0);
+            var references = new JSArray<string?>(2);
             Assert.Equal(2, references.length);
             Assert.True(references.hasIndex(0));
             Assert.Null(references[0]);
@@ -195,8 +195,8 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(0, values.indexOf(null));
             Assert.True(Tsonic.CSharp.Js.Array.includes(values, TsValue.undefined().unwrap()));
             Assert.Equal(0, Tsonic.CSharp.Js.Array.indexOf(values, TsValue.undefined().unwrap()));
-            Assert.Null(values.at(0));
-            Assert.Same(TsValue.undefined().unwrap(), values.at(1));
+            Assert.Null(Tsonic.CSharp.Js.Array.atReference(values, 0));
+            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atReference(values, 1));
             Assert.True(values.hasIndex(0) && values.hasIndex(1));
             Assert.Throws<TypeError>(() => values.deleteAt(1));
         }

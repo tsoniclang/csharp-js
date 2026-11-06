@@ -86,14 +86,15 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void setTimeout_TruncatesFractionalDelay()
+        public void setTimeout_UsesNativeIntegerDelay()
         {
             JsEventLoop.Run(async () =>
             {
                 using var executed = new ManualResetEventSlim(false);
-                Timers.setTimeout(_ => executed.Set(), 10.9);
+                Assert.Equal(typeof(int), typeof(Timers).GetMethod(nameof(Timers.setTimeout))!.GetParameters()[1].ParameterType);
+                Timers.setTimeout(_ => executed.Set(), 10);
     
-                await WaitFor(executed, 1000, "Fractional-delay setTimeout did not execute.");
+                await WaitFor(executed, 1000, "Native-delay setTimeout did not execute.");
             });
         }
 
