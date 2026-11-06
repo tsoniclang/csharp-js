@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using SysMath = System.Math;
@@ -364,13 +365,13 @@ namespace Tsonic.CSharp.Js
             return array.reverse();
         }
 
-        public static List<T> sort<T>(List<T> array, Func<T, T, double> compareFn)
+        public static List<T> sort<T, TResult>(List<T> array, Func<T, T, TResult> compareFn) where TResult : INumber<TResult>
         {
-            array.Sort((left, right) => SysMath.Sign(compareFn(left, right)));
+            CollectionsMarshal.AsSpan(array).Sort(new NumericComparer<T, TResult>(compareFn));
             return array;
         }
 
-        public static JSArray<T> sort<T>(JSArray<T> array, Func<T, T, double> compareFn)
+        public static JSArray<T> sort<T, TResult>(JSArray<T> array, Func<T, T, TResult> compareFn) where TResult : INumber<TResult>
         {
             return array.sort(compareFn);
         }
@@ -422,14 +423,14 @@ namespace Tsonic.CSharp.Js
             return array.toReversed();
         }
 
-        public static List<T> toSorted<T>(IReadOnlyList<T> array, Func<T, T, double> compareFn)
+        public static List<T> toSorted<T, TResult>(IReadOnlyList<T> array, Func<T, T, TResult> compareFn) where TResult : INumber<TResult>
         {
             var result = new List<T>(array);
-            result.Sort((left, right) => SysMath.Sign(compareFn(left, right)));
+            CollectionsMarshal.AsSpan(result).Sort(new NumericComparer<T, TResult>(compareFn));
             return result;
         }
 
-        public static JSArray<T> toSorted<T>(JSArray<T> array, Func<T, T, double> compareFn)
+        public static JSArray<T> toSorted<T, TResult>(JSArray<T> array, Func<T, T, TResult> compareFn) where TResult : INumber<TResult>
         {
             return array.toSorted(compareFn);
         }

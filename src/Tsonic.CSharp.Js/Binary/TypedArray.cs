@@ -273,17 +273,19 @@ namespace Tsonic.CSharp.Js
             return (TArray)this;
         }
 
-        public TArray sort(Func<TElement, TElement, double>? compareFn = null)
+        public TArray sort()
         {
             var values = Elements.ToArray();
-            Comparison<TElement> comparison = compareFn is null
-                ? TypedArrayNumbers.Compare<TElement>
-                : (left, right) =>
-                {
-                    var order = compareFn(left, right);
-                    return double.IsNaN(order) ? 0 : System.Math.Sign(order);
-                };
-            System.Array.Sort(values, comparison);
+            values.AsSpan().Sort(new TypedArrayElementComparer<TElement>());
+            values.AsSpan().CopyTo(Elements);
+            return (TArray)this;
+        }
+
+        public TArray sort<TResult>(Func<TElement, TElement, TResult>? compareFn = null) where TResult : INumber<TResult>
+        {
+            if (compareFn is null) return sort();
+            var values = Elements.ToArray();
+            values.AsSpan().Sort(new NumericComparer<TElement, TResult>(compareFn));
             values.AsSpan().CopyTo(Elements);
             return (TArray)this;
         }

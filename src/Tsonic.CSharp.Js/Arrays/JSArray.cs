@@ -400,34 +400,6 @@ namespace Tsonic.CSharp.Js
 
         // ==================== Sorting Methods ====================
 
-        /// <summary>
-        /// Sort array in place and return the array
-        /// </summary>
-        public JSArray<T> sort(Func<T, T, double>? compareFunc = null)
-        {
-            var values = _values.ToArray();
-            var order = new int[values.Length];
-            for (var index = 0; index < order.Length; index++) order[index] = index;
-            string[]? keys = null;
-            if (compareFunc is null)
-            {
-                keys = new string[values.Length];
-                for (var index = 0; index < values.Length; index++) keys[index] = Globals.String(values[index]);
-            }
-            System.Array.Sort(order, (left, right) =>
-            {
-                var comparison = compareFunc is null
-                    ? string.CompareOrdinal(keys![left], keys[right])
-                    : compareFunc(values[left], values[right]);
-                return comparison < 0 ? -1 : comparison > 0 ? 1 : left.CompareTo(right);
-            });
-            for (var index = 0; index < order.Length; index++)
-            {
-                if (index < _values.Count) _values[index] = values[order[index]];
-                else _values.Add(values[order[index]]);
-            }
-            return this;
-        }
 
         /// <summary>
         /// Reverse array in place and return the array
@@ -705,15 +677,6 @@ namespace Tsonic.CSharp.Js
             return result;
         }
 
-        /// <summary>
-        /// Create new sorted array (immutable)
-        /// </summary>
-        public JSArray<T> toSorted(Func<T, T, double>? compareFunc = null)
-        {
-            var result = CopyValues();
-            result.sort(compareFunc);
-            return result;
-        }
 
         /// <summary>
         /// Create new spliced array (immutable)
