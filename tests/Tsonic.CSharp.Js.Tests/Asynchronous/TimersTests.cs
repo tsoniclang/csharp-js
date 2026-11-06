@@ -169,17 +169,17 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
-        public void clearTimeout_WithNonIntegralId_DoesNotThrow()
+        public void clearTimeout_WithAbsentId_DoesNotThrow()
         {
             JsEventLoop.Run(() =>
             {
-                var exception = Record.Exception(() => Timers.clearTimeout(99999.5));
+                var exception = Record.Exception(() => Timers.clearTimeout(null));
                 Assert.Null(exception);
             });
         }
 
         [Fact]
-        public void TimerIdsRetainNativeIntegersAndRejectInvalidNumbers()
+        public void TimerIdsRetainNativeIntegersWithoutFloatingOrGenericHandleRoutes()
         {
             JsEventLoop.Run(() =>
             {
@@ -187,12 +187,15 @@ namespace Tsonic.CSharp.Js.Tests
                 int interval = Timers.setInterval(_ => throw new InvalidOperationException(), 100000);
                 Timers.clearTimeout(timeout);
                 Timers.clearInterval(interval);
-                Timers.clearTimeout(ulong.MaxValue);
-                Timers.clearTimeout(9007199254740993L);
-                Timers.clearTimeout(double.NaN);
-                Timers.clearTimeout(double.PositiveInfinity);
-                Timers.clearTimeout(2147483648.0);
-                Timers.clearInterval(-2147483649.0);
+                Timers.clearTimeout(int.MinValue);
+                Timers.clearTimeout(int.MaxValue);
+                Timers.clearInterval(null);
+                foreach (var name in new[] { "clearTimeout", "clearInterval" })
+                {
+                    var method = typeof(Timers).GetMethod(name)!;
+                    Assert.False(method.IsGenericMethod);
+                    Assert.Equal(typeof(int?), method.GetParameters()[0].ParameterType);
+                }
             });
         }
 

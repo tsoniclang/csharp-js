@@ -214,12 +214,9 @@ public sealed class TimerCancellationTests
     }
 
     [Theory]
-    [InlineData(0.0)]
-    [InlineData(-1.0)]
-    [InlineData(0.5)]
-    [InlineData(double.NaN)]
-    [InlineData(double.PositiveInfinity)]
-    public async Task NormalizedZeroIntervalsStillRepeatUntilCleared(double delay)
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task NativeZeroAndNegativeIntervalsStillRepeatUntilCleared(int delay)
     {
         var calls = 0;
         var id = 0;

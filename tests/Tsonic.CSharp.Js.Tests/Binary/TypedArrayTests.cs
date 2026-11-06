@@ -181,9 +181,9 @@ namespace Tsonic.CSharp.Js.Tests
         public void Uint8ClampedArray_SetClamped_ClampsValues()
         {
             var arr = new Uint8ClampedArray(3);
-            arr[0] = -10;
+            arr.Set(0, -10);
             arr[1] = 128;
-            arr[2] = 300;
+            arr.Set(2, 300);
             Assert.Equal((byte)0, arr[0]);
             Assert.Equal((byte)128, arr[1]);
             Assert.Equal((byte)255, arr[2]);

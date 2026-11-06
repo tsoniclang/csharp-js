@@ -103,7 +103,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(0x04030201u, littleEndian.getUint32(0, true));
 
             var bytes = new Uint8Array(buffer);
-            Assert.Equal(new[] { 1.0, 2.0, 3.0, 4.0 },
+            Assert.Equal(new byte[] { 1, 2, 3, 4 },
                 Enumerable.Range(0, 4).Select(index => bytes[index]).ToArray());
             bytes[1] = 9;
             Assert.Equal(0x01090304u, bigEndian.getUint32(0, false));

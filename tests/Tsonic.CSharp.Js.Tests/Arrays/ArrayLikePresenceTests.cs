@@ -23,7 +23,7 @@ public sealed class ArrayLikePresenceTests
         ordinary[2] = 7;
         typed[2] = 9;
         Assert.Equal(7, ArrayLike.ReadValue(ordinaryView, 2));
-        Assert.Equal(9, ArrayLike.ReadValue(typedView, 2));
+        Assert.Equal((byte?)9, ArrayLike.ReadValue(typedView, 2));
         Assert.Equal(3, ordinaryView.Length);
         Assert.Equal(3, typedView.Length);
     }

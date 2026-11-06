@@ -84,7 +84,7 @@ public sealed class NativeResultCarrierTests
     [Fact]
     public void TypedReadsAndSortingRetainTheNativeElement()
     {
-        var words = new Js.Uint32Array(new double[] { uint.MaxValue, 7, 0 });
+        var words = Js.Uint32Array.From<double>(new double[] { uint.MaxValue, 7, 0 });
         uint first = words.Get(0);
         uint? last = words.at(-1);
         Assert.Equal(uint.MaxValue, first);
@@ -99,13 +99,13 @@ public sealed class NativeResultCarrierTests
     public void NativeReadsDoNotChangeClampedWritesOrAliasing()
     {
         var clamped = new Js.Uint8ClampedArray(2);
-        clamped[0] = 300;
-        clamped[1] = 1.5;
+        clamped.Set(0, 300);
+        clamped.Set(1, 1.5);
         byte first = clamped.Get(0);
         Assert.Equal((byte)255, first);
         Assert.Equal((byte)2, clamped.Get(1));
         var alias = clamped.subarray(0);
-        alias[0] -= 400;
+        alias.Set(0, alias[0] - 400);
         Assert.Equal((byte)0, clamped.Get(0));
         Assert.Equal((byte)0, clamped.Get(double.NaN));
     }

@@ -39,7 +39,7 @@ public sealed class NativeArrayIndexTests
         original[1] = 17;
         typed[1] = 19;
         Assert.Equal(17, ArrayLike.ReadValue(original, 1));
-        Assert.Equal(19, ArrayLike.ReadValue(typed, 1));
+        Assert.Equal((byte?)19, ArrayLike.ReadValue(typed, 1));
         var refusal = Assert.Throws<TypeError>(() => original.deleteAt(1));
         Assert.Equal("Deleting a dense array element would create a hole; use splice", refusal.Message);
         Assert.True(ArrayLike.HasIndex(1L, original));

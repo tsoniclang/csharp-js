@@ -160,7 +160,7 @@ public class RegExp
     public string replace(string input, string replacement) => RegExpProtocols.Replace(input, this, replacement);
     public string replace(string input, ReplacementCallback replacer) => RegExpProtocols.Replace(input, this, replacer);
     public int search(string input) => RegExpProtocols.Search(input, this);
-    public JSArray<string?> split(string input, double? limit = null) => RegExpProtocols.Split(input, this, limit);
+    public JSArray<string?> split(string input, int? limit = null) => RegExpProtocols.Split(input, this, limit);
 
     public override string ToString() => toString();
     public string toString() => "/" + source + "/" + flags;

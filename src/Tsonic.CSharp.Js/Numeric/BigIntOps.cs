@@ -48,7 +48,7 @@ public static class BigIntOps
         return new string(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(digits));
     }
 
-    public static Int128 AsIntNative<T>(double bits, T value) where T : IBinaryInteger<T>
+    public static Int128 AsIntNative<T>(int bits, T value) where T : IBinaryInteger<T>
     {
         var width = NativeWidth(bits);
         if (width == 0) return 0;
@@ -58,35 +58,34 @@ public static class BigIntOps
             ? truncated | ~mask : truncated);
     }
 
-    public static UInt128 AsUintNative<T>(double bits, T value) where T : IBinaryInteger<T> =>
+    public static UInt128 AsUintNative<T>(int bits, T value) where T : IBinaryInteger<T> =>
         UInt128.CreateTruncating(value) & NativeMask(NativeWidth(bits));
 
-    private static int NativeWidth(double bits)
+    private static int NativeWidth(int bits)
     {
-        if (!double.IsFinite(bits) || bits < 0 || bits > 128 || bits != System.Math.Truncate(bits))
+        if (bits < 0 || bits > 128)
             throw new RangeError("BigInt bit width must be an integer within the selected native result");
-        return (int)bits;
+        return bits;
     }
 
     private static UInt128 NativeMask(int width) =>
         width == 128 ? UInt128.MaxValue : ((UInt128)1 << width) - 1;
 
-    public static BigInteger asIntN<T>(double bits, T value) where T : IBinaryInteger<T> =>
+    public static BigInteger asIntN<T>(int bits, T value) where T : IBinaryInteger<T> =>
         TruncateBits(bits, value, true);
 
-    public static BigInteger asUintN<T>(double bits, T value) where T : IBinaryInteger<T> =>
+    public static BigInteger asUintN<T>(int bits, T value) where T : IBinaryInteger<T> =>
         TruncateBits(bits, value, false);
 
-    private static BigInteger TruncateBits<T>(double bits, T value, bool signed) where T : IBinaryInteger<T>
+    private static BigInteger TruncateBits<T>(int bits, T value, bool signed) where T : IBinaryInteger<T>
     {
-        bits = double.IsNaN(bits) ? 0 : System.Math.Truncate(bits);
-        if (!double.IsFinite(bits) || bits < 0 || bits >= 18446744073709551616d || bits != System.Math.Truncate(bits))
+        if (bits < 0)
             throw new RangeError("BigInt bit width must be a non-negative native integer");
-        var width = (ulong)bits;
+        var width = bits;
         if (width == 0) return BigInteger.Zero;
         if (width <= 128)
         {
-            var count = (int)width;
+            var count = width;
             var mask = count == 128 ? UInt128.MaxValue : ((UInt128)1 << count) - 1;
             var truncated = UInt128.CreateTruncating(value) & mask;
             return signed && (truncated & ((UInt128)1 << (count - 1))) != 0
@@ -94,9 +93,8 @@ public static class BigIntOps
                 : BigInteger.CreateChecked(truncated);
         }
         var integer = BigInteger.CreateChecked(value);
-        if ((signed || integer.Sign >= 0) && width > (ulong)integer.GetBitLength()) return integer;
-        if (width > int.MaxValue) throw new RangeError("BigInt result exceeds addressable storage");
-        var modulus = BigInteger.One << (int)width;
+        if ((signed || integer.Sign >= 0) && width > integer.GetBitLength()) return integer;
+        var modulus = BigInteger.One << width;
         var result = integer & (modulus - BigInteger.One);
         return signed && result >= (modulus >> 1) ? result - modulus : result;
     }

@@ -167,7 +167,7 @@ public sealed class RegExpTests
                 arguments.Get<string>(0),
                 arguments.Get<string>(1),
                 arguments.Get<object>(2),
-                arguments.Get<double>(3),
+                arguments.Get<int>(3),
                 arguments.Get<string>(4),
                 arguments.Get<RegExpNamedGroups>(5)));
             return "#";
@@ -321,7 +321,7 @@ public sealed class RegExpTests
         string Whole,
         string Capture,
         object? OptionalCapture,
-        double Offset,
+        int Offset,
         string Input,
         RegExpNamedGroups Groups);
 }

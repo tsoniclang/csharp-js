@@ -277,8 +277,8 @@ namespace Tsonic.CSharp.Js.Tests
         public void charCodeAt_GetsCharCode()
         {
             Assert.Equal(101, "hello".charCodeAt(1));
-            Assert.Throws<IndexOutOfRangeException>(() => "hello".charCodeAt(-1));
-            Assert.Throws<IndexOutOfRangeException>(() => "hello".charCodeAt(10));
+            Assert.Throws<System.IndexOutOfRangeException>(() => "hello".charCodeAt(-1));
+            Assert.Throws<System.IndexOutOfRangeException>(() => "hello".charCodeAt(10));
         }
 
         [Fact]
@@ -298,6 +298,26 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal(2, result.Count);
             Assert.Equal("a", result[0]);
             Assert.Equal("b", result[1]);
+        }
+
+        [Fact]
+        public void SplitAndReplacementOffsetsExposeOnlyNativeIntegerSlots()
+        {
+            Assert.Equal(new[] { "a", "b", "c" }, "a,b,c".split(",", null).ToArray());
+            Assert.Equal(new[] { "a", "b", "c" }, "a,b,c".split(",", int.MaxValue).ToArray());
+            Assert.Equal(new[] { "a", "b", "c" }, "a,b,c".split(",", int.MinValue).ToArray());
+            Assert.NotNull(typeof(String).GetMethod("split", new[] { typeof(string), typeof(string), typeof(int?) }));
+            Assert.Null(typeof(String).GetMethod("split", new[] { typeof(string), typeof(string), typeof(double?) }));
+            var called = false;
+            Assert.Equal("ab#d", "abcd".replace("c", arguments =>
+            {
+                int offset = arguments.Get<int>(1);
+                Assert.Equal(2, offset);
+                Assert.Equal("abcd", arguments.Get<string>(2));
+                called = true;
+                return "#";
+            }));
+            Assert.True(called);
         }
 
         [Fact]

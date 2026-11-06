@@ -5,7 +5,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Numerics;
 using System.Threading;
 
 namespace Tsonic.CSharp.Js
@@ -135,25 +134,6 @@ namespace Tsonic.CSharp.Js
             }
         }
 
-        private static bool TryNormalizeTimerId<T>(T id, out int timerId) where T : INumberBase<T>
-        {
-            if (!T.IsInteger(id))
-            {
-                timerId = 0;
-                return false;
-            }
-
-            try
-            {
-                timerId = int.CreateChecked(id);
-                return true;
-            }
-            catch (OverflowException)
-            {
-                timerId = 0;
-                return false;
-            }
-        }
 
         /// <summary>
         /// Schedule a callback to run after a delay (one-shot timer)
@@ -169,14 +149,14 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Cancel a timeout
         /// </summary>
-        public static void clearTimeout<T>(T id) where T : INumberBase<T>
+        public static void clearTimeout(int? id = null)
         {
-            if (!TryNormalizeTimerId(id, out var timerId))
+            if (!id.HasValue)
             {
                 return;
             }
 
-            if (_timers.TryGetValue(timerId, out var timer))
+            if (_timers.TryGetValue(id.Value, out var timer))
             {
                 timer.Dispose();
             }
@@ -197,7 +177,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Cancel an interval
         /// </summary>
-        public static void clearInterval<T>(T id) where T : INumberBase<T>
+        public static void clearInterval(int? id = null)
         {
             // Same implementation as clearTimeout
             clearTimeout(id);

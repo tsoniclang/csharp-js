@@ -26,8 +26,8 @@ internal static class NativeInteger
         return bits >> 63 != 0 ? unchecked(0U - magnitude) : magnitude;
     }
 
-    internal static uint SplitLimit(double? value) =>
-        value.HasValue ? Bits32(value.Value) : uint.MaxValue;
+    internal static uint SplitLimit(int? value) =>
+        value.HasValue ? unchecked((uint)value.Value) : uint.MaxValue;
 
     internal static int Length(double value)
     {

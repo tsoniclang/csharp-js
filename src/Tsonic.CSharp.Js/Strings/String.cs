@@ -292,7 +292,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Split string into array
         /// </summary>
-        public static JSArray<string> split(this string str, string separator, double? limit = null)
+        public static JSArray<string> split(this string str, string separator, int? limit = null)
         {
             var maximum = (int)System.Math.Min(NativeInteger.SplitLimit(limit), int.MaxValue);
             if (maximum == 0)
@@ -394,7 +394,7 @@ namespace Tsonic.CSharp.Js
         public static string replace(this string str, RegExp pattern, ReplacementCallback replacer) =>
             RegExpProtocols.Replace(str, pattern, replacer);
 
-        public static JSArray<string?> split(this string str, RegExp separator, double? limit = null) =>
+        public static JSArray<string?> split(this string str, RegExp separator, int? limit = null) =>
             RegExpProtocols.Split(str, separator, limit);
 
         /// <summary>

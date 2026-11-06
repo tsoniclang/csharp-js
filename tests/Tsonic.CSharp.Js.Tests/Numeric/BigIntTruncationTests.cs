@@ -15,7 +15,7 @@ public class BigIntTruncationTests
     [InlineData(64, "18446744073709551615", "-1", "18446744073709551615")]
     [InlineData(64, "-9223372036854775809", "9223372036854775807", "9223372036854775807")]
     [InlineData(64, "9007199254740993", "9007199254740993", "9007199254740993")]
-    public void ExactWidthsRetainAllBits(double bits, string source, string signed, string unsigned)
+    public void ExactWidthsRetainAllBits(int bits, string source, string signed, string unsigned)
     {
         var value = BigInteger.Parse(source);
         Assert.Equal(BigInteger.Parse(signed), BigIntOps.asIntN(bits, value));
@@ -49,14 +49,14 @@ public class BigIntTruncationTests
         Assert.Equal(value, BigIntOps.asUintN(202, value));
         Assert.Equal(-1, BigIntOps.asIntN(200, -1));
         Assert.Equal(BigInteger.One << 64, BigIntOps.asUintN(64, ulong.MaxValue) + 1);
-        Assert.Equal(9, BigIntOps.asIntN(9007199254740992d, 9));
-        Assert.Equal(9, BigIntOps.asUintN(9007199254740992d, 9));
+        Assert.Equal(9, BigIntOps.asIntN(int.MaxValue, 9));
+        Assert.Equal(9, BigIntOps.asUintN(int.MaxValue, 9));
     }
 
     [Fact]
     public void ZeroWidthProducesZero()
     {
-        foreach (var bits in new[] { 0.0, -0.0, double.NaN, -0.5 })
+        foreach (var bits in new[] { 0 })
         {
             Assert.Equal(BigInteger.Zero, BigIntOps.asIntN(bits, 9));
             Assert.Equal(BigInteger.Zero, BigIntOps.asUintN(bits, 9));
@@ -65,10 +65,8 @@ public class BigIntTruncationTests
 
     [Theory]
     [InlineData(-1)]
-    [InlineData(double.PositiveInfinity)]
-    [InlineData(double.NegativeInfinity)]
-    [InlineData(18446744073709551616d)]
-    public void InvalidWidthsRejectBeforeTruncation(double bits)
+    [InlineData(int.MinValue)]
+    public void InvalidWidthsRejectBeforeTruncation(int bits)
     {
         Assert.Throws<RangeError>(() => BigIntOps.asIntN(bits, 9));
         Assert.Throws<RangeError>(() => BigIntOps.asUintN(bits, 9));
@@ -82,7 +80,9 @@ public class BigIntTruncationTests
         Assert.Equal(Int128.MinValue, BigIntOps.AsIntNative(128, (UInt128)1 << 127));
         Assert.Equal(UInt128.MaxValue, BigIntOps.AsUintNative(128, (Int128)(-1)));
         Assert.Throws<RangeError>(() => BigIntOps.AsIntNative(129, 0));
-        Assert.Throws<RangeError>(() => BigIntOps.AsUintNative(double.NaN, 0));
-        Assert.Throws<RangeError>(() => BigIntOps.AsIntNative(1.5, 0));
+        Assert.Throws<RangeError>(() => BigIntOps.AsUintNative(-1, 0));
+        Assert.Throws<RangeError>(() => BigIntOps.AsIntNative(129, 0));
+        foreach (var name in new[] { "asIntN", "asUintN", "AsIntNative", "AsUintNative" })
+            Assert.Equal(typeof(int), typeof(BigIntOps).GetMethod(name)!.GetParameters()[0].ParameterType);
     }
 }

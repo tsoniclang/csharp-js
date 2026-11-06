@@ -26,8 +26,8 @@ namespace Tsonic.CSharp.Js.Tests
         public void at_OutOfBounds_ReturnsNullishCarrier()
         {
             var arr = new JSArray<int>(new[] { 1, 2, 3 });
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atValue(arr, 3));
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atValue(arr, -4));
+            Assert.Equal(TsValue.undefined().unwrap(), (object?)Tsonic.CSharp.Js.Array.atValue(arr, 3));
+            Assert.Equal(TsValue.undefined().unwrap(), (object?)Tsonic.CSharp.Js.Array.atValue(arr, -4));
         }
 
         [Fact]
@@ -47,8 +47,8 @@ namespace Tsonic.CSharp.Js.Tests
             var arr = new List<int> { 1, 2, 3 };
             Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atValue(arr, 3));
-            Assert.Same(TsValue.undefined().unwrap(), Tsonic.CSharp.Js.Array.atValue(arr, -4));
+            Assert.Equal(TsValue.undefined().unwrap(), (object?)Tsonic.CSharp.Js.Array.atValue(arr, 3));
+            Assert.Equal(TsValue.undefined().unwrap(), (object?)Tsonic.CSharp.Js.Array.atValue(arr, -4));
             Assert.Equal(2, Tsonic.CSharp.Js.Array.atValue(arr, 1));
             Assert.Equal(3, Tsonic.CSharp.Js.Array.atValue(arr, -1));
             Assert.Null(Tsonic.CSharp.Js.Array.atValue(arr, 3));

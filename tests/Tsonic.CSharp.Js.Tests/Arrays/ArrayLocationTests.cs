@@ -11,8 +11,9 @@ public sealed class ArrayLocationTests
     {
         var values = new JSArray<long?>(new long?[] { 9007199254740993L });
         var location = values.elementLocation(0);
-        var alias = values.elementLocation(-0.0);
+        var alias = values.elementLocation(0);
         Assert.True(Location<long?>.Same(location, alias));
+        Assert.True(Location<long?>.Same(location, values.numericPropertyLocation(-0.0)));
         Assert.Equal(Location<long?>.Hash(location), Location<long?>.Hash(alias));
         Assert.Equal(9007199254740993L, location.Load());
         location.Store(null);
@@ -36,13 +37,25 @@ public sealed class ArrayLocationTests
     public void NumericPropertyLocationsUseTheirSelectedNativeKey(double index)
     {
         var values = new JSArray<long>();
-        var location = values.elementLocation(index);
-        var alias = values.elementLocation(index);
+        var location = values.numericPropertyLocation(index);
+        var alias = values.numericPropertyLocation(index);
         Assert.Throws<IndexOutOfRangeException>(() => location.Load());
         location.Store(9007199254740993L);
         Assert.Equal(9007199254740993L, alias.Load());
         Assert.Equal(9007199254740993L, values[index]);
         Assert.True(Location<long>.Same(location, alias));
         Assert.Equal(Location<long>.Hash(location), Location<long>.Hash(alias));
+    }
+
+    [Fact]
+    public void NativeElementAndNumericPropertyLocationsExposeSeparateIndexContracts()
+    {
+        Assert.Equal(typeof(int), typeof(JSArray<long>).GetMethod("elementLocation")!.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(double), typeof(JSArray<long>).GetMethod("numericPropertyLocation")!.GetParameters()[0].ParameterType);
+        var values = new JSArray<long>(new[] { 9007199254740993L });
+        var location = values.elementLocation(0);
+        location.Store(long.MaxValue);
+        Assert.Equal(long.MaxValue, values[0]);
+        Assert.Throws<IndexOutOfRangeException>(() => values.elementLocation(int.MaxValue).Load());
     }
 }

@@ -46,7 +46,7 @@ public sealed class ReplacementCallbackArguments
 
     internal static ReplacementCallbackArguments FromStringMatch(
         string match,
-        double offset,
+        int offset,
         string input) =>
         new([
             TsValue.from(match),

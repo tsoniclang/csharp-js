@@ -72,7 +72,7 @@ internal static class RegExpProtocols
         }
     }
 
-    public static JSArray<string?> Split(string input, RegExp expression, double? limit)
+    public static JSArray<string?> Split(string input, RegExp expression, int? limit)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(expression);

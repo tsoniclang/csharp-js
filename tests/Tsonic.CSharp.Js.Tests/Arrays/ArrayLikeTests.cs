@@ -38,7 +38,7 @@ public class ArrayLikeTests
         var numberCopy = ArrayLike.CopyDense<double>(numbers);
         bytes[0] = 9;
         numbers[0] = 8;
-        Assert.Equal(9, ArrayLike.ReadValue(view, 0));
+        Assert.Equal((byte?)9, ArrayLike.ReadValue(view, 0));
         Assert.Equal(1, byteCopy[0]);
         Assert.Equal(255, byteCopy[1]);
         Assert.Equal(4, numberCopy[0]);
