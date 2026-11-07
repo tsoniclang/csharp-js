@@ -11,14 +11,14 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Constructor_Empty_CreatesEmptyMap()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             Assert.Equal(0, map.size);
         }
 
         [Fact]
         public void Constructor_WithTuples_CreatesMapWithEntries()
         {
-            var map = new Map<string, int>(new[] { ("a", 1), ("b", 2) });
+            var map = new Map<string, int, CollectionKey<string>>(new[] { ("a", 1), ("b", 2) });
             Assert.Equal(2, map.size);
             Assert.Equal(1, map.get("a"));
             Assert.Equal(2, map.get("b"));
@@ -32,7 +32,7 @@ namespace Tsonic.CSharp.Js.Tests
                 new("a", 1),
                 new("b", 2)
             };
-            var map = new Map<string, int>(entries);
+            var map = new Map<string, int, CollectionKey<string>>(entries);
             Assert.Equal(2, map.size);
         }
 
@@ -41,14 +41,14 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void size_EmptyMap_ReturnsZero()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             Assert.Equal(0, map.size);
         }
 
         [Fact]
         public void size_AfterAdding_ReturnsCorrectCount()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1);
             map.set("b", 2);
             Assert.Equal(2, map.size);
@@ -59,7 +59,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void set_NewKey_AddsEntry()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("key", 42);
             Assert.Equal(42, map.get("key"));
         }
@@ -67,7 +67,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void set_ExistingKey_UpdatesValue()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("key", 1);
             map.set("key", 2);
             Assert.Equal(2, map.get("key"));
@@ -77,7 +77,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void set_ReturnsMapForChaining()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             var result = map.set("a", 1).set("b", 2).set("c", 3);
             Assert.Same(map, result);
             Assert.Equal(3, map.size);
@@ -86,7 +86,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void get_ExistingKey_ReturnsValue()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("key", 42);
             Assert.Equal(42, map.get("key"));
         }
@@ -94,7 +94,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void get_NonExistingKey_ReturnsDefault()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             Assert.Same(TsValue.undefined().unwrap(), map.get("missing"));
             Assert.Null(Tsonic.CSharp.Js.Map.getValue(map, "missing"));
         }
@@ -102,7 +102,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void get_NonExistingKey_ReferenceType_ReturnsNull()
         {
-            var map = new Map<string, string>();
+            var map = new Map<string, string, CollectionKey<string>>();
             Assert.Same(TsValue.undefined().unwrap(), map.get("missing"));
             Assert.Null(Tsonic.CSharp.Js.Map.getOptional(map, "missing"));
         }
@@ -110,7 +110,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void getValue_PreservesZeroAndDistinguishesMissing()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("zero", 0);
             Assert.Equal(0, Tsonic.CSharp.Js.Map.getValue(map, "zero"));
             Assert.Null(Tsonic.CSharp.Js.Map.getValue(map, "missing"));
@@ -119,7 +119,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void getOptional_ReturnsStoredReferenceOrNullForMissing()
         {
-            var map = new Map<string, string>();
+            var map = new Map<string, string, CollectionKey<string>>();
             map.set("value", "found");
             Assert.Equal("found", Tsonic.CSharp.Js.Map.getOptional(map, "value"));
             Assert.Null(Tsonic.CSharp.Js.Map.getOptional(map, "missing"));
@@ -128,7 +128,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void getOptional_PreservesNullableValuesAndMembership()
         {
-            var map = new Map<string, long?>();
+            var map = new Map<string, long?, CollectionKey<string>>();
             map.set("absent", null);
             map.set("zero", 0);
             map.set("exact", 9007199254740993);
@@ -145,7 +145,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void has_ExistingKey_ReturnsTrue()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("key", 42);
             Assert.True(map.has("key"));
         }
@@ -153,14 +153,14 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void has_NonExistingKey_ReturnsFalse()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             Assert.False(map.has("missing"));
         }
 
         [Fact]
         public void has_AfterDelete_ReturnsFalse()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("key", 42);
             map.delete("key");
             Assert.False(map.has("key"));
@@ -171,7 +171,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void delete_ExistingKey_ReturnsTrue()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("key", 42);
             Assert.True(map.delete("key"));
         }
@@ -179,14 +179,14 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void delete_NonExistingKey_ReturnsFalse()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             Assert.False(map.delete("missing"));
         }
 
         [Fact]
         public void delete_RemovesEntry()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("key", 42);
             map.delete("key");
             Assert.Equal(0, map.size);
@@ -198,7 +198,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void clear_RemovesAllEntries()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1).set("b", 2).set("c", 3);
             map.clear();
             Assert.Equal(0, map.size);
@@ -207,7 +207,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void clear_EmptyMap_DoesNothing()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.clear();
             Assert.Equal(0, map.size);
         }
@@ -217,7 +217,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void keys_ReturnsAllKeys()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1).set("b", 2).set("c", 3);
             var keys = map.keys().ToList();
             Assert.Equal(3, keys.Count);
@@ -229,7 +229,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void keys_EmptyMap_ReturnsEmpty()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             Assert.Empty(map.keys());
         }
 
@@ -238,7 +238,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void values_ReturnsAllValues()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1).set("b", 2).set("c", 3);
             var values = map.values().ToList();
             Assert.Equal(3, values.Count);
@@ -250,7 +250,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void values_EmptyMap_ReturnsEmpty()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             Assert.Empty(map.values());
         }
 
@@ -259,7 +259,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void entries_ReturnsAllEntries()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1).set("b", 2);
             var entries = map.entries().ToList();
             Assert.Equal(2, entries.Count);
@@ -270,14 +270,14 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void entries_EmptyMap_ReturnsEmpty()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             Assert.Empty(map.entries());
         }
 
         [Fact]
         public void iteration_PreservesInsertionOrderAcrossUpdateDeleteAndReadd()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1).set("b", 2).set("a", 3).set("c", 4);
             map.delete("b");
             map.set("b", 5);
@@ -290,7 +290,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void SameValueZero_NumberKeys_MatchNaNAndSignedZero()
         {
-            var map = new Map<double, string>();
+            var map = new Map<double, string, CollectionKey<double>>();
             map.set(double.NaN, "nan");
             map.set(0.0, "zero");
             map.set(-0.0, "signed-zero");
@@ -304,7 +304,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void SameValueZero_NumberKeys_CanonicalizeNegativeZeroForIteration()
         {
-            var map = new Map<double, string>();
+            var map = new Map<double, string, CollectionKey<double>>();
             map.set(-0.0, "negative-zero");
 
             var key = Assert.Single(map.keys());
@@ -322,7 +322,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void SameValueZero_ObjectCarrier_CanonicalizesBoxedNegativeZero()
         {
-            var map = new Map<object?, string>();
+            var map = new Map<object?, string, CollectionKey<object?>>();
             map.set((object)(-0.0), "negative-zero");
 
             var key = Assert.IsType<double>(Assert.Single(map.keys()));
@@ -337,7 +337,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var left = new StructurallyEqualKey(1);
             var right = new StructurallyEqualKey(1);
-            var map = new Map<object, string>();
+            var map = new Map<object, string, CollectionKey<object>>();
 
             map.set(left, "left");
             map.set(right, "right");
@@ -350,7 +350,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void SameValueZero_ObjectCarrier_SupportsNullUndefinedAndPrimitiveKeys()
         {
-            var map = new Map<object?, int>();
+            var map = new Map<object?, int, CollectionKey<object?>>();
             map.set(null, 1);
             map.set(TsValue.undefined().unwrap(), 2);
             map.set(TsValue.undefined(), 3);
@@ -371,7 +371,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void forEach_CallsCallbackForEachEntry()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1).set("b", 2);
             var visited = new List<(int value, string key)>();
             map.forEach((v, k) => visited.Add((v, k)));
@@ -383,9 +383,9 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void forEach_WithMapArg_ReceivesMapReference()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1);
-            Map<string, int>? receivedMap = null;
+            Map<string, int, CollectionKey<string>>? receivedMap = null;
             map.forEach((v, k, m) => receivedMap = m);
             Assert.Same(map, receivedMap);
         }
@@ -393,7 +393,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void forEach_ValueOnly_CallsWithValue()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1).set("b", 2);
             var values = new List<int>();
             map.forEach(v => values.Add(v));
@@ -407,7 +407,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void GetEnumerator_AllowsForeach()
         {
-            var map = new Map<string, int>();
+            var map = new Map<string, int, CollectionKey<string>>();
             map.set("a", 1).set("b", 2);
             var count = 0;
             foreach (var (key, _) in map)
@@ -423,7 +423,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Map_WithNullValue_StoresNull()
         {
-            var map = new Map<string, string?>();
+            var map = new Map<string, string?, CollectionKey<string>>();
             map.set("key", null);
             Assert.True(map.has("key"));
             Assert.Null(map.get("key"));
@@ -432,7 +432,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void Map_IntKeys_WorksCorrectly()
         {
-            var map = new Map<int, string>();
+            var map = new Map<int, string, CollectionKey<int>>();
             map.set(1, "one").set(2, "two");
             Assert.Equal("one", map.get(1));
             Assert.Equal("two", map.get(2));
@@ -443,7 +443,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var key1 = new object();
             var key2 = new object();
-            var map = new Map<object, string>();
+            var map = new Map<object, string, CollectionKey<object>>();
             map.set(key1, "first").set(key2, "second");
             Assert.Equal("first", map.get(key1));
             Assert.Equal("second", map.get(key2));

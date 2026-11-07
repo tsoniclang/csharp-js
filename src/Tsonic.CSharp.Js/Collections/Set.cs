@@ -12,11 +12,15 @@ namespace Tsonic.CSharp.Js
     /// <summary>
     /// JavaScript Set carrier with insertion order, null/undefined values, NaN equality, and object identity.
     /// </summary>
-    public class Set<T> : IEnumerable<T>
+    public class Set<T, TKey> : OrderedKeyCollection<TKey, byte>, IEnumerable<T> where TKey : struct, ICollectionKey<T, TKey>
     {
-        private readonly Map<T, byte> _members = new();
-
-        private IEnumerable<T> _values => _members.keys();
+        private IEnumerable<T> _values
+        {
+            get
+            {
+                foreach (var entry in Enumerate()) yield return entry.Key.Value;
+            }
+        }
 
         // ==================== Constructors ====================
 
@@ -41,16 +45,16 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Number of unique values in the Set
         /// </summary>
-        public int size => _members.size;
+        public int size => KeyCount;
 
         // ==================== Core Methods ====================
 
         /// <summary>
         /// Add value to Set, returns the Set for chaining
         /// </summary>
-        public Set<T> add(T value)
+        public Set<T, TKey> add(T value)
         {
-            _members.set(value, 0);
+            AddKey(TKey.Create(value), 0);
             return this;
         }
 
@@ -59,7 +63,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool has(T value)
         {
-            return _members.has(value);
+            return ContainsKey(TKey.Create(value));
         }
 
         /// <summary>
@@ -67,7 +71,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(T value)
         {
-            return _members.delete(value);
+            return DeleteKey(TKey.Create(value));
         }
 
         /// <summary>
@@ -75,7 +79,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void clear()
         {
-            _members.clear();
+            ClearEntries();
         }
 
         // ==================== Iteration Methods ====================
@@ -110,7 +114,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Execute callback for each value
         /// </summary>
-        public void forEach(Action<T, T, Set<T>> callback)
+        public void forEach(Action<T, T, Set<T, TKey>> callback)
         {
             foreach (var value in _values)
             {
@@ -145,9 +149,9 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Return new Set with values in this Set but not in other
         /// </summary>
-        public Set<T> difference(Set<T> other)
+        public Set<T, TKey> difference(Set<T, TKey> other)
         {
-            var result = new Set<T>();
+            var result = new Set<T, TKey>();
             foreach (var value in _values)
             {
                 if (!other.has(value))
@@ -161,9 +165,9 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Return new Set with values in both Sets
         /// </summary>
-        public Set<T> intersection(Set<T> other)
+        public Set<T, TKey> intersection(Set<T, TKey> other)
         {
-            var result = new Set<T>();
+            var result = new Set<T, TKey>();
             foreach (var value in _values)
             {
                 if (other.has(value))
@@ -177,9 +181,9 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Return new Set with values in either Set
         /// </summary>
-        public Set<T> union(Set<T> other)
+        public Set<T, TKey> union(Set<T, TKey> other)
         {
-            var result = new Set<T>(_values);
+            var result = new Set<T, TKey>(_values);
             foreach (var value in other)
             {
                 result.add(value);
@@ -190,9 +194,9 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Return new Set with values in either Set but not both
         /// </summary>
-        public Set<T> symmetricDifference(Set<T> other)
+        public Set<T, TKey> symmetricDifference(Set<T, TKey> other)
         {
-            var result = new Set<T>();
+            var result = new Set<T, TKey>();
             foreach (var value in _values)
             {
                 if (!other.has(value))
@@ -213,7 +217,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Check if this Set is a subset of other
         /// </summary>
-        public bool isSubsetOf(Set<T> other)
+        public bool isSubsetOf(Set<T, TKey> other)
         {
             foreach (var value in _values)
             {
@@ -228,7 +232,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Check if this Set is a superset of other
         /// </summary>
-        public bool isSupersetOf(Set<T> other)
+        public bool isSupersetOf(Set<T, TKey> other)
         {
             return other.isSubsetOf(this);
         }
@@ -236,7 +240,7 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Check if this Set has no values in common with other
         /// </summary>
-        public bool isDisjointFrom(Set<T> other)
+        public bool isDisjointFrom(Set<T, TKey> other)
         {
             foreach (var value in _values)
             {
