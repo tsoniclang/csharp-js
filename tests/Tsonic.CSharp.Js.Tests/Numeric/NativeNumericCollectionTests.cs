@@ -29,11 +29,15 @@ public sealed class NativeNumericCollectionTests
         var inputs = new object[] { 9007199254740992L, 9007199254740993L, ulong.MaxValue, Int128.MinValue,
             UInt128.MaxValue, BigInteger.One << 200, 1, 1L, 1.0, -0.0, double.NaN };
         foreach (var input in inputs) values.add(input);
-        Assert.Equal(inputs.Length - 2, values.size);
+        // 1 and 1.0 are one number key; boxed 1L is the bigint 1n, a distinct key (Q77, N3' boxed long is a bigint).
+        Assert.Equal(inputs.Length - 1, values.size);
+        Assert.False(JSKeyEquality.sameValueZero<object>(1L, 1.0));
+        Assert.True(JSKeyEquality.sameValueZero<object>(1, 1.0));
+        Assert.True(JSKeyEquality.sameValueZero<object>(1L, (Int128)1));
         foreach (var input in inputs) Assert.True(values.has(input));
         Assert.False(values.has(9007199254740994L));
         Assert.True(values.has(1f));
-        Assert.Equal(inputs.Length - 2, values.add(double.NaN).add(0.0).size);
+        Assert.Equal(inputs.Length - 1, values.add(double.NaN).add(0.0).size);
         Assert.Contains(values.values(), value => value is double number && BitConverter.DoubleToInt64Bits(number) == 0);
     }
 

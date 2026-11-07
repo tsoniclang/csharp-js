@@ -22,10 +22,15 @@ public readonly struct CollectionKey<T> : ICollectionKey<T, CollectionKey<T>>
     public override int GetHashCode() => JSKeyEquality.keyHash(Value);
 }
 
+// Union arm comparison (UnionCollectionKey). Arms of different Source key categories are never equal (Q77); arms of
+// one category compare by SameValueZero, across numeric carriers by exact numeric value (NativeNumericKey).
 internal static class CollectionKeyComparison
 {
-    internal static bool Equal<TLeft, TRight>(TLeft left, TRight right)
+    internal static bool Equal<TLeft, CLeft, TRight, CRight>(TLeft left, TRight right)
+        where CLeft : struct, ICollectionKeyCategory
+        where CRight : struct, ICollectionKeyCategory
     {
+        if (CLeft.Category != CRight.Category) return false;
         if (typeof(TLeft) == typeof(TRight))
             return JSKeyEquality.sameValueZero(left, Unsafe.As<TRight, TLeft>(ref right));
         if (NativeNumericKey.TryCreate(left, out var leftKey) && NativeNumericKey.TryCreate(right, out var rightKey))
@@ -35,6 +40,6 @@ internal static class CollectionKeyComparison
         return false;
     }
 
-    internal static int Hash<T>(T value) => NativeNumericKey.TryCreate(value, out var key)
-        ? key.GetHashCode() : JSKeyEquality.keyHash(value);
+    internal static int Hash<T, C>(T value) where C : struct, ICollectionKeyCategory =>
+        HashCode.Combine(C.Category, NativeNumericKey.TryCreate(value, out var key) ? key.GetHashCode() : JSKeyEquality.keyHash(value));
 }

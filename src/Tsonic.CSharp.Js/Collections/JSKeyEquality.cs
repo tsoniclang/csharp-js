@@ -70,9 +70,12 @@ internal static class JSKeyEquality
         if (left is TsValue leftValue) return BoxedEqual(leftValue.unwrap(), right);
         if (right is TsValue rightValue) return BoxedEqual(left, rightValue.unwrap());
         if (ReferenceEquals(left, right)) return true;
+        // A boxed value's category is the runtime typeof of its carrier (TsValue, N3': boxed long is a bigint, boxed
+        // double a number). Numbers and bigints are never the same key (Q77: 5n != 5).
         if (IntegerKey(left, out var leftMagnitude, out var leftNegative) &&
             IntegerKey(right, out var rightMagnitude, out var rightNegative))
-            return leftMagnitude == rightMagnitude && leftNegative == rightNegative;
+            return leftMagnitude == rightMagnitude && leftNegative == rightNegative &&
+                string.Equals(TsValue.ApplyDynamicTypeof(left), TsValue.ApplyDynamicTypeof(right), System.StringComparison.Ordinal);
         if (FloatingKey(left, out var leftFloat) && FloatingKey(right, out var rightFloat)) return leftFloat.Equals(rightFloat);
         return left is not null && IsNativeValue(left) && left.Equals(right);
     }
