@@ -12,7 +12,7 @@ public class JSArrayNumericPropertyTests
     public void ClosedElementWritesRetainNativeBackingAndExactCarriers()
     {
         var values = new JSArray<TsValue>(1);
-        var closed = TsValue.from(values);
+        var closed = TsValue.fromnative(values);
         closed.WriteDynamicSlot("0", ulong.MaxValue);
         Assert.Equal(ulong.MaxValue, Assert.IsType<ulong>(values[0].unwrap()));
         var dynamic = (IDynamicArray)values;
@@ -26,7 +26,7 @@ public class JSArrayNumericPropertyTests
         var typed = new JSArray<string>(new[] { "original" });
         Assert.False(((IDynamicArray)typed).TrySetAt(0, 7));
         Assert.Equal("original", typed[0]);
-        Assert.True(((IDynamicArray)typed).TrySetAt(0, TsValue.from("updated")));
+        Assert.True(((IDynamicArray)typed).TrySetAt(0, TsValue.fromnative("updated")));
         Assert.Equal("updated", typed[0]);
     }
 
@@ -34,7 +34,7 @@ public class JSArrayNumericPropertyTests
     public void ClosedElementWritesDoNotBoxAnotherCarrierOrAllocate()
     {
         var values = new JSArray<TsValue>(1);
-        var closed = TsValue.from(values);
+        var closed = TsValue.fromnative(values);
         var dynamic = (IDynamicArray)values;
         object value = ulong.MaxValue;
         for (var index = 0; index < 100; index++)
@@ -85,7 +85,7 @@ public class JSArrayNumericPropertyTests
     {
         var values = new JSArray<double?>();
         var alias = values;
-        var closed = TsValue.from(values);
+        var closed = TsValue.fromnative(values);
         values[1.5] = 9;
         Assert.Equal(9d, closed.ReadDynamicSlot("1.5").unwrap());
         closed.WriteDynamicSlot("-2", 6d);
@@ -111,7 +111,7 @@ public class JSArrayNumericPropertyTests
     public void ClosedWritesUseTheSameLengthAndNumericKeyContract()
     {
         var values = new JSArray<double>(3);
-        var closed = TsValue.from(values);
+        var closed = TsValue.fromnative(values);
         Assert.Throws<RangeError>(() => closed.WriteDynamicSlot("length", 4d));
         Assert.Equal(3, values.length);
         Assert.Equal(0d, closed.ReadDynamicSlot("1").unwrap());
@@ -123,7 +123,7 @@ public class JSArrayNumericPropertyTests
         Assert.Equal(9, values[1.5]);
         Assert.Throws<RangeError>(() => closed.WriteDynamicSlot("length", 1.5));
         Assert.Throws<TypeError>(() => ((IDynamicObject)values).WriteDynamicSlot("length", System.Numerics.BigInteger.One));
-        Assert.Throws<NotSupportedException>(() => closed.WriteDynamicSlot("length", System.Numerics.BigInteger.One));
+        Assert.Throws<TypeError>(() => closed.WriteDynamicSlot("length", System.Numerics.BigInteger.One));
         Assert.Throws<TypeError>(() => closed.WriteDynamicSlot("0", "wrong carrier"));
         Assert.Equal(0, values.length);
     }

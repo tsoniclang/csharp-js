@@ -45,7 +45,7 @@ namespace Tsonic.CSharp.Js.Tests
             JsEventLoop.Run(async () =>
             {
                 var reason = new Reason();
-                var task = TaskCompletion<object>.Create((_, reject) => reject(TsValue.from(reason)));
+                var task = TaskCompletion<object>.Create((_, reject) => reject(TsValue.fromnative(reason)));
                 Assert.Same(reason, await PromiseRuntime<object>.Catch(task, value => value!));
             });
         }
@@ -81,7 +81,7 @@ namespace Tsonic.CSharp.Js.Tests
             {
                 var reason = new Reason();
                 object? observed = null;
-                await PromiseRuntime.Catch(PromiseRuntime.Reject(TsValue.from(reason)), value => observed = value);
+                await PromiseRuntime.Catch(PromiseRuntime.Reject(TsValue.fromnative(reason)), value => observed = value);
                 Assert.Same(reason, observed);
                 observed = reason;
                 await PromiseRuntime.Catch(PromiseRuntime.Reject(), value => observed = value);
@@ -112,7 +112,7 @@ namespace Tsonic.CSharp.Js.Tests
                 var exception = await Assert.ThrowsAsync<TsThrownValueException>(async () => await task);
                 Assert.Same(reason, exception.value);
                 Assert.Throws<NotSupportedException>(() => TsThrownValueException.toValue(exception));
-                Assert.Throws<NotSupportedException>(() => TsValue.from(reason));
+                Assert.Throws<NotSupportedException>(() => TsValue.fromnative(reason));
                 Assert.Equal(7, await PromiseRuntime<int>.Catch(task, value => {
                     Assert.Same(reason, value);
                     return 7;

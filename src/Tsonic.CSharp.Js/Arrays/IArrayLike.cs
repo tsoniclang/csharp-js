@@ -13,7 +13,7 @@ public interface IArrayLike<T>
 }
 
 /// <summary>Closed operations shared by typed and ordinary JavaScript arrays.</summary>
-public static class ArrayLike
+public static partial class ArrayLike
 {
     public static bool HasIndex<T>(char index, IArrayLike<T> source) => source.TryGet(index, out _);
     public static bool HasIndex<T>(sbyte index, IArrayLike<T> source) => HasIndex((int)index, source);

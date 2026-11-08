@@ -38,7 +38,7 @@ public class NativePerformanceTests
     [Fact]
     public void SteadyStatePrimitiveMapLookupAndOverwriteDoNotBoxOrAllocate()
     {
-        var values = new Map<double, int>();
+        var values = new Map<double, int, NativeCollectionKey<double>>();
         for (var index = 0; index < 2000; index++) values.set(index, index);
         values.set(double.NaN, 3);
         values.set(-0.0, 9);
@@ -68,7 +68,7 @@ public class NativePerformanceTests
     [Fact]
     public void MapIteratorsObserveDeletionClearAndInsertion()
     {
-        var values = new Map<int, string>();
+        var values = new Map<int, string, NativeCollectionKey<int>>();
         values.set(1, "a").set(2, "b");
         var seen = new System.Collections.Generic.List<string>();
         values.forEach((value, key) =>

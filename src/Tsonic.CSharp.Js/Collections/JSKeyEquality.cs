@@ -1,26 +1,35 @@
+using System;
+
 namespace Tsonic.CSharp.Js;
 
 internal static class JSKeyEquality
 {
-    public static bool strictEquals<T>(T left, T right)
+    internal static bool HasNativeScalarEquality<TValue>() => NativeValueKey<TValue>.Supported;
+
+    internal static bool NativeStrictEquals<TValue>(TValue left, TValue right) => NativeEqual(left, right, true);
+
+    internal static bool NativeSameValueZero<TValue>(TValue left, TValue right) => NativeEqual(left, right, false);
+
+    private static bool NativeEqual<TValue>(TValue left, TValue right, bool strict)
     {
-        if (typeof(T) == typeof(double))
-            return System.Runtime.CompilerServices.Unsafe.As<T, double>(ref left) == System.Runtime.CompilerServices.Unsafe.As<T, double>(ref right);
-        if (typeof(T) == typeof(float))
-            return System.Runtime.CompilerServices.Unsafe.As<T, float>(ref left) == System.Runtime.CompilerServices.Unsafe.As<T, float>(ref right);
-        if (typeof(T) == typeof(System.Half))
-            return System.Runtime.CompilerServices.Unsafe.As<T, System.Half>(ref left) == System.Runtime.CompilerServices.Unsafe.As<T, System.Half>(ref right);
-        if (NativeValueKey<T>.Supported) return System.Collections.Generic.EqualityComparer<T>.Default.Equals(left, right);
-        return BoxedStrictEqual(left, right);
+        if (NativeValueKey<TValue>.Supported)
+            return (!strict || !NativeIsNaN(left)) && System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(left, right);
+        var leftValue = TsValue.UnwrapClosedValue(left);
+        var rightValue = TsValue.UnwrapClosedValue(right);
+        return (!strict || !NativeNumericKey.TryCreateBoxed(leftValue, out var number) || !number.IsNaN) &&
+            EqualValues(leftValue, rightValue);
     }
 
-    private static bool BoxedStrictEqual(object? left, object? right)
+    internal static int NativeKeyHash<TValue>(TValue value) => NativeValueKey<TValue>.Supported
+        ? value is null ? 0 : System.Collections.Generic.EqualityComparer<TValue>.Default.GetHashCode(value)
+        : PayloadHash(TsValue.UnwrapClosedValue(value));
+
+    internal static bool NativeIsNaN<TValue>(TValue value)
     {
-        if (left is TsValue leftValue) return BoxedStrictEqual(leftValue.unwrap(), right);
-        if (right is TsValue rightValue) return BoxedStrictEqual(left, rightValue.unwrap());
-        if (left is double number && double.IsNaN(number) || left is float single && float.IsNaN(single) ||
-            left is System.Half half && System.Half.IsNaN(half)) return false;
-        return BoxedEqual(left, right);
+        if (typeof(TValue) == typeof(double)) return double.IsNaN(System.Runtime.CompilerServices.Unsafe.As<TValue, double>(ref value));
+        if (typeof(TValue) == typeof(float)) return float.IsNaN(System.Runtime.CompilerServices.Unsafe.As<TValue, float>(ref value));
+        if (typeof(TValue) == typeof(Half)) return Half.IsNaN(System.Runtime.CompilerServices.Unsafe.As<TValue, Half>(ref value));
+        return !NativeValueKey<TValue>.Supported && NativeNumericKey.TryCreateBoxed(TsValue.UnwrapClosedValue(value), out var number) && number.IsNaN;
     }
 
     public static T canonicalizeKeyedCollectionKey<T>(T value)
@@ -40,103 +49,65 @@ internal static class JSKeyEquality
             ref var number = ref System.Runtime.CompilerServices.Unsafe.As<T, System.Half>(ref value);
             if (number == (System.Half)0) number = (System.Half)0;
         }
+        else if (typeof(T) == typeof(TsValue))
+        {
+            ref var stored = ref System.Runtime.CompilerServices.Unsafe.As<T, TsValue>(ref value);
+            stored = CanonicalStored(stored);
+        }
         else if (!NativeValueKey<T>.Supported)
         {
             value = value switch
             {
-                double number when number == 0 => (T)(object)0.0,
-                float number when number == 0 => (T)(object)0.0f,
-                System.Half number when number == (System.Half)0 => (T)(object)(System.Half)0,
-                TsValue wrapped => (T)(object)TsValue.from(canonicalizeKeyedCollectionKey(wrapped.unwrap())),
+                double number when number == 0 => (T)CanonicalZero<double>.Value,
+                float number when number == 0 => (T)CanonicalZero<float>.Value,
+                System.Half number when number == (System.Half)0 => (T)CanonicalZero<System.Half>.Value,
+                TsValue wrapped => (T)(object)CanonicalStored(wrapped),
                 _ => value,
             };
         }
         return value;
     }
 
-    public static bool sameValueZero<T>(T left, T right) =>
-        NativeValueKey<T>.Supported
-            ? System.Collections.Generic.EqualityComparer<T>.Default.Equals(left, right)
-            : BoxedEqual(left, right);
-
-    public static bool sameValueZeroUndefined<T>(T value) => BoxedEqual(null, value);
-
-    public static int keyHash<T>(T value) => NativeValueKey<T>.Supported
-        ? value is null ? 0 : System.Collections.Generic.EqualityComparer<T>.Default.GetHashCode(value)
-        : BoxedHash(value);
-
-    private static bool BoxedEqual(object? left, object? right)
+    private static int PayloadHash(object? payload)
     {
-        if (left is TsValue leftValue) return BoxedEqual(leftValue.unwrap(), right);
-        if (right is TsValue rightValue) return BoxedEqual(left, rightValue.unwrap());
+        if (payload is null) return 0;
+        if (NativeNumericKey.TryCreateBoxed(payload, out var number)) return number.GetHashCode();
+        return IsNativeValue(payload) ? payload.GetHashCode()
+            : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(payload);
+    }
+
+    private static bool EqualValues(object? left, object? right)
+    {
         if (ReferenceEquals(left, right)) return true;
-        if (IntegerKey(left, out var leftMagnitude, out var leftNegative) &&
-            IntegerKey(right, out var rightMagnitude, out var rightNegative))
-            return leftMagnitude == rightMagnitude && leftNegative == rightNegative;
-        if (FloatingKey(left, out var leftFloat) && FloatingKey(right, out var rightFloat)) return leftFloat.Equals(rightFloat);
+        if (NativeNumericKey.TryCreateBoxed(left, out var leftNumber) &&
+            NativeNumericKey.TryCreateBoxed(right, out var rightNumber))
+            return leftNumber.Equals(rightNumber);
         return left is not null && IsNativeValue(left) && left.Equals(right);
     }
 
-    private static int BoxedHash(object? value)
+    private static TsValue CanonicalStored(TsValue value)
     {
-        if (value is TsValue wrapped) return BoxedHash(wrapped.unwrap());
-        if (value is null) return 0;
-        if (IntegerKey(value, out var magnitude, out var negative)) return System.HashCode.Combine(magnitude, negative);
-        if (FloatingKey(value, out var number)) return number.GetHashCode();
-        return IsNativeValue(value) ? value.GetHashCode()
-            : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
-    }
-
-    private static bool FloatingKey(object? value, out double number)
-    {
-        switch (value)
+        if (value.Category is not (SourceValueCategory.Number or SourceValueCategory.BigInt)) return value;
+        var payload = value.unwrap();
+        return payload switch
         {
-            case double typed: number = typed; return true;
-            case float typed: number = typed; return true;
-            case System.Half typed: number = (double)typed; return true;
-            default: number = 0; return false;
-        }
-    }
-
-    private static bool IntegerKey(object? value, out System.UInt128 magnitude, out bool negative)
-    {
-        System.Int128 signed;
-        switch (value)
-        {
-            case sbyte typed: signed = typed; break;
-            case byte typed: signed = typed; break;
-            case short typed: signed = typed; break;
-            case ushort typed: signed = typed; break;
-            case int typed: signed = typed; break;
-            case uint typed: signed = typed; break;
-            case long typed: signed = typed; break;
-            case ulong typed: signed = typed; break;
-            case nint typed: signed = typed; break;
-            case nuint typed: signed = typed; break;
-            case System.Int128 typed: signed = typed; break;
-            case System.UInt128 typed: magnitude = typed; negative = false; return true;
-            case decimal typed when decimal.IsInteger(typed): signed = (System.Int128)typed; break;
-            default:
-                if (!FloatingKey(value, out var number) || !double.IsInteger(number) ||
-                    number < -170141183460469231731687303715884105728d || number >= 340282366920938463463374607431768211456d)
-                {
-                    magnitude = 0;
-                    negative = false;
-                    return false;
-                }
-                negative = number < 0;
-                magnitude = (System.UInt128)System.Math.Abs(number);
-                return true;
-        }
-        negative = signed < 0;
-        magnitude = negative ? unchecked((System.UInt128)(~signed) + 1) : (System.UInt128)signed;
-        return true;
+            double number when number == 0 && BitConverter.DoubleToInt64Bits(number) < 0 => TsValue.fromsource(CanonicalZero<double>.Value, value.Category),
+            float number when number == 0 && BitConverter.SingleToInt32Bits(number) < 0 => TsValue.fromsource(CanonicalZero<float>.Value, value.Category),
+            Half number when number == (Half)0 && BitConverter.HalfToInt16Bits(number) < 0 => TsValue.fromsource(CanonicalZero<Half>.Value, value.Category),
+            _ => value,
+        };
     }
 
     private static bool IsNativeValue(object value) => value is
         byte or sbyte or short or ushort or int or uint or long or ulong or nint or nuint or
         System.Int128 or System.UInt128 or System.Half or float or double or decimal or bool or char or string or
         System.Numerics.BigInteger;
+
+    private static class CanonicalZero<TValue> where TValue : struct
+    {
+        internal static readonly object Value = default(TValue);
+        static CanonicalZero() { }
+    }
 
     private static class NativeValueKey<T>
     {

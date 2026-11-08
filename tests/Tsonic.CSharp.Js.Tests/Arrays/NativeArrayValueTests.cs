@@ -11,7 +11,7 @@ public class NativeArrayValueTests
     public void TypedErasedArraysRetainNativeBackingIdentityAndMutation()
     {
         var backing = JSArray<string>.of(["first"]);
-        var erased = TsValue.from(backing);
+        var erased = TsValue.fromnative(backing);
         var copied = erased;
         Assert.True(erased.IsArray());
         Assert.Same(backing, TsValue.CastDynamic<JSArray<string>>(copied));
@@ -21,7 +21,7 @@ public class NativeArrayValueTests
         Assert.Equal(2, erased.ArrayLength);
         Assert.Equal("first,second", Globals.String(erased));
         Assert.Equal("[\"first\",\"second\"]", JSON.stringify(erased));
-        var different = TsValue.from(JSArray<TsValue>.of([TsValue.from("first")]));
+        var different = TsValue.fromnative(JSArray<TsValue>.of([TsValue.fromnative("first")]));
         Assert.Throws<TypeError>(() => TsValue.CastDynamic<JSArray<string>>(different));
     }
 
@@ -29,12 +29,12 @@ public class NativeArrayValueTests
     public void ErasureRecoveryAndLengthHaveNoAdditionalAllocation()
     {
         var backing = JSArray<string>.of(["first"]);
-        for (var index = 0; index < 1000; index++) TsValue.CastDynamic<JSArray<string>>(TsValue.from(backing));
+        for (var index = 0; index < 1000; index++) TsValue.CastDynamic<JSArray<string>>(TsValue.fromnative(backing));
         var before = GC.GetAllocatedBytesForCurrentThread();
         var matches = 0;
         for (var index = 0; index < 1000; index++)
         {
-            var erased = TsValue.from(backing);
+            var erased = TsValue.fromnative(backing);
             if (erased.IsArray() && erased.ArrayLength == 1 && ReferenceEquals(backing, TsValue.CastDynamic<JSArray<string>>(erased))) matches++;
         }
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
@@ -51,7 +51,7 @@ public class NativeArrayValueTests
             Union<JSArray<string>, ulong, string?>.From2(ulong.MaxValue),
             Union<JSArray<string>, ulong, string?>.From3(null),
         ]);
-        var erased = TsValue.from(values);
+        var erased = TsValue.fromnative(values);
         var selected = erased.ReadDynamicElement(0);
         Assert.True(selected.IsArray());
         Assert.Same(nested, TsValue.CastDynamic<JSArray<string>>(selected));

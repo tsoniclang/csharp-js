@@ -25,7 +25,7 @@ public class NativeNumericJsonTests
         foreach (var (value, expected) in values)
         {
             Assert.Equal(expected, JSON.stringify(value));
-            Assert.Equal(expected, JSON.stringify(TsValue.from(value)));
+            Assert.Equal(expected, JSON.stringify(TsValue.fromnative(value)));
             Assert.Equal("[" + expected + "]", JSON.stringify(JSArray<object>.of([value])));
         }
     }
@@ -37,7 +37,7 @@ public class NativeNumericJsonTests
         Assert.Equal("0.5", JSON.stringify(0.5f));
         Assert.Equal("0.5", JSON.stringify(0.5d));
         Assert.Equal("79228162514264337593543950335", JSON.stringify(decimal.MaxValue));
-        Assert.Equal("-79228162514264337593543950335", JSON.stringify(TsValue.from(decimal.MinValue)));
+        Assert.Equal("-79228162514264337593543950335", JSON.stringify(TsValue.fromnative(decimal.MinValue)));
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class NativeNumericJsonTests
         foreach (var value in values)
         {
             Assert.Equal("null", JSON.stringify(value));
-            Assert.Equal("null", JSON.stringify(TsValue.from(value)));
+            Assert.Equal("null", JSON.stringify(TsValue.fromnative(value)));
             Assert.Equal("[null]", JSON.stringify(JSArray<object>.of([value])));
             Assert.Equal("{\"value\":null}", JSON.stringify(new Dictionary<string, object?> { ["value"] = value }));
         }

@@ -215,7 +215,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void Number_Null_ReturnsZero()
         {
             Assert.Equal(0, Globals.Number(null));
-            Assert.Equal(0, Globals.Number(TsValue.from(null)));
+            Assert.Equal(0, Globals.Number(TsValue.fromnative<object?>(null)));
         }
 
         [Fact]
@@ -279,7 +279,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void String_TsValueNull_ReturnsNullString()
         {
-            Assert.Equal("null", Globals.String(TsValue.from(null)));
+            Assert.Equal("null", Globals.String(TsValue.fromnative<object?>(null)));
         }
 
         [Fact]
@@ -356,7 +356,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             Assert.False(Globals.Boolean(Globals.undefined));
             Assert.False(Globals.Boolean(TsValue.undefined()));
-            Assert.False(Globals.Boolean(TsValue.from(null)));
+            Assert.False(Globals.Boolean(TsValue.fromnative<object?>(null)));
         }
 
         [Fact]

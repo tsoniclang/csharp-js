@@ -257,7 +257,7 @@ namespace Tsonic.CSharp.Js.Tests
             var denseValues = new List<object?> { TsValue.undefined().unwrap(), null, "x", true, 3.5 };
             Assert.Equal(",,x,true,3.5", Tsonic.CSharp.Js.Array.join(denseValues));
 
-            var broadValues = new JSArray<TsValue>(new[] { TsValue.undefined(), TsValue.from("x"), TsValue.from(false) });
+            var broadValues = new JSArray<TsValue>(new[] { TsValue.undefined(), TsValue.fromnative("x"), TsValue.fromnative(false) });
             Assert.Equal(",x,false", broadValues.join());
         }
 
