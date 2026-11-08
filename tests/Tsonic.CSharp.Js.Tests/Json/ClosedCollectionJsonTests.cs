@@ -69,7 +69,7 @@ public class ClosedCollectionJsonTests
         };
         Assert.Null(JSON.stringify(TsValue.fromnative(record), removeRoot, TsValue.fromnative(" ")));
         Assert.Equal(1, calls);
-        Assert.Equal(7L, record.ReadDynamicSlotAs<long>("value"));
+        Assert.Equal(7L, Assert.IsType<long>(record.ReadDynamicSlot("value").unwrap()));
         calls = 0;
         JsonReplacer replaceAbsence = (key, value) =>
         {
