@@ -219,6 +219,17 @@ namespace Tsonic.CSharp.Js.Tests
         }
 
         [Fact]
+        public void JsonDateRoot_DefaultAndNullReplacerUseTheSameProjection()
+        {
+            var date = new Date("2023-06-15T12:30:45.123Z");
+            Assert.Equal("\"2023-06-15T12:30:45.123Z\"", JSON.stringify(date));
+            Assert.Equal(JSON.stringify(date), JSON.stringify(date, null));
+            var invalid = new Date("not a date");
+            Assert.Null(JSON.stringify(invalid));
+            Assert.Null(JSON.stringify(invalid, null));
+        }
+
+        [Fact]
         public void IntlOptions_ReadTheExactNativeRecordAndOneAbsence()
         {
             var options = new Dictionary<string, TsValue>
