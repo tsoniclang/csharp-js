@@ -57,6 +57,32 @@ public sealed class TypedCollectionKeyTests
     }
 
     [Fact]
+    public void ScalarUnionEnvelopesRemainTransitiveAcrossStoredAndTypedRoles()
+    {
+        var text = new string('x', 1);
+        var wrappedText = TsValue.fromsource<Union<string, int>, SourceStringCategory<Union<string, int>>>(Union<string, int>.From1(text));
+        var storedText = TsValue.fromsource<string, SourceStringCategory<string>>(new string('x', 1));
+        AssertEquivalent<Union<TsValue, string>, UnionCollectionKey<TsValue, SourceStoredValueCategory, string, SourceStringCategory<string>>>(
+            Union<TsValue, string>.From1(wrappedText), Union<TsValue, string>.From1(storedText), Union<TsValue, string>.From2("x"));
+        AssertEquivalent<Union<Union<string, int>, string>, UnionCollectionKey<Union<string, int>, SourceStringCategory<Union<string, int>>, string, SourceStringCategory<string>>>(
+            Union<Union<string, int>, string>.From1(Union<string, int>.From1(text)), Union<Union<string, int>, string>.From2("x"));
+        var wrappedBoolean = TsValue.fromsource<Union<bool, string>, SourceBooleanCategory<Union<bool, string>>>(Union<bool, string>.From1(false));
+        var storedBoolean = TsValue.fromsource<bool, SourceBooleanCategory<bool>>(false);
+        AssertEquivalent<Union<TsValue, bool>, UnionCollectionKey<TsValue, SourceStoredValueCategory, bool, SourceBooleanCategory<bool>>>(
+            Union<TsValue, bool>.From1(wrappedBoolean), Union<TsValue, bool>.From1(storedBoolean), Union<TsValue, bool>.From2(false));
+        var contradictory = UnionCollectionKey<TsValue, SourceBooleanCategory<TsValue>, string, SourceStringCategory<string>>.Create(
+            Union<TsValue, string>.From1(wrappedText));
+        Assert.Throws<ArgumentException>(() => contradictory.GetHashCode());
+        Assert.Throws<ArgumentException>(() => contradictory.Equals(
+            UnionCollectionKey<TsValue, SourceBooleanCategory<TsValue>, string, SourceStringCategory<string>>.Create(Union<TsValue, string>.From2("x"))));
+        var atomic = TsValue.fromsource<Union<string, int>, SourceObjectCategory<Union<string, int>>>(Union<string, int>.From1(text));
+        var atomicKey = UnionCollectionKey<TsValue, SourceStoredValueCategory, string, SourceStringCategory<string>>.Create(Union<TsValue, string>.From1(atomic));
+        var textKey = UnionCollectionKey<TsValue, SourceStoredValueCategory, string, SourceStringCategory<string>>.Create(Union<TsValue, string>.From2("x"));
+        Assert.False(atomicKey.Equals(textKey));
+        Assert.False(textKey.Equals(atomicKey));
+    }
+
+    [Fact]
     public void EveryImmediateNativeArityHasExactSymmetricKeysAndHashes()
     {
         AssertEquivalent<Union<sbyte, byte>, UnionCollectionKey<sbyte, SourceNumberCategory<sbyte>, byte, SourceNumberCategory<byte>>>(

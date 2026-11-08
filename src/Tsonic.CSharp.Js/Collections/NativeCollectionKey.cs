@@ -61,6 +61,11 @@ internal static class CollectionKeyComparison
         if (category == SourceValueCategory.Absent) return true;
         if (TryStored(left, out var leftStored)) return EqualPayload(leftStored.unwrap(), right, category);
         if (TryStored(right, out var rightStored)) return EqualPayload(rightStored.unwrap(), left, category);
+        if (category is not (SourceValueCategory.Object or SourceValueCategory.Function or SourceValueCategory.Symbol))
+        {
+            if (!JSKeyEquality.HasNativeScalarEquality<TLeft>()) return EqualPayload(TsValue.UnwrapClosedValue(left), right, category);
+            if (!JSKeyEquality.HasNativeScalarEquality<TRight>()) return EqualPayload(TsValue.UnwrapClosedValue(right), left, category);
+        }
         if (typeof(TLeft) == typeof(TRight))
             return EqualSameCategory(left, Unsafe.As<TRight, TLeft>(ref right), category);
         if (!typeof(TLeft).IsValueType && left is TRight typedLeft) return EqualSameCategory(typedLeft, right, category);
@@ -102,12 +107,15 @@ internal static class CollectionKeyComparison
 
     private static bool EqualPayload<TValue>(object? payload, TValue value, SourceValueCategory category)
     {
+        var scalar = category is not (SourceValueCategory.Object or SourceValueCategory.Function or SourceValueCategory.Symbol);
+        if (scalar) payload = TsValue.UnwrapClosedValue(payload);
         if (TryStored(value, out var stored)) return EqualSameCategory(payload, stored.unwrap(), category);
         if (payload is TValue typed) return EqualSameCategory(typed, value, category);
         if (category is SourceValueCategory.Number or SourceValueCategory.BigInt &&
             TryNumeric(payload, out var leftNumber) && TryNumeric(value, out var rightNumber))
             return leftNumber.Equals(rightNumber);
-        return false;
+        return scalar && !JSKeyEquality.HasNativeScalarEquality<TValue>() &&
+            EqualSameCategory(payload, TsValue.UnwrapClosedValue(value), category);
     }
 
     private static bool EqualSameCategory<TValue>(TValue left, TValue right, SourceValueCategory category) =>
