@@ -11,7 +11,7 @@ public sealed class TimerCallbackArguments
         _values = new TsValue[values.Length];
         for (var index = 0; index < values.Length; index += 1)
         {
-            _values[index] = TsValue.from(values[index]);
+            _values[index] = TsValue.fromnative(values[index]);
         }
     }
 

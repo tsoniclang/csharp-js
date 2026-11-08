@@ -57,24 +57,24 @@ namespace Tsonic.CSharp.Js.Tests
                 "month", "2-digit",
                 "day", "2-digit");
             var formatter = new IntlDateTimeFormat(
-                TsValue.from("en-US"),
-                TsValue.from(dateOptions));
+                TsValue.fromnative("en-US"),
+                TsValue.fromnative(dateOptions));
 
             Assert.Equal("06/15/2023", formatter.format(Date.UTC(2023, 5, 15)));
             Assert.Equal("UTC", formatter.resolvedOptions().timeZone);
-            Assert.Throws<RangeError>(() => new IntlDateTimeFormat(TsValue.from("fr-FR")));
+            Assert.Throws<RangeError>(() => new IntlDateTimeFormat(TsValue.fromnative("fr-FR")));
             Assert.Throws<RangeError>(() => new IntlDateTimeFormat(
-                TsValue.from("en-US"),
-                TsValue.from(JSON.createObject("timeZone", "Europe/Paris"))));
+                TsValue.fromnative("en-US"),
+                TsValue.fromnative(JSON.createObject("timeZone", "Europe/Paris"))));
 
             var number = new IntlNumberFormat(
-                TsValue.from("en-US"),
-                TsValue.from(JSON.createObject("style", "percent", "maximumFractionDigits", 1.0)));
+                TsValue.fromnative("en-US"),
+                TsValue.fromnative(JSON.createObject("style", "percent", "maximumFractionDigits", 1.0)));
             Assert.Equal("12.5%", number.format(0.125));
 
             var collator = new IntlCollator(
-                TsValue.from("en-US"),
-                TsValue.from(JSON.createObject("numeric", true)));
+                TsValue.fromnative("en-US"),
+                TsValue.fromnative(JSON.createObject("numeric", true)));
             Assert.True(collator.compare("item2", "item10") < 0);
         }
 
@@ -88,7 +88,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("{\"keep\":1,\"drop\":null}", JSON.stringify(source, replacer));
             Assert.Equal(
                 "{\n  \"drop\": 2\n}",
-                JSON.stringify(source, new[] { "drop" }, TsValue.from(2.0)));
+                JSON.stringify(source, new[] { "drop" }, TsValue.fromnative(2.0)));
             Assert.Throws<TypeError>(() => JSON.stringify(source, new object()));
         }
 

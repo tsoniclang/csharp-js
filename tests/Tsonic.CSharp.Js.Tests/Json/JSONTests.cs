@@ -8,14 +8,21 @@ namespace Tsonic.CSharp.Js.Tests
     public class JSONTests
     {
         [Fact]
-        public void stringify_NativeProducerReturnsANonAbsentString()
+        public void stringify_NativeProducerReturnsOneAbsenceOrAPresentString()
         {
-            string objectResult = JSON.stringify((object?)null);
-            string valueResult = JSON.stringify(TsValue.undefined());
-            string replacerResult = JSON.stringify((object?)null, null);
-            Assert.Equal("null", objectResult);
-            Assert.Equal(objectResult, valueResult);
-            Assert.Equal(objectResult, replacerResult);
+            string? objectResult = JSON.stringify((object?)null);
+            string? valueResult = JSON.stringify(TsValue.undefined());
+            string? replacerResult = JSON.stringify((object?)null, null);
+            Assert.Null(objectResult);
+            Assert.Null(valueResult);
+            Assert.Null(replacerResult);
+            Assert.Null(JSON.stringify((object?)null, new[] { "value" }));
+            Assert.Null(JSON.stringify((Dictionary<string, int>?)null));
+            Assert.Null(JSON.stringify((IDictionary<string, TsValue>?)null));
+            Assert.Null(JSON.stringify((IReadOnlyDictionary<string, TsValue>?)null));
+            Assert.Equal("0", JSON.stringify(0));
+            Assert.Equal("false", JSON.stringify(false));
+            Assert.Equal("\"\"", JSON.stringify(string.Empty));
         }
 
         [Fact]
@@ -83,7 +90,7 @@ namespace Tsonic.CSharp.Js.Tests
                 ["false"] = false,
                 ["empty"] = ""
             };
-            Assert.Equal("null", JSON.stringify(TsValue.undefined()));
+            Assert.Null(JSON.stringify(TsValue.undefined()));
             var restored = Assert.IsType<JSObject>(JSON.parse(JSON.stringify(value)!).unwrap());
             Assert.Equal(new[] { "null", "undefined", "zero", "false", "empty" }, restored.keys());
             Assert.Null(restored["null"]);
@@ -203,13 +210,13 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void TsValue_RejectsOpenClrObjects()
         {
-            Assert.Throws<NotSupportedException>(() => TsValue.from(new { name = "not-a-carrier" }));
+            Assert.Throws<NotSupportedException>(() => TsValue.fromnative(new { name = "not-a-carrier" }));
         }
 
         [Fact]
         public void stringify_AcceptsClosedTsValueCarrier()
         {
-            var value = TsValue.from(new JSObject
+            var value = TsValue.fromnative(new JSObject
             {
                 ["name"] = "carrier"
             });
@@ -220,8 +227,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void stringify_SerializesClosedRuntimeUnionActiveArm()
         {
-            var text = TsValue.from(Union<int, string>.From2("ready"));
-            var number = TsValue.from(Union<int, string>.From1(42));
+            var text = TsValue.fromnative(Union<int, string>.From2("ready"));
+            var number = TsValue.fromnative(Union<int, string>.From1(42));
 
             Assert.Equal("\"ready\"", JSON.stringify(text));
             Assert.Equal("42", JSON.stringify(number));

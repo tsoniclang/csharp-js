@@ -28,7 +28,7 @@ namespace Tsonic.CSharp.Js
             if (!reader.Read()) throw new JsonException("JSON input is empty.");
             var value = ReadValue(ref reader);
             if (reader.Read()) throw new JsonException("JSON input contains trailing content.");
-            return TsValue.from(value);
+            return TsValue.fromnative(value);
         }
 
         private static object? ReadValue(ref Utf8JsonReader reader)
@@ -64,9 +64,10 @@ namespace Tsonic.CSharp.Js
             throw new JsonException("Incomplete or invalid JSON value.");
         }
 
-        public static string stringify(object? value)
+        public static string? stringify(object? value)
         {
             value = NormalizeDirectJsonValue(value);
+            if (value is null) return null;
             var stream = new ArrayBufferWriter<byte>();
             using var writer = new Utf8JsonWriter(stream);
             writeValue(writer, value, new JsonWriteContext(), "");
@@ -74,12 +75,12 @@ namespace Tsonic.CSharp.Js
             return Encoding.UTF8.GetString(stream.WrittenSpan);
         }
 
-        public static string stringify(TsValue value)
+        public static string? stringify(TsValue value)
         {
             return stringify(value.unwrap());
         }
 
-        public static string stringify(object? value, object? replacer, TsValue space = default)
+        public static string? stringify(object? value, object? replacer, TsValue space = default)
         {
             replacer = replacer is TsValue wrapped ? wrapped.unwrap() : replacer;
             object? selected;
@@ -97,42 +98,44 @@ namespace Tsonic.CSharp.Js
                 default:
                     throw new TypeError("JSON.stringify replacer requires a closed callback, property-name sequence, null, or undefined.");
             }
-            return FormatWithSpace(stringify(selected), space);
+            var serialized = stringify(selected);
+            return serialized is null ? null : FormatWithSpace(serialized, space);
         }
 
-        public static string stringify<TValue>(IDictionary<string, TValue>? value)
+        public static string? stringify<TValue>(IDictionary<string, TValue>? value)
         {
             return StringifyRecord<TValue, NativeRecordValue<TValue>>(value);
         }
 
-        public static string stringify<TValue>(IReadOnlyDictionary<string, TValue>? value)
+        public static string? stringify<TValue>(IReadOnlyDictionary<string, TValue>? value)
         {
             return StringifyRecord<TValue, NativeRecordValue<TValue>>(value);
         }
 
-        public static string stringify<TValue>(Dictionary<string, TValue>? value)
+        public static string? stringify<TValue>(Dictionary<string, TValue>? value)
         {
             return StringifyRecord<TValue, NativeRecordValue<TValue>>(value);
         }
 
-        public static string stringify(Dictionary<string, TsValue>? value)
+        public static string? stringify(Dictionary<string, TsValue>? value)
         {
             return StringifyRecord<TsValue, ClosedRecordValue>(value);
         }
 
-        public static string stringify(IDictionary<string, TsValue>? value)
+        public static string? stringify(IDictionary<string, TsValue>? value)
         {
             return StringifyRecord<TsValue, ClosedRecordValue>(value);
         }
 
-        public static string stringify(IReadOnlyDictionary<string, TsValue>? value)
+        public static string? stringify(IReadOnlyDictionary<string, TsValue>? value)
         {
             return StringifyRecord<TsValue, ClosedRecordValue>(value);
         }
 
-        private static string StringifyRecord<TValue, TRecordValue>(IEnumerable<KeyValuePair<string, TValue>>? value)
+        private static string? StringifyRecord<TValue, TRecordValue>(IEnumerable<KeyValuePair<string, TValue>>? value)
             where TRecordValue : struct, IRecordValue<TValue>
         {
+            if (value is null) return null;
             var stream = new ArrayBufferWriter<byte>();
             using var writer = new Utf8JsonWriter(stream);
             WriteObject<TValue, TRecordValue>(writer, value, new JsonWriteContext());
@@ -346,13 +349,12 @@ namespace Tsonic.CSharp.Js
                 if (keys != null)
                 {
                     var result = new JSObject();
-                    var record = TsValue.from(unwrapped);
                     foreach (var property in new List<string>(keys))
                     {
-                        var child = ApplyReplacer(property, record.ReadDynamicSlot(property), replacer, context);
-                        result[property] = child.unwrap();
+                        var child = ApplyReplacer(property, replaced.ReadDynamicSlot(property), replacer, context);
+                        result[property] = child;
                     }
-                    return TsValue.from(result);
+                    return TsValue.fromnative(result);
                 }
                 if (unwrapped is IDynamicArray sourceArray)
                 {
@@ -360,11 +362,11 @@ namespace Tsonic.CSharp.Js
                     var length = sourceArray.Length;
                     for (var index = 0; index < length; index++)
                     {
-                        var item = sourceArray.TryGetAt(index, out var current) ? current : null;
-                        var child = ApplyReplacer(index.ToString(CultureInfo.InvariantCulture), item, replacer, context);
-                        result.push(child.unwrap());
+                        var property = index.ToString(CultureInfo.InvariantCulture);
+                        var child = ApplyReplacer(property, replaced.ReadDynamicSlot(property), replacer, context);
+                        result.push(child);
                     }
-                    return TsValue.from(result);
+                    return TsValue.fromnative(result);
                 }
                 return replaced;
             }
@@ -391,11 +393,12 @@ namespace Tsonic.CSharp.Js
             try
             {
                 value = NormalizeJsonValue(value, key);
-                var keys = RecordKeys(value);
+                var unwrapped = TsValue.UnwrapClosedValue(value);
+                var keys = RecordKeys(unwrapped);
                 if (keys != null)
                 {
                     var result = new JSObject();
-                    var record = TsValue.from(value);
+                    var record = TsValue.fromnative(value);
                     foreach (var property in keys)
                     {
                         if (names.Contains(property))
@@ -406,14 +409,14 @@ namespace Tsonic.CSharp.Js
                     }
                     return result;
                 }
-                if (value is IDynamicArray sourceArray)
+                if (unwrapped is IDynamicArray sourceArray)
                 {
                     var result = new JSArray<object?>();
+                    var record = ToTsValue(value);
                     for (var index = 0; index < sourceArray.Length; index++)
                     {
-                        result.push(sourceArray.TryGetAt(index, out var item)
-                            ? FilterProperties(item, names, index.ToString(CultureInfo.InvariantCulture), context)
-                            : null);
+                        var property = index.ToString(CultureInfo.InvariantCulture);
+                        result.push(FilterProperties(record.ReadDynamicSlot(property), names, property, context));
                     }
                     return result;
                 }
@@ -475,8 +478,7 @@ namespace Tsonic.CSharp.Js
 
         private static object? NormalizeJsonValue(object? value, string key)
         {
-            value = TsValue.UnwrapClosedValue(value);
-            return value switch
+            return TsValue.UnwrapClosedValue(value) switch
             {
                 IJsonValue jsonValue => jsonValue.__tsonicJsonValue(key),
                 Date date => date.toJSON(),
@@ -492,7 +494,7 @@ namespace Tsonic.CSharp.Js
 
         private static TsValue ToTsValue(object? value)
         {
-            return TsValue.from(value);
+            return TsValue.fromnative(value);
         }
 
         private static object? TrackableJsonIdentity(object? value)

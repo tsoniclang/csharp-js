@@ -29,7 +29,7 @@ public static class TypedArrayStringChecks
         Check<bool>([true, false], "true,false");
         Check<long?>([1, null, 9007199254740993L], "1,,9007199254740993");
         Check<string?>(["native", null, "😀"], "native,,😀");
-        Check<Tsonic.CSharp.Runtime.TsValue>([Tsonic.CSharp.Runtime.TsValue.from(9007199254740993L), Tsonic.CSharp.Runtime.TsValue.undefined()], "9007199254740993,");
+        Check<Tsonic.CSharp.Runtime.TsValue>([Tsonic.CSharp.Runtime.TsValue.fromnative(9007199254740993L), Tsonic.CSharp.Runtime.TsValue.undefined()], "9007199254740993,");
     }
 
     public static void CheckCosts() => AllocationMeasurement.Run(CheckCostsOnMeasuringThread);

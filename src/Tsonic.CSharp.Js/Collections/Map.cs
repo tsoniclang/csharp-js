@@ -12,31 +12,9 @@ namespace Tsonic.CSharp.Js
     /// <summary>
     /// JavaScript Map carrier with insertion order, overwrite ordering, null/undefined keys, NaN equality, and object identity.
     /// </summary>
-    public class Map<K, V> : IEnumerable<(K key, V value)>
+    public class Map<K, V, TKey> : IEnumerable<(K key, V value)> where TKey : struct, ICollectionKey<K, TKey>
     {
-        private readonly OrderedDictionary<CollectionKey<K>, V> _entries = new();
-        private List<Cursor>? _cursors;
-
-        private sealed class Cursor
-        {
-            internal int Next;
-        }
-
-        private IEnumerable<KeyValuePair<CollectionKey<K>, V>> Enumerate()
-        {
-            var cursor = new Cursor();
-            (_cursors ??= new List<Cursor>()).Add(cursor);
-            try
-            {
-                while (cursor.Next < _entries.Count)
-                    yield return _entries.GetAt(cursor.Next++);
-            }
-            finally
-            {
-                _cursors.Remove(cursor);
-                if (_cursors.Count == 0) _cursors = null;
-            }
-        }
+        private OrderedKeyCollection<TKey, V> _entries = new();
 
         // ==================== Constructors ====================
 
@@ -81,20 +59,20 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public object? get(K key)
         {
-            return _entries.TryGetValue(new CollectionKey<K>(key), out var value) ? value : null;
+            return _entries.TryGet(TKey.Create(key), out var value) ? value : null;
         }
 
         public bool tryGet(K key, out V value)
         {
-            return _entries.TryGetValue(new CollectionKey<K>(key), out value!);
+            return _entries.TryGet(TKey.Create(key), out value!);
         }
 
         /// <summary>
         /// Set value for key, returns the Map for chaining
         /// </summary>
-        public Map<K, V> set(K key, V value)
+        public Map<K, V, TKey> set(K key, V value)
         {
-            _entries[new CollectionKey<K>(key)] = value;
+            _entries.Set(TKey.Create(key), value);
             return this;
         }
 
@@ -103,7 +81,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool has(K key)
         {
-            return _entries.ContainsKey(new CollectionKey<K>(key));
+            return _entries.Contains(TKey.Create(key));
         }
 
         /// <summary>
@@ -111,23 +89,12 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public bool delete(K key)
         {
-            var index = _entries.IndexOf(new CollectionKey<K>(key));
-            if (index < 0) return false;
-            _entries.RemoveAt(index);
-            if (_cursors is not null)
-                foreach (var cursor in _cursors)
-                    if (index < cursor.Next) cursor.Next--;
-            return true;
+            return _entries.Delete(TKey.Create(key));
         }
 
-        /// <summary>
-        /// Remove all key-value pairs from Map
-        /// </summary>
         public void clear()
         {
             _entries.Clear();
-            if (_cursors is not null)
-                foreach (var cursor in _cursors) cursor.Next = 0;
         }
 
         // ==================== Iteration Methods ====================
@@ -137,7 +104,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<K> keys()
         {
-            foreach (var entry in Enumerate())
+            foreach (var entry in _entries.Enumerate())
             {
                 yield return entry.Key.Value;
             }
@@ -148,7 +115,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<V> values()
         {
-            foreach (var entry in Enumerate())
+            foreach (var entry in _entries.Enumerate())
             {
                 yield return entry.Value;
             }
@@ -159,7 +126,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerable<(K key, V value)> entries()
         {
-            foreach (var entry in Enumerate())
+            foreach (var entry in _entries.Enumerate())
             {
                 yield return (entry.Key.Value, entry.Value);
             }
@@ -168,9 +135,9 @@ namespace Tsonic.CSharp.Js
         /// <summary>
         /// Execute callback for each key-value pair
         /// </summary>
-        public void forEach(Action<V, K, Map<K, V>> callback)
+        public void forEach(Action<V, K, Map<K, V, TKey>> callback)
         {
-            foreach (var entry in Enumerate())
+            foreach (var entry in _entries.Enumerate())
             {
                 callback(entry.Value, entry.Key.Value, this);
             }
@@ -181,7 +148,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<V, K> callback)
         {
-            foreach (var entry in Enumerate())
+            foreach (var entry in _entries.Enumerate())
             {
                 callback(entry.Value, entry.Key.Value);
             }
@@ -192,7 +159,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public void forEach(Action<V> callback)
         {
-            foreach (var entry in Enumerate())
+            foreach (var entry in _entries.Enumerate())
             {
                 callback(entry.Value);
             }
@@ -205,7 +172,7 @@ namespace Tsonic.CSharp.Js
         /// </summary>
         public IEnumerator<(K key, V value)> GetEnumerator()
         {
-            foreach (var entry in Enumerate())
+            foreach (var entry in _entries.Enumerate())
             {
                 yield return (entry.Key.Value, entry.Value);
             }
@@ -220,12 +187,12 @@ namespace Tsonic.CSharp.Js
 
     public static class Map
     {
-        public static TValue? getValue<TKey, TValue>(Map<TKey, TValue> map, TKey key) where TValue : struct
+        public static TValue? getValue<TKey, TValue, TKeyWitness>(Map<TKey, TValue, TKeyWitness> map, TKey key) where TValue : struct where TKeyWitness : struct, ICollectionKey<TKey, TKeyWitness>
         {
             return map.tryGet(key, out var value) ? value : null;
         }
 
-        public static TValue getOptional<TKey, TValue>(Map<TKey, TValue> map, TKey key)
+        public static TValue getOptional<TKey, TValue, TKeyWitness>(Map<TKey, TValue, TKeyWitness> map, TKey key) where TKeyWitness : struct, ICollectionKey<TKey, TKeyWitness>
         {
             return map.tryGet(key, out var value) ? value : default!;
         }

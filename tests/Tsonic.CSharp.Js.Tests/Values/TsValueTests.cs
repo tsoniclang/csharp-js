@@ -33,7 +33,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ReadDynamicSlot_ReturnsUndefinedForMissingClosedObjectProperty()
         {
-            var value = TsValue.from(new TsObject());
+            var value = TsValue.fromnative(new TsObject());
 
             var missing = value.ReadDynamicSlot("missing");
 
@@ -43,7 +43,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ReadDynamicSlot_AndWriteDynamicSlot_UseClosedObjectProperties()
         {
-            var value = TsValue.from(new TsObject());
+            var value = TsValue.fromnative(new TsObject());
 
             var written = value.WriteDynamicSlot("name", "tsonic");
             var read = value.ReadDynamicSlot("name");
@@ -55,7 +55,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ReadDynamicSlot_ReturnsOneNativeAbsenceForNullUndefinedAndMissing()
         {
-            var value = TsValue.from(new TsObject());
+            var value = TsValue.fromnative(new TsObject());
 
             value.WriteDynamicSlot("nullValue", null);
             value.WriteDynamicSlot("undefinedValue", TsValue.undefined());
@@ -73,7 +73,7 @@ namespace Tsonic.CSharp.Js.Tests
                 TsValue.undefined().ReadDynamicSlotOptional("name").unwrap());
             Assert.Equal(
                 "Ada",
-                TsValue.from(new TsObject(new Dictionary<string, object?>
+                TsValue.fromnative(new TsObject(new Dictionary<string, object?>
                 {
                     ["name"] = "Ada"
                 })).ReadDynamicSlotOptional("name").unwrap());
@@ -82,7 +82,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ElementAccess_UsesClosedPropertyKeyConversion()
         {
-            var value = TsValue.from(new TsObject());
+            var value = TsValue.fromnative(new TsObject());
 
             value.WriteDynamicElement(42, "answer");
 
@@ -92,7 +92,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ElementAccess_UsesOneNativeAbsencePropertyKey()
         {
-            var value = TsValue.from(new TsObject());
+            var value = TsValue.fromnative(new TsObject());
 
             value.WriteDynamicElement(null, "null-key");
             value.WriteDynamicElement(TsValue.undefined().unwrap(), "undefined-key");
@@ -119,7 +119,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ArrayElementAccess_ExtendsWithUndefinedSlots()
         {
-            var value = TsValue.from(new TsArray());
+            var value = TsValue.fromnative(new TsArray());
 
             value.WriteDynamicElement(2, "third");
 
@@ -133,7 +133,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var array = new JSArray<object?>(new object?[] { TsValue.undefined().unwrap(), TsValue.undefined().unwrap(), TsValue.undefined().unwrap() });
             array[1] = "middle";
-            var value = TsValue.from(array);
+            var value = TsValue.fromnative(array);
 
             Assert.Equal(3, value.ReadDynamicSlot("length").unwrap());
             Assert.Same(TsValue.undefined().unwrap(), value.ReadDynamicElement(0).unwrap());
@@ -150,7 +150,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void JsArrayElementWrite_RejectsIncompatibleClosedElementCarrier()
         {
-            var value = TsValue.from(new JSArray<int>());
+            var value = TsValue.fromnative(new JSArray<int>());
 
             Assert.Throws<TypeError>(() => value.WriteDynamicElement(0, "not-an-int"));
         }
@@ -158,7 +158,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void InvokeDynamic_UsesClosedFunctionCarrier()
         {
-            var function = TsValue.from(new TsFunction(args => TsValue.from((int)args[0].unwrap()! + 1)));
+            var function = TsValue.fromnative(new TsFunction(args => TsValue.fromnative((int)args[0].unwrap()! + 1)));
 
             var result = function.InvokeDynamic(41);
 
@@ -168,9 +168,9 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ReadDynamicSlot_ThenInvokeDynamic_UsesClosedObjectFunctionProperty()
         {
-            var target = TsValue.from(new TsObject(new Dictionary<string, object?>
+            var target = TsValue.fromnative(new TsObject(new Dictionary<string, object?>
             {
-                ["create"] = new TsFunction(args => TsValue.from("created:" + (string)args[0].unwrap()!))
+                ["create"] = new TsFunction(args => TsValue.fromnative("created:" + (string)args[0].unwrap()!))
             }));
 
             var result = target.ReadDynamicSlot("create").InvokeDynamic("Ada");
@@ -182,12 +182,12 @@ namespace Tsonic.CSharp.Js.Tests
         public void MemberInvocation_PreservesReceiverAndEvaluationOrder()
         {
             var events = new List<string>();
-            var target = TsValue.from(new TsObject());
+            var target = TsValue.fromnative(new TsObject());
             target.WriteDynamicSlot("name", "Ada");
             target.WriteDynamicSlot("greet", new TsFunction((receiver, arguments) =>
             {
                 events.Add("call");
-                return TsValue.from(
+                return TsValue.fromnative(
                     (string)receiver.ReadDynamicSlot("name").unwrap()! +
                     (string)arguments[0].unwrap()!);
             }));
@@ -230,7 +230,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.False(keyEvaluated);
             Assert.False(argumentsEvaluated);
 
-            var target = TsValue.from(new TsObject());
+            var target = TsValue.fromnative(new TsObject());
             var callResult = target.InvokeDynamicSlot(
                 "missing",
                 optionalReceiver: false,
@@ -263,9 +263,9 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ConstructDynamic_UsesClosedConstructorCarrier()
         {
-            var function = TsValue.from(new TsFunction(
-                args => TsValue.from(args.Count),
-                args => TsValue.from(new TsObject(new Dictionary<string, object?>
+            var function = TsValue.fromnative(new TsFunction(
+                args => TsValue.fromnative(args.Count),
+                args => TsValue.fromnative(new TsObject(new Dictionary<string, object?>
                 {
                     ["count"] = args.Count
                 }))));
@@ -278,7 +278,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void MissingMethodCall_ThrowsTypeErrorWithoutReflection()
         {
-            var target = TsValue.from(new TsObject());
+            var target = TsValue.fromnative(new TsObject());
 
             var missing = target.ReadDynamicSlot("missing");
 
@@ -288,7 +288,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void UnsupportedClrObject_IsRejectedBeforeCarrierCreation()
         {
-            Assert.Throws<System.NotSupportedException>(() => TsValue.from(new { name = "not-closed" }));
+            Assert.Throws<System.NotSupportedException>(() => TsValue.fromnative(new { name = "not-closed" }));
         }
 
         [Fact]
@@ -363,7 +363,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void ApplyDynamicVoid_EvaluatesOperandAndReturnsUndefined()
         {
-            var value = TsValue.ApplyDynamicVoid(TsValue.from(42));
+            var value = TsValue.ApplyDynamicVoid(TsValue.fromnative(42));
 
             Assert.Same(TsValue.undefined().unwrap(), value.unwrap());
         }
@@ -396,7 +396,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void IsDynamicInstanceOf_UsesTheClosedWrappedCarrier()
         {
             var exception = new FormatException("invalid");
-            var value = TsValue.from(exception);
+            var value = TsValue.fromnative(exception);
 
             Assert.True(TsValue.IsDynamicInstanceOf<FormatException>(value));
             Assert.True(TsValue.IsDynamicInstanceOf<Exception>(value));
@@ -424,8 +424,8 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void CastDynamic_ReturnsClosedTypedCarrierValue()
         {
-            Assert.Equal(42, TsValue.CastDynamic<int>(TsValue.from(42)));
-            Assert.Equal("Ada", TsValue.CastDynamic<string>(TsValue.from("Ada")));
+            Assert.Equal(42, TsValue.CastDynamic<int>(TsValue.fromnative(42)));
+            Assert.Equal("Ada", TsValue.CastDynamic<string>(TsValue.fromnative("Ada")));
         }
 
         [Fact]
@@ -438,7 +438,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void CastDynamic_RejectsMismatchedClosedCarrierDeterministically()
         {
-            Assert.Throws<TypeError>(() => TsValue.CastDynamic<int>(TsValue.from("42")));
+            Assert.Throws<TypeError>(() => TsValue.CastDynamic<int>(TsValue.fromnative("42")));
         }
     }
 }

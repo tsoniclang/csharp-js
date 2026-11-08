@@ -119,7 +119,7 @@ public partial class JSArray<T>
     {
         if (typeof(T) == typeof(TsValue))
         {
-            var closed = TsValue.from(value);
+            var closed = TsValue.fromnative(value);
             element = System.Runtime.CompilerServices.Unsafe.As<TsValue, T>(ref closed);
             return true;
         }

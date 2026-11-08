@@ -185,7 +185,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void keys_values_entries_UseClosedTsObjectCarrier()
         {
-            var value = TsValue.from(new TsObject(new Dictionary<string, object?>
+            var value = TsValue.fromnative(new TsObject(new Dictionary<string, object?>
             {
                 ["name"] = "tsonic",
                 ["missing"] = TsValue.undefined().unwrap(),
@@ -209,10 +209,10 @@ namespace Tsonic.CSharp.Js.Tests
             array.WriteDynamicElement(2, "third");
             array.WriteDynamicElement(1, TsValue.undefined().unwrap());
 
-            Assert.Equal(new[] { "1", "2" }, JsObjectStatics.keys(TsValue.from(array)));
-            Assert.Equal(new object?[] { TsValue.undefined().unwrap(), "third" }, JsObjectStatics.values(TsValue.from(array)));
+            Assert.Equal(new[] { "1", "2" }, JsObjectStatics.keys(TsValue.fromnative(array)));
+            Assert.Equal(new object?[] { TsValue.undefined().unwrap(), "third" }, JsObjectStatics.values(TsValue.fromnative(array)));
 
-            var entries = JsObjectStatics.entries(TsValue.from(array));
+            var entries = JsObjectStatics.entries(TsValue.fromnative(array));
 
             Assert.Equal(("1", (object?)TsValue.undefined().unwrap()), entries[0]);
             Assert.Equal(("2", (object?)"third"), entries[1]);
@@ -264,7 +264,7 @@ namespace Tsonic.CSharp.Js.Tests
         public void assign_CopiesFromClosedTsObjectAndSkipsUndefinedSources()
         {
             var target = new JSObject();
-            var source = TsValue.from(new TsObject(new Dictionary<string, object?>
+            var source = TsValue.fromnative(new TsObject(new Dictionary<string, object?>
             {
                 ["name"] = "closed",
                 ["nil"] = null,

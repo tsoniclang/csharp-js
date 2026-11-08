@@ -11,7 +11,7 @@ namespace Tsonic.CSharp.Js.Tests
         {
             var runtimeUnion = Union<int, string>.From2("ready");
 
-            var value = TsValue.from(runtimeUnion);
+            var value = TsValue.fromnative(runtimeUnion);
 
             var union = Assert.IsType<Union<int, string>>(value.unwrap());
             Assert.True(union.Is2());
@@ -25,7 +25,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void RuntimeUnionBoxing_PreservesAbsenceThroughDynamicOperators()
         {
-            var value = TsValue.from(TsUnion.From(1, 2, TsValue.undefined().unwrap()));
+            var value = TsValue.fromnative(TsUnion.From(1, 2, TsValue.undefined().unwrap()));
 
             var union = Assert.IsType<TsUnion>(value.unwrap());
 
@@ -40,14 +40,14 @@ namespace Tsonic.CSharp.Js.Tests
         public void RuntimeUnionBoxing_RejectsOpenClrObjectArm()
         {
             Assert.Throws<NotSupportedException>(() =>
-                TsValue.from(Union<int, OpenClrObject>.From2(new OpenClrObject()))
+                TsValue.fromnative(Union<int, OpenClrObject>.From2(new OpenClrObject()))
             );
         }
 
         [Fact]
         public void CastDynamic_ConvertsClosedTsUnionCarrierToRuntimeUnion()
         {
-            var value = TsValue.from(TsUnion.From(2, 2, "ready"));
+            var value = TsValue.fromnative(TsUnion.From(2, 2, "ready"));
 
             var union = TsUnion.CastDynamic<int, string>(value);
 
@@ -58,7 +58,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void CastDynamic_PreservesClosedHigherArityUnionArm()
         {
-            var value = TsValue.from(TsUnion.From(8, 8, "last"));
+            var value = TsValue.fromnative(TsUnion.From(8, 8, "last"));
 
             var union = TsUnion.CastDynamic<int, bool, double, string, byte, short, long, string>(value);
 
@@ -78,7 +78,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void CastDynamic_RejectsMismatchedClosedUnionArmCount()
         {
-            var value = TsValue.from(TsUnion.From(3, 3, "extra"));
+            var value = TsValue.fromnative(TsUnion.From(3, 3, "extra"));
 
             Assert.Throws<TypeError>(() => TsUnion.CastDynamic<int, string>(value));
         }
@@ -86,7 +86,7 @@ namespace Tsonic.CSharp.Js.Tests
         [Fact]
         public void CastDynamic_RejectsMismatchedClosedUnionArmCarrier()
         {
-            var value = TsValue.from(TsUnion.From(2, 2, 42));
+            var value = TsValue.fromnative(TsUnion.From(2, 2, 42));
 
             Assert.Throws<TypeError>(() => TsUnion.CastDynamic<bool, string>(value));
         }

@@ -49,9 +49,9 @@ public sealed class ReplacementCallbackArguments
         int offset,
         string input) =>
         new([
-            TsValue.from(match),
-            TsValue.from(offset),
-            TsValue.from(input),
+            TsValue.fromnative(match),
+            TsValue.fromnative(offset),
+            TsValue.fromnative(input),
         ]);
 
     internal static ReplacementCallbackArguments FromRegExpMatch(
@@ -62,19 +62,19 @@ public sealed class ReplacementCallbackArguments
         var values = new TsValue[
             match.length + 2 + (hasGroups ? 1 : 0)
         ];
-        values[0] = TsValue.from(match.value);
+        values[0] = TsValue.fromnative(match.value);
         for (var index = 1; index < match.length; index += 1)
         {
             var capture = match[index];
             values[index] = capture is null
                 ? TsValue.undefined()
-                : TsValue.from(capture);
+                : TsValue.fromnative(capture);
         }
-        values[match.length] = TsValue.from(match.index);
-        values[match.length + 1] = TsValue.from(input);
+        values[match.length] = TsValue.fromnative(match.index);
+        values[match.length + 1] = TsValue.fromnative(input);
         if (hasGroups)
         {
-            values[match.length + 2] = TsValue.from(match.groups);
+            values[match.length + 2] = TsValue.fromnative(match.groups);
         }
         return new ReplacementCallbackArguments(values);
     }

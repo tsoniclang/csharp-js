@@ -14,7 +14,7 @@ public sealed class NativeCollectionKeyEqualityTests
         var unsigned = Union<int, uint>.From2(1U);
         Assert.False(signed.Equals(unsigned));
 
-        var values = new Set<Union<int, uint>>();
+        var values = new Set<Union<int, uint>, NativeCollectionKey<Union<int, uint>>>();
         values.add(signed).add(unsigned);
         Assert.Equal(1, values.size);
         Assert.True(values.has(unsigned));
@@ -22,7 +22,7 @@ public sealed class NativeCollectionKeyEqualityTests
         Assert.True(values.delete(unsigned));
         Assert.Equal(0, values.size);
 
-        var mapping = new Map<Union<int, uint>, int>();
+        var mapping = new Map<Union<int, uint>, int, NativeCollectionKey<Union<int, uint>>>();
         mapping.set(signed, 10).set(unsigned, 20);
         Assert.Equal(1, mapping.size);
         Assert.True(mapping.tryGet(signed, out var result));
@@ -53,7 +53,7 @@ public sealed class NativeCollectionKeyEqualityTests
         };
         foreach (var (left, right) in pairs)
         {
-            var values = new Set<object>();
+            var values = new Set<object, NativeCollectionKey<object>>();
             values.add(left).add(right);
             Assert.Equal(1, values.size);
             Assert.True(values.has(left));
@@ -78,7 +78,7 @@ public sealed class NativeCollectionKeyEqualityTests
         };
         foreach (var (left, right) in pairs)
         {
-            var values = new Set<object>();
+            var values = new Set<object, NativeCollectionKey<object>>();
             values.add(left).add(right);
             Assert.Equal(2, values.size);
             Assert.True(values.has(left));
@@ -92,5 +92,24 @@ public sealed class NativeCollectionKeyEqualityTests
         var values = new JSArray<Union<double, float>>(new[] { Union<double, float>.From1(double.NaN) });
         Assert.True(values.includes(Union<double, float>.From2(float.NaN)));
         Assert.Equal(-1, values.indexOf(Union<double, float>.From2(float.NaN)));
+    }
+
+    [Fact]
+    public void RawNativeKeyEquivalenceAndHashDoNotMixSourceCategoryRules()
+    {
+        object[] values = [7L, 7d, TsValue.fromsource<long, SourceNumberCategory<long>>(7), TsValue.fromsource<long, SourceBigIntCategory<long>>(7)];
+        foreach (var left in values)
+            foreach (var right in values)
+            {
+                var first = NativeCollectionKey<object>.Create(left);
+                var second = NativeCollectionKey<object>.Create(right);
+                Assert.True(first.Equals(second));
+                Assert.Equal(first.GetHashCode(), second.GetHashCode());
+            }
+        var keys = new Set<object, NativeCollectionKey<object>>(values);
+        Assert.Equal(1, keys.size);
+        var array = JSArray<object>.of(values);
+        Assert.Equal(0, array.indexOf(values[3]));
+        Assert.Equal(3, array.lastIndexOf(values[0]));
     }
 }

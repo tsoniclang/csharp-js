@@ -236,7 +236,7 @@ namespace Tsonic.CSharp.Js
             var start = normalizeStart(fromIndex, array.Count);
             for (var index = start; index < array.Count; index++)
             {
-                if (JSKeyEquality.sameValueZero(array[index], searchElement))
+                if (JSKeyEquality.NativeSameValueZero(array[index], searchElement))
                 {
                     return true;
                 }
@@ -254,7 +254,7 @@ namespace Tsonic.CSharp.Js
             var start = normalizeStart(fromIndex, array.Count);
             for (var index = start; index < array.Count; index++)
             {
-                if (JSKeyEquality.strictEquals(array[index], searchElement))
+                if (JSKeyEquality.NativeStrictEquals(array[index], searchElement))
                 {
                     return index;
                 }
@@ -280,7 +280,7 @@ namespace Tsonic.CSharp.Js
             }
             for (var index = start; index >= 0; index--)
             {
-                if (JSKeyEquality.strictEquals(array[index], searchElement))
+                if (JSKeyEquality.NativeStrictEquals(array[index], searchElement))
                 {
                     return index;
                 }

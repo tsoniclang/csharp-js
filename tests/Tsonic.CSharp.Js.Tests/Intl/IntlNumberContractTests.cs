@@ -11,7 +11,7 @@ namespace Tsonic.CSharp.Js.Tests
         public IntlNumberContractTests(ITestOutputHelper output) => _output = output;
 
         private static IntlNumberFormat Create(params object?[] options) =>
-            new(TsValue.from("en"), TsValue.from(JSON.createObject(options)));
+            new(TsValue.fromnative("en"), TsValue.fromnative(JSON.createObject(options)));
 
         [Fact]
         public void DecimalIntegerOptionsKeepTheirExactNativeBoundsAndFraction()
@@ -69,25 +69,25 @@ namespace Tsonic.CSharp.Js.Tests
             object payload = 1.9999999999999999999999999999m;
             var options = new System.Collections.Generic.Dictionary<string, TsValue>
             {
-                ["minimumIntegerDigits"] = TsValue.from(payload),
+                ["minimumIntegerDigits"] = TsValue.fromnative(payload),
             };
-            var selected = TsValue.from(options);
+            var selected = TsValue.fromnative(options);
             Assert.Same(options, selected.unwrap());
-            var formatter = new IntlNumberFormat(TsValue.from("en"), selected);
+            var formatter = new IntlNumberFormat(TsValue.fromnative("en"), selected);
             Assert.Equal(1, formatter.resolvedOptions().minimumIntegerDigits);
             Assert.Same(payload, options["minimumIntegerDigits"].unwrap());
             Assert.Same(options, selected.unwrap());
-            options["minimumIntegerDigits"] = TsValue.from(0.9999999999999999999999999999m);
-            Assert.Throws<RangeError>(() => new IntlNumberFormat(TsValue.from("en"), selected));
-            options["minimumIntegerDigits"] = TsValue.from((object?)null);
-            Assert.Equal(1, new IntlNumberFormat(TsValue.from("en"), selected).resolvedOptions().minimumIntegerDigits);
+            options["minimumIntegerDigits"] = TsValue.fromnative(0.9999999999999999999999999999m);
+            Assert.Throws<RangeError>(() => new IntlNumberFormat(TsValue.fromnative("en"), selected));
+            options["minimumIntegerDigits"] = TsValue.fromnative((object?)null);
+            Assert.Equal(1, new IntlNumberFormat(TsValue.fromnative("en"), selected).resolvedOptions().minimumIntegerDigits);
         }
 
         [Fact]
         public void ClosedUnionOptionsReadTheirPayloadWithoutReplacingTheStoredCarrier()
         {
-            var grouping = TsValue.from(Union<bool, string>.From1(false));
-            var digits = TsValue.from(Union<int, string>.From1(3));
+            var grouping = TsValue.fromnative(Union<bool, string>.From1(false));
+            var digits = TsValue.fromnative(Union<int, string>.From1(3));
             var options = new System.Collections.Generic.Dictionary<string, TsValue>
             {
                 ["useGrouping"] = grouping,
@@ -95,48 +95,48 @@ namespace Tsonic.CSharp.Js.Tests
             };
             var groupingCarrier = grouping.unwrap();
             var digitsCarrier = digits.unwrap();
-            var locale = TsValue.from(Union<string, JSArray<string>>.From1("en"));
-            var formatter = new IntlNumberFormat(locale, TsValue.from(options));
+            var locale = TsValue.fromnative(Union<string, JSArray<string>>.From1("en"));
+            var formatter = new IntlNumberFormat(locale, TsValue.fromnative(options));
             Assert.Equal("007", formatter.formatInteger(7L));
             Assert.False(formatter.resolvedOptions().useGrouping.As1());
             Assert.Same(groupingCarrier, options["useGrouping"].unwrap());
             Assert.Same(digitsCarrier, options["minimumIntegerDigits"].unwrap());
-            options["useGrouping"] = TsValue.from(Union<bool, string>.From2("always"));
-            Assert.Equal("1,234", new IntlNumberFormat(locale, TsValue.from(options)).formatInteger(1234L));
+            options["useGrouping"] = TsValue.fromnative(Union<bool, string>.From2("always"));
+            Assert.Equal("1,234", new IntlNumberFormat(locale, TsValue.fromnative(options)).formatInteger(1234L));
             Assert.IsType<Union<bool, string>>(options["useGrouping"].unwrap());
         }
 
         [Fact]
         public void ClosedUnionStringAndBooleanOptionsKeepNativeDomainsAndRefusals()
         {
-            var formatter = Create("style", TsValue.from(Union<string, bool>.From1("currency")),
-                "currency", TsValue.from(Union<string, bool>.From1("USD")));
+            var formatter = Create("style", TsValue.fromnative(Union<string, bool>.From1("currency")),
+                "currency", TsValue.fromnative(Union<string, bool>.From1("USD")));
             Assert.Equal("USD", formatter.resolvedOptions().currency);
-            var options = TsValue.CreateDynamicObject("numeric", TsValue.from(Union<bool, string>.From1(true)));
-            var collator = new IntlCollator(TsValue.from("en"), options);
+            var options = TsValue.CreateDynamicObject("numeric", TsValue.fromnative(Union<bool, string>.From1(true)));
+            var collator = new IntlCollator(TsValue.fromnative("en"), options);
             Assert.True(collator.resolvedOptions().numeric);
             Assert.True(collator.compare("2", "10") < 0);
             Assert.IsType<Union<bool, string>>(options.ReadDynamicSlot("numeric").unwrap());
-            Assert.Throws<TypeError>(() => Create("currency", TsValue.from(Union<string, bool>.From2(true))));
-            Assert.Throws<TypeError>(() => Create("minimumIntegerDigits", TsValue.from(Union<int, string>.From2("2"))));
-            Assert.Throws<RangeError>(() => Create("useGrouping", TsValue.from(Union<bool, string>.From2("invalid"))));
-            Assert.Throws<RangeError>(() => Create("minimumIntegerDigits", TsValue.from(Union<int, string>.From1(22))));
-            Assert.Throws<System.InvalidOperationException>(() => TsValue.from(default(Union<bool, string>)));
+            Assert.Throws<TypeError>(() => Create("currency", TsValue.fromnative(Union<string, bool>.From2(true))));
+            Assert.Throws<TypeError>(() => Create("minimumIntegerDigits", TsValue.fromnative(Union<int, string>.From2("2"))));
+            Assert.Throws<RangeError>(() => Create("useGrouping", TsValue.fromnative(Union<bool, string>.From2("invalid"))));
+            Assert.Throws<RangeError>(() => Create("minimumIntegerDigits", TsValue.fromnative(Union<int, string>.From1(22))));
+            Assert.Throws<System.InvalidOperationException>(() => TsValue.fromnative(default(Union<bool, string>)));
             Assert.Null(Create("maximumSignificantDigits", TsValue.undefined()).resolvedOptions().maximumSignificantDigits);
         }
 
         [Fact]
         public void DecimalIntegerOptionProjectionAddsNoAllocationToEquivalentNativeOptions()
         {
-            var native = TsValue.from(new System.Collections.Generic.Dictionary<string, TsValue>
+            var native = TsValue.fromnative(new System.Collections.Generic.Dictionary<string, TsValue>
             {
-                ["minimumIntegerDigits"] = TsValue.from(5),
+                ["minimumIntegerDigits"] = TsValue.fromnative(5),
             });
-            var fraction = TsValue.from(new System.Collections.Generic.Dictionary<string, TsValue>
+            var fraction = TsValue.fromnative(new System.Collections.Generic.Dictionary<string, TsValue>
             {
-                ["minimumIntegerDigits"] = TsValue.from(5.9m),
+                ["minimumIntegerDigits"] = TsValue.fromnative(5.9m),
             });
-            var locale = TsValue.from("en");
+            var locale = TsValue.fromnative("en");
             IntlNumberFormat? latest = null;
             for (var iteration = 0; iteration < 10000; iteration++)
             {
@@ -236,7 +236,7 @@ namespace Tsonic.CSharp.Js.Tests
             Assert.Equal("18,446,744,073,709,551,615", formatter.formatInteger(ulong.MaxValue));
             Assert.Equal("9,007,199,254,740,993", string.Concat(System.Linq.Enumerable.Select(formatter.formatToPartsInteger(9007199254740993UL), part => part.value)));
             Assert.Equal("9,007,199,254,740,993", Intl.formatInteger(9007199254740993L));
-            Assert.Equal("9007199254740993", Intl.formatInteger(9007199254740993UL, TsValue.from("en-US"), TsValue.from(JSON.createObject("useGrouping", false))));
+            Assert.Equal("9007199254740993", Intl.formatInteger(9007199254740993UL, TsValue.fromnative("en-US"), TsValue.fromnative(JSON.createObject("useGrouping", false))));
             Assert.Equal("900,719,925,474,099,300%", Create("style", "percent").formatInteger(9007199254740993L));
             var plain = Create("useGrouping", false);
             Assert.Equal("-170141183460469231731687303715884105728", plain.formatInteger(System.Int128.MinValue));

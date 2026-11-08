@@ -339,7 +339,7 @@ namespace Tsonic.CSharp.Js
             int start = NormalizeForwardSearchStart(fromIndex);
             for (int i = start; i < _values.Count; i++)
             {
-                if (IsPresent(i) && JSKeyEquality.strictEquals(_values[i], searchElement))
+                if (IsPresent(i) && JSKeyEquality.NativeStrictEquals(_values[i], searchElement))
                 {
                     return i;
                 }
@@ -361,7 +361,7 @@ namespace Tsonic.CSharp.Js
 
             for (int i = startIndex; i >= 0; i--)
             {
-                if (IsPresent(i) && JSKeyEquality.strictEquals(_values[i], searchElement))
+                if (IsPresent(i) && JSKeyEquality.NativeStrictEquals(_values[i], searchElement))
                 {
                     return i;
                 }
@@ -377,9 +377,7 @@ namespace Tsonic.CSharp.Js
             int start = NormalizeForwardSearchStart(fromIndex);
             for (int i = start; i < _values.Count; i++)
             {
-                if (IsPresent(i)
-                    ? JSKeyEquality.sameValueZero(_values[i], searchElement)
-                    : JSKeyEquality.sameValueZeroUndefined(searchElement))
+                if (IsPresent(i) && JSKeyEquality.NativeSameValueZero(_values[i], searchElement))
                 {
                     return true;
                 }

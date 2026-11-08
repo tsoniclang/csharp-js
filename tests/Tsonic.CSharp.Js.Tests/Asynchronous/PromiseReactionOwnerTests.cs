@@ -63,7 +63,7 @@ public sealed class PromiseReactionOwnerTests
             var second = TaskCompletion.Create((_, reject) => rejectSecond = reject);
             _ = PromiseRuntime<int>.Then(first, _ => seen.Add("first"));
             _ = PromiseRuntime.Catch(second, _ => seen.Add("second"));
-            rejectSecond!(TsValue.from("reason"));
+            rejectSecond!(TsValue.fromnative("reason"));
             resolveFirst!(42);
             Assert.Empty(seen);
             seen.Add("entry");

@@ -25,7 +25,7 @@ public sealed class NativeNumericCollectionTests
     [Fact]
     public void BoxedNativeKeysCompareExactValuesWithoutFloatingRounding()
     {
-        var values = new Set<object>();
+        var values = new Set<object, NativeCollectionKey<object>>();
         var inputs = new object[] { 9007199254740992L, 9007199254740993L, ulong.MaxValue, Int128.MinValue,
             UInt128.MaxValue, BigInteger.One << 200, 1, 1L, 1.0, -0.0, double.NaN };
         foreach (var input in inputs) values.add(input);
